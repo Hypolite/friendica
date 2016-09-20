@@ -152,7 +152,7 @@ function cron_run(&$argv, &$argc){
 function cron_expire_and_remove_users() {
 	// expire any expired accounts
 	q("UPDATE user SET `account_expired` = 1 where `account_expired` = 0
-		AND `account_expires_on` != '0000-00-00 00:00:00'
+		AND `account_expires_on` > '1000-01-01 00:00:00'
 		AND `account_expires_on` < UTC_TIMESTAMP() ");
 
 	// delete user and contact records for recently removed accounts
@@ -252,7 +252,7 @@ function cron_poll_contacts($argc, $argv) {
 			$xml = false;
 
 			if($manual_id)
-				$contact['last-update'] = '0000-00-00 00:00:00';
+				$contact['last-update'] = '1000-01-01 00:00:00';
 
 			if(in_array($contact['network'], array(NETWORK_DFRN, NETWORK_ZOT, NETWORK_OSTATUS)))
 				$contact['priority'] = 2;

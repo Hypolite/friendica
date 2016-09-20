@@ -151,7 +151,7 @@ function mark_for_death($contact) {
 	if($contact['archive'])
 		return;
 
-	if($contact['term-date'] == '0000-00-00 00:00:00') {
+	if($contact['term-date'] <= '1000-01-01 00:00:00') {
 		q("UPDATE `contact` SET `term-date` = '%s' WHERE `id` = %d",
 				dbesc(datetime_convert()),
 				intval($contact['id'])
@@ -187,7 +187,7 @@ if(! function_exists('unmark_for_death')) {
 function unmark_for_death($contact) {
 	// It's a miracle. Our dead contact has inexplicably come back to life.
 	q("UPDATE `contact` SET `term-date` = '%s' WHERE `id` = %d",
-		dbesc('0000-00-00 00:00:00'),
+		dbesc('1000-01-01 00:00:00'),
 		intval($contact['id'])
 	);
 }}

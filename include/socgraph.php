@@ -81,7 +81,7 @@ function poco_load($cid,$uid = 0,$zcid = 0,$url = null) {
 		$connect_url = '';
 		$name = '';
 		$network = '';
-		$updated = '0000-00-00 00:00:00';
+		$updated = '1000-01-01 00:00:00';
 		$location = '';
 		$about = '';
 		$keywords = '';
@@ -227,7 +227,7 @@ function poco_check($profile_url, $name, $network, $profile_photo, $about, $loca
 		if (($network == "") AND ($x[0]["network"] != NETWORK_STATUSNET))
 			$network = $x[0]["network"];
 
-		if ($updated == "0000-00-00 00:00:00")
+		if ($updated <= "1000-01-01 00:00:00")
 			$updated = $x[0]["updated"];
 
 		$created = $x[0]["created"];
@@ -237,7 +237,7 @@ function poco_check($profile_url, $name, $network, $profile_photo, $about, $loca
 		$alias =  $x[0]["alias"];
 		$notify =  $x[0]["notify"];
 	} else {
-		$created = "0000-00-00 00:00:00";
+		$created = "1000-01-01 00:00:00";
 		$server_url = "";
 
 		$urlparts = parse_url($profile_url);
@@ -396,7 +396,7 @@ function poco_last_updated($profile, $force = false) {
 	$gcontacts = q("SELECT * FROM `gcontact` WHERE `nurl` = '%s'",
 			dbesc(normalise_link($profile)));
 
-	if ($gcontacts[0]["created"] == "0000-00-00 00:00:00")
+	if ($gcontacts[0]["created"] <= "1000-01-01 00:00:00")
 		q("UPDATE `gcontact` SET `created` = '%s' WHERE `nurl` = '%s'",
 			dbesc(datetime_convert()), dbesc(normalise_link($profile)));
 
@@ -595,7 +595,7 @@ function poco_last_updated($profile, $force = false) {
 	// Maybe there aren't any entries. Then check if it is a valid feed
 	if ($last_updated == "")
 		if ($xpath->query('/atom:feed')->length > 0)
-			$last_updated = "0000-00-00 00:00:00";
+			$last_updated = "1000-01-01 00:00:00";
 
 	q("UPDATE `gcontact` SET `updated` = '%s', `last_contact` = '%s' WHERE `nurl` = '%s'",
 		dbesc($last_updated), dbesc(datetime_convert()), dbesc(normalise_link($profile)));
@@ -668,7 +668,7 @@ function poco_check_server($server_url, $network = "", $force = false) {
 	$servers = q("SELECT * FROM `gserver` WHERE `nurl` = '%s'", dbesc(normalise_link($server_url)));
 	if ($servers) {
 
-		if ($servers[0]["created"] == "0000-00-00 00:00:00")
+		if ($servers[0]["created"] <= "1000-01-01 00:00:00")
 			q("UPDATE `gserver` SET `created` = '%s' WHERE `nurl` = '%s'",
 				dbesc(datetime_convert()), dbesc(normalise_link($server_url)));
 
@@ -699,8 +699,8 @@ function poco_check_server($server_url, $network = "", $force = false) {
 		$info = "";
 		$register_policy = -1;
 
-		$last_contact = "0000-00-00 00:00:00";
-		$last_failure = "0000-00-00 00:00:00";
+		$last_contact = "1000-01-01 00:00:00";
+		$last_failure = "1000-01-01 00:00:00";
 	}
 	logger("Server ".$server_url." is outdated or unknown. Start discovery. Force: ".$force." Created: ".$servers[0]["created"]." Failure: ".$last_failure." Contact: ".$last_contact, LOGGER_DEBUG);
 
@@ -1088,7 +1088,7 @@ function suggestion_query($uid, $start = 0, $limit = 80) {
 		where uid = %d and not gcontact.nurl in ( select nurl from contact where uid = %d )
 		AND NOT `gcontact`.`name` IN (SELECT `name` FROM `contact` WHERE `uid` = %d)
 		AND NOT `gcontact`.`id` IN (SELECT `gcid` FROM `gcign` WHERE `uid` = %d)
-		AND `gcontact`.`updated` != '0000-00-00 00:00:00'
+		AND `gcontact`.`updated` > '1000-01-01 00:00:00'
 		AND `gcontact`.`last_contact` >= `gcontact`.`last_failure`
 		AND `gcontact`.`network` IN (%s)
 		GROUP BY `glink`.`gcid` ORDER BY `gcontact`.`updated` DESC,`total` DESC LIMIT %d, %d",
@@ -1109,7 +1109,7 @@ function suggestion_query($uid, $start = 0, $limit = 80) {
 		WHERE `glink`.`uid` = 0 AND `glink`.`cid` = 0 AND `glink`.`zcid` = 0 AND NOT `gcontact`.`nurl` IN (SELECT `nurl` FROM `contact` WHERE `uid` = %d)
 		AND NOT `gcontact`.`name` IN (SELECT `name` FROM `contact` WHERE `uid` = %d)
 		AND NOT `gcontact`.`id` IN (SELECT `gcid` FROM `gcign` WHERE `uid` = %d)
-		AND `gcontact`.`updated` != '0000-00-00 00:00:00'
+		AND `gcontact`.`updated` > '1000-01-01 00:00:00'
 		AND `gcontact`.`last_contact` >= `gcontact`.`last_failure`
 		AND `gcontact`.`network` IN (%s)
 		ORDER BY rand() LIMIT %d, %d",
@@ -1325,7 +1325,7 @@ function poco_discover_server($data, $default_generation = 0) {
 		$connect_url = '';
 		$name = '';
 		$network = '';
-		$updated = '0000-00-00 00:00:00';
+		$updated = '1000-01-01 00:00:00';
 		$location = '';
 		$about = '';
 		$keywords = '';

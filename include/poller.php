@@ -69,7 +69,7 @@ function poller_run(&$argv, &$argc){
 
 	$starttime = time();
 
-	while ($r = q("SELECT * FROM `workerqueue` WHERE `executed` = '0000-00-00 00:00:00' ORDER BY `priority`, `created` LIMIT 1")) {
+	while ($r = q("SELECT * FROM `workerqueue` WHERE `executed` <= '1000-01-01 00:00:00' ORDER BY `priority`, `created` LIMIT 1")) {
 
 		// Constantly check the number of parallel database processes
 		if ($a->max_processes_reached())
@@ -83,7 +83,7 @@ function poller_run(&$argv, &$argc){
 		if (poller_too_much_workers())
 			return;
 
-		q("UPDATE `workerqueue` SET `executed` = '%s', `pid` = %d WHERE `id` = %d AND `executed` = '0000-00-00 00:00:00'",
+		q("UPDATE `workerqueue` SET `executed` = '%s', `pid` = %d WHERE `id` = %d AND `executed` <= '1000-01-01 00:00:00'",
 			dbesc(datetime_convert()),
 			intval($mypid),
 			intval($r[0]["id"]));
@@ -225,7 +225,7 @@ function poller_max_connections_reached() {
  *
  */
 function poller_kill_stale_workers() {
-	$r = q("SELECT `pid`, `executed`, `priority`, `parameter` FROM `workerqueue` WHERE `executed` != '0000-00-00 00:00:00'");
+	$r = q("SELECT `pid`, `executed`, `priority`, `parameter` FROM `workerqueue` WHERE `executed` > '1000-01-01 00:00:00'");
 
 	if (!dbm::is_result($r)) {
 		// No processing here needed
@@ -234,7 +234,7 @@ function poller_kill_stale_workers() {
 
 	foreach($r AS $pid)
 		if (!posix_kill($pid["pid"], 0))
-			q("UPDATE `workerqueue` SET `executed` = '0000-00-00 00:00:00', `pid` = 0 WHERE `pid` = %d",
+			q("UPDATE `workerqueue` SET `executed` = '1000-01-01 00:00:00', `pid` = 0 WHERE `pid` = %d",
 				intval($pid["pid"]));
 		else {
 			// Kill long running processes
@@ -259,7 +259,7 @@ function poller_kill_stale_workers() {
 				// We killed the stale process.
 				// To avoid a blocking situation we reschedule the process at the beginning of the queue.
 				// Additionally we are lowering the priority.
-				q("UPDATE `workerqueue` SET `executed` = '0000-00-00 00:00:00', `created` = '%s',
+				q("UPDATE `workerqueue` SET `executed` = '1000-01-01 00:00:00', `created` = '%s',
 							`priority` = %d, `pid` = 0 WHERE `pid` = %d",
 					dbesc(datetime_convert()),
 					intval(PRIORITY_NEGLIGIBLE),
@@ -295,14 +295,14 @@ function poller_too_much_workers() {
 		$slope = $maxworkers / pow($maxsysload, $exponent);
 		$queues = ceil($slope * pow(max(0, $maxsysload - $load), $exponent));
 
-		$s = q("SELECT COUNT(*) AS `total` FROM `workerqueue` WHERE `executed` = '0000-00-00 00:00:00'");
+		$s = q("SELECT COUNT(*) AS `total` FROM `workerqueue` WHERE `executed` <= '1000-01-01 00:00:00'");
 		$entries = $s[0]["total"];
 
 		if (Config::get("system", "worker_fastlane", false) AND ($queues > 0) AND ($entries > 0) AND ($active >= $queues)) {
-			$s = q("SELECT `priority` FROM `workerqueue` WHERE `executed` = '0000-00-00 00:00:00' ORDER BY `priority` LIMIT 1");
+			$s = q("SELECT `priority` FROM `workerqueue` WHERE `executed` <= '1000-01-01 00:00:00' ORDER BY `priority` LIMIT 1");
 			$top_priority = $s[0]["priority"];
 
-			$s = q("SELECT `id` FROM `workerqueue` WHERE `priority` <= %d AND `executed` != '0000-00-00 00:00:00' LIMIT 1",
+			$s = q("SELECT `id` FROM `workerqueue` WHERE `priority` <= %d AND `executed` > '1000-01-01 00:00:00' LIMIT 1",
 				intval($top_priority));
 			$high_running = dbm::is_result($s);
 
