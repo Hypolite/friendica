@@ -1,6 +1,6 @@
 <script>
 	$(function(){
-		
+
 		$("#cnftheme").click(function(){
 			$.colorbox({
 				width: 800,
@@ -22,16 +22,16 @@
 							data[$(this).attr('name')] = $(this).children(":selected").val();
 						});
 						console.log(":)", url, data);
-					
+
 						$.post(url, data, function(data) {
 							if(timer) clearTimeout(timer);
 							NavUpdate();
 							$.colorbox.close();
 						})
-					
+
 						return false;
 					});
-				
+
 				}
 			});
 			return false;
@@ -40,12 +40,11 @@
 </script>
 <div id='adminpage'>
 	<h1>{{$title}} - {{$page}}</h1>
-	
+
 	<form action="{{$baseurl}}/admin/site" method="post">
     <input type='hidden' name='form_security_token' value='{{$form_security_token}}'>
 
 	{{include file="field_input.tpl" field=$sitename}}
-	{{include file="field_input.tpl" field=$hostname}}
 	{{include file="field_input.tpl" field=$sender_email}}
 	{{include file="field_textarea.tpl" field=$banner}}
 	{{include file="field_input.tpl" field=$shortcut_icon}}
@@ -60,7 +59,7 @@
 	{{include file="field_checkbox.tpl" field=$hide_help}}
 	{{include file="field_select.tpl" field=$singleuser}}
 	<div class="submit"><input type="submit" name="page_site" value="{{$submit|escape:'html'}}" /></div>
-	
+
 	<h3>{{$registration}}</h3>
 	{{include file="field_input.tpl" field=$register_text}}
 	{{include file="field_select.tpl" field=$register_policy}}
@@ -75,7 +74,7 @@
 	{{include file="field_input.tpl" field=$maximagelength}}
 	{{include file="field_input.tpl" field=$jpegimagequality}}
 	<div class="submit"><input type="submit" name="page_site" value="{{$submit|escape:'html'}}" /></div>
-	
+
 	<h3>{{$corporate}}</h3>
 	{{include file="field_input.tpl" field=$allowed_sites}}
 	{{include file="field_input.tpl" field=$allowed_email}}
@@ -108,11 +107,11 @@
 	{{include file="field_checkbox.tpl" field=$thread_allow}}
 	{{include file="field_checkbox.tpl" field=$newuser_private}}
 	{{include file="field_checkbox.tpl" field=$enotify_no_content}}
-	{{include file="field_checkbox.tpl" field=$private_addons}}	
+	{{include file="field_checkbox.tpl" field=$private_addons}}
 	{{include file="field_checkbox.tpl" field=$disable_embedded}}
 	{{include file="field_checkbox.tpl" field=$allow_users_remote_self}}
 	<div class="submit"><input type="submit" name="page_site" value="{{$submit|escape:'html'}}" /></div>
-	
+
 	<h3>{{$advanced}}</h3>
 	{{include file="field_select.tpl" field=$rino}}
 	{{include file="field_checkbox.tpl" field=$no_utf}}
@@ -164,7 +163,7 @@
 	<div class="submit"><input type="submit" name="page_site" value="{{$submit|escape:'html'}}" /></div>
 
 	</form>
-	
+
 	{{* separate form for relocate... *}}
 	<form action="{{$baseurl}}/admin/site" method="post">
 	<input type='hidden' name='form_security_token' value='{{$form_security_token}}'>
@@ -173,5 +172,5 @@
 	<input type="hidden" name="page_site" value="{{$submit|escape:'html'}}">
 	<div class="submit"><input type="submit" name="relocate" value="{{$submit|escape:'html'}}" /></div>
 	</form>
-	
+
 </div>

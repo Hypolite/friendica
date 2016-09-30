@@ -2,7 +2,7 @@
 
  /**
  * @file mod/admin.php
- * 
+ *
  * @brief Friendica admin
  */
 
@@ -307,12 +307,12 @@ function admin_page_federation(&$a) {
 				$newVC = $vv['total'];
 				$newVV = $vv['version'];
 				$posDash = strpos($newVV, '-');
-				if($posDash) 
+				if($posDash)
 					$newVV = substr($newVV, 0, $posDash);
 				if(isset($newV[$newVV]))
-					$newV[$newVV] += $newVC; 
+					$newV[$newVV] += $newVC;
 				else
-					$newV[$newVV] = $newVC; 
+					$newV[$newVV] = $newVC;
 			}
 			foreach ($newV as $key => $value) {
 				array_push($newVv, array('total'=>$value, 'version'=>$key));
@@ -475,7 +475,7 @@ function admin_page_summary(&$a) {
 
 /**
  * @brief Process send data from Admin Site Page
- * 
+ *
  * @param App $a
  */
 function admin_page_site_post(&$a) {
@@ -560,7 +560,6 @@ function admin_page_site_post(&$a) {
 	// end relocate
 
 	$sitename 		=	((x($_POST,'sitename'))			? notags(trim($_POST['sitename']))		: '');
-	$hostname 		=	((x($_POST,'hostname'))			? notags(trim($_POST['hostname']))		: '');
 	$sender_email		=	((x($_POST,'sender_email'))		? notags(trim($_POST['sender_email']))		: '');
 	$banner			=	((x($_POST,'banner'))			? trim($_POST['banner'])			: false);
 	$shortcut_icon 		=	((x($_POST,'shortcut_icon'))		? notags(trim($_POST['shortcut_icon']))		: '');
@@ -704,7 +703,6 @@ function admin_page_site_post(&$a) {
 	set_config('system','poco_local_search',$poco_local_search);
 	set_config('system','nodeinfo',$nodeinfo);
 	set_config('config','sitename',$sitename);
-	set_config('config','hostname',$hostname);
 	set_config('config','sender_email', $sender_email);
 	set_config('system','suppress_language',$suppress_language);
 	set_config('system','suppress_tags',$suppress_tags);
@@ -936,7 +934,6 @@ function admin_page_site(&$a) {
 		'$baseurl' => $a->get_baseurl(true),
 		// name, label, value, help string, extra data...
 		'$sitename' 		=> array('sitename', t("Site name"), $a->config['sitename'],''),
-		'$hostname' 		=> array('hostname', t("Host name"), $a->config['hostname'], ""),
 		'$sender_email'		=> array('sender_email', t("Sender Email"), $a->config['sender_email'], t("The email address your server shall use to send notification emails from."), "", "", "email"),
 		'$banner'		=> array('banner', t("Banner/Logo"), $banner, ""),
 		'$shortcut_icon'	=> array('shortcut_icon', t("Shortcut icon"), get_config('system','shortcut_icon'),  t("Link to an icon that will be used for browsers.")),
@@ -1123,7 +1120,7 @@ function admin_page_dbsync(&$a) {
 
 /**
  * @brief Process data send by Users admin page
- * 
+ *
  * @param App $a
  */
 function admin_page_users_post(&$a){
@@ -1277,14 +1274,14 @@ function admin_page_users(&$a){
 
 	/* ordering */
 	$valid_orders = array(
-		'contact.name', 
+		'contact.name',
 		'user.email',
 		'user.register_date',
 		'user.login_date',
 		'lastitem.lastitem_date',
 		'user.page-flags'
 	);
-	
+
 	$order = "contact.name";
 	$order_direction = "+";
 	if (x($_GET,'o')){
@@ -1293,18 +1290,17 @@ function admin_page_users(&$a){
 			$order_direction = "-";
 			$new_order = substr($new_order,1);
 		}
-		
+
 		if (in_array($new_order, $valid_orders)){
 			$order = $new_order;
 		}
 		if (x($_GET,'d')){
 			$new_direction = $_GET['d'];
-			
 		}
 	}
 	$sql_order = "`".str_replace('.','`.`',$order)."`";
 	$sql_order_direction = ($order_direction==="+")?"ASC":"DESC";
-	
+
 	$users = q("SELECT `user`.* , `contact`.`name` , `contact`.`url` , `contact`.`micro`, `lastitem`.`lastitem_date`, `user`.`account_expired`
 				FROM
 					(SELECT MAX(`item`.`changed`) as `lastitem_date`, `item`.`uid`
@@ -1322,9 +1318,9 @@ function admin_page_users(&$a){
 				intval($a->pager['start']),
 				intval($a->pager['itemspage'])
 				);
-    
+
 	//echo "<pre>$users"; killme();
-				
+
 	$adminlist = explode(",", str_replace(" ", "", $a->config['admin_email']));
 	$_setup_users = function ($e) use ($adminlist){
 		$accounts = array(
@@ -1375,7 +1371,7 @@ function admin_page_users(&$a){
 		array(t('Name'), t('Email'), t('Register date'), t('Last login'), t('Last item'),  t('Account')),
 		$valid_orders
 	);
-	
+
 	$t = get_markup_template("admin_users.tpl");
 	$o = replace_macros($t, array(
 		// strings //
@@ -1563,7 +1559,7 @@ function admin_page_plugins(&$a){
 		'$baseurl' => $a->get_baseurl(true),
 		'$function' => 'plugins',
 		'$plugins' => $plugins,
-		'$pcount' => count($plugins), 
+		'$pcount' => count($plugins),
 		'$noplugshint' => sprintf(t('There are currently no plugins available on your node. You can find the official plugin repository at %1$s and might find other interesting plugins in the open plugin registry at %2$s'), 'https://github.com/friendica/friendica-addons', 'http://addons.friendi.ca'),
 		'$form_security_token' => get_form_security_token("admin_themes"),
 	));
@@ -1822,7 +1818,7 @@ function admin_page_themes(&$a){
 
 /**
  * @brief Prosesses data send by Logs admin page
- * 
+ *
  * @param App $a
  */
 function admin_page_logs_post(&$a) {
@@ -1868,7 +1864,7 @@ function admin_page_logs(&$a){
 		LOGGER_DATA	=> 'Data',
 		LOGGER_ALL	=> 'All'
 	);
-	
+
 	if (ini_get('log_errors')) {
 		$phplogenabled = t('PHP log currently enabled.');
 	} else {
@@ -1955,7 +1951,7 @@ function admin_page_viewlogs(&$a){
 
 /**
  * @brief Prosesses data send by the features admin page
- * 
+ *
  * @param App $a
  */
 function admin_page_features_post(&$a) {
@@ -1992,20 +1988,20 @@ function admin_page_features_post(&$a) {
 
 /**
  * @brief Subpage for global additional feature management
- * 
+ *
  * This functin generates the subpage 'Manage Additional Features'
  * for the admin panel. At this page the admin can set preferences
- * for the user settings of the 'additional features'. If needed this 
+ * for the user settings of the 'additional features'. If needed this
  * preferences can be locked through the admin.
- * 
+ *
  * The returned string contains the HTML code of the subpage 'Manage
  * Additional Features'
- * 
+ *
  * @param App $a
  * @return string
  */
 function admin_page_features(&$a) {
-	
+
 	if((argc() > 1) && (argv(1) === 'features')) {
 		$arr = array();
 		$features = get_features(false);
@@ -2024,7 +2020,7 @@ function admin_page_features(&$a) {
 				);
 			}
 		}
-		
+
 		$tpl = get_markup_template("admin_settings_features.tpl");
 		$o .= replace_macros($tpl, array(
 			'$form_security_token' => get_form_security_token("admin_manage_features"),
