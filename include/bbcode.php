@@ -414,6 +414,12 @@ function bb_ShareAttributes($share, $simplehtml) {
 
 	$data = get_contact_details_by_url($profile);
 
+    if (isset($data['id'])) {
+        $profile_url = App::get_baseurl() . '/contacts/' . $data['id'];
+    }else {
+        $profile_url = $profile;
+    }
+
 	if (isset($data["name"]) AND ($data["name"] != "") AND isset($data["addr"]) AND ($data["addr"] != ""))
 	        $userid_compact = $data["name"]." (".$data["addr"].")";
 	else
@@ -437,7 +443,7 @@ function bb_ShareAttributes($share, $simplehtml) {
 
 	switch ($simplehtml) {
 		case 1:
-			$text = $preshare.html_entity_decode("&#x2672; ", ENT_QUOTES, 'UTF-8').' <a href="'.$profile.'">'.$userid."</a>: <br />»".$share[3]."«";
+			$text = $preshare.html_entity_decode("&#x2672; ", ENT_QUOTES, 'UTF-8').' <a href="'.$profile_url.'">'.$userid."</a>: <br />»".$share[3]."«";
 			break;
 		case 2:
 			$text = $preshare.html_entity_decode("&#x2672; ", ENT_QUOTES, 'UTF-8').' '.$userid_compact.": <br />".$share[3];
@@ -499,7 +505,7 @@ function bb_ShareAttributes($share, $simplehtml) {
 			$tpl = get_markup_template('shared_content.tpl');
 			$text .= replace_macros($tpl,
 					array(
-						'$profile' => $profile,
+						'$profile' => $profile_url,
 						'$avatar' => $avatar,
 						'$author' => $author,
 						'$link' => $link,
@@ -735,7 +741,7 @@ function bb_highlight($match) {
 
 function bbcode($Text,$preserve_nl = false, $tryoembed = true, $simplehtml = false, $forplaintext = false) {
 
-	$a = get_app();
+    $a = get_app();
 
 	// Hide all [noparse] contained bbtags by spacefying them
 	// POSSIBLE BUG --> Will the 'preg' functions crash if there's an embedded image?

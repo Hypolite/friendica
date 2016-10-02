@@ -15,8 +15,7 @@ function contacts_init(&$a) {
 
 	if((($a->argc == 2) && intval($a->argv[1])) OR (($a->argc == 3) && intval($a->argv[1]) && ($a->argv[2] == "posts"))) {
 		$contact_id = intval($a->argv[1]);
-		$r = q("SELECT * FROM `contact` WHERE `uid` = %d and `id` = %d LIMIT 1",
-			intval(local_user()),
+		$r = q("SELECT * FROM `contact` WHERE `id` = %d LIMIT 1",
 			intval($contact_id)
 		);
 		if(! count($r)) {

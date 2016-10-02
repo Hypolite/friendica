@@ -893,7 +893,9 @@ function best_link_url($item,&$sparkle,$ssl_state = false) {
 		}
 	}
 	if(! $best_url) {
-		if(strlen($item['author-link']))
+		if(strlen($item['contact-id']))
+			$best_url = '/contacts/' . $item['contact-id'];
+		elseif(strlen($item['author-link']))
 			$best_url = $item['author-link'];
 		else
 			$best_url = $item['url'];
@@ -1031,10 +1033,14 @@ function builtin_activity_puller($item, &$conv_responses) {
 
 		if((activity_match($item['verb'], $verb)) && ($item['id'] != $item['parent'])) {
 			$url = $item['author-link'];
+
+            $data = get_contact_details_by_url($item['author-link']);
 			if((local_user()) && (local_user() == $item['uid']) && ($item['network'] === NETWORK_DFRN) && (! $item['self']) && (link_compare($item['author-link'],$item['url']))) {
 				$url = 'redir/' . $item['contact-id'];
 				$sparkle = ' class="sparkle" ';
-			}
+            } elseif($data['id'] && !$data['self']) {
+                $url = 'contacts/' . $data['id'];
+            }
 			else
 				$url = zrl($url);
 

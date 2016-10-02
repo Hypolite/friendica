@@ -404,6 +404,12 @@ function profile_sidebar($profile, $block = 0) {
 	if($a->theme['template_engine'] === 'internal')
 		$location = template_escape($location);
 
+    if ($profile['id']) {
+        $p['profile_url'] = 'contacts/' . $profile['id'];
+    } else {
+        $p['profile_url'] = $profile['url'];
+    }
+
 	$tpl = get_markup_template('profile_vcard.tpl');
 	$o .= replace_macros($tpl, array(
 		'$profile' => $p,
@@ -700,8 +706,6 @@ function advanced_profile(&$a) {
 }
 
 function profile_tabs($a, $is_owner=False, $nickname=Null){
-	//echo "<pre>"; var_dump($a->user); killme();
-
 	if (is_null($nickname))
 		$nickname  = $a->user['nickname'];
 
