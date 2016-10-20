@@ -2,7 +2,7 @@
 namespace Friendica\Core;
 /**
  * @file include/Core/Config.php
- * 
+ *
  *  @brief Contains the class with methods for system configuration
  */
 
@@ -32,7 +32,7 @@ class Config {
 	public static function load($family) {
 		global $a;
 
-		$r = q("SELECT `v`, `k` FROM `config` WHERE `cat` = '%s'", dbesc($family));
+		$r = q("SELECT `v`, `k` FROM `config` WHERE `cat` = '%s' ORDER BY `cat`, `k`, `id`", dbesc($family));
 		if(count($r)) {
 			foreach($r as $rr) {
 				$k = $rr['k'];
@@ -74,7 +74,7 @@ class Config {
 
 		global $a;
 
-		if(! $instore) {
+		if(! $refresh) {
 			// Looking if the whole family isn't set
 			if(isset($a->config[$family])) {
 				if($a->config[$family] === '!<unset>!') {
@@ -90,30 +90,7 @@ class Config {
 			}
 		}
 
-		// If APC is enabled then fetch the data from there, else try XCache
-		/*if (function_exists("apc_fetch") AND function_exists("apc_exists"))
-			if (apc_exists($family."|".$key)) {
-				$val = apc_fetch($family."|".$key);
-				$a->config[$family][$key] = $val;
-
-				if ($val === '!<unset>!')
-					return false;
-				else
-					return $val;
-			}
-		elseif (function_exists("xcache_fetch") AND function_exists("xcache_isset"))
-			if (xcache_isset($family."|".$key)) {
-				$val = xcache_fetch($family."|".$key);
-				$a->config[$family][$key] = $val;
-
-				if ($val === '!<unset>!')
-					return false;
-				else
-					return $val;
-			}
-		*/
-
-		$ret = q("SELECT `v` FROM `config` WHERE `cat` = '%s' AND `k` = '%s' LIMIT 1",
+		$ret = q("SELECT `v` FROM `config` WHERE `cat` = '%s' AND `k` = '%s' ORDER BY `id` DESC LIMIT 1",
 			dbesc($family),
 			dbesc($key)
 		);
@@ -122,22 +99,10 @@ class Config {
 			$val = (preg_match("|^a:[0-9]+:{.*}$|s", $ret[0]['v'])?unserialize( $ret[0]['v']):$ret[0]['v']);
 			$a->config[$family][$key] = $val;
 
-			// If APC is enabled then store the data there, else try XCache
-			/*if (function_exists("apc_store"))
-				apc_store($family."|".$key, $val, 600);
-			elseif (function_exists("xcache_set"))
-				xcache_set($family."|".$key, $val, 600);*/
-
 			return $val;
 		}
 		else {
 			$a->config[$family][$key] = '!<unset>!';
-
-			// If APC is enabled then store the data there, else try XCache
-			/*if (function_exists("apc_store"))
-				apc_store($family."|".$key, '!<unset>!', 600);
-			elseif (function_exists("xcache_set"))
-				xcache_set($family."|".$key, '!<unset>!', 600);*/
 		}
 		return $default_value;
 	}
@@ -161,43 +126,19 @@ class Config {
 	public static function set($family,$key,$value) {
 		global $a;
 
-		// If $a->config[$family] has been previously set to '!<unset>!', then
-		// $a->config[$family][$key] will evaluate to $a->config[$family][0], and
-		// $a->config[$family][$key] = $value will be equivalent to
-		// $a->config[$family][0] = $value[0] (this causes infuriating bugs),
-		// so unset the family before assigning a value to a family's key
-		if($a->config[$family] === '!<unset>!')
-			unset($a->config[$family]);
+		$a->config[$family][$key] = $value;
 
 		// manage array value
 		$dbvalue = (is_array($value)?serialize($value):$value);
 		$dbvalue = (is_bool($dbvalue) ? intval($dbvalue) : $dbvalue);
-		if(is_null(self::get($family,$key,null,true))) {
-			$a->config[$family][$key] = $value;
-			$ret = q("INSERT INTO `config` ( `cat`, `k`, `v` ) VALUES ( '%s', '%s', '%s' ) ",
-				dbesc($family),
-				dbesc($key),
-				dbesc($dbvalue)
-			);
-			if($ret)
-				return $value;
-			return $ret;
-		}
 
-		$ret = q("UPDATE `config` SET `v` = '%s' WHERE `cat` = '%s' AND `k` = '%s'",
-			dbesc($dbvalue),
+		$ret = q("INSERT INTO `config` ( `cat`, `k`, `v` ) VALUES ( '%s', '%s', '%s' )
+ON DUPLICATE KEY UPDATE `v` = '%s'",
 			dbesc($family),
-			dbesc($key)
+			dbesc($key),
+			dbesc($dbvalue),
+			dbesc($dbvalue)
 		);
-
-		$a->config[$family][$key] = $value;
-
-		// If APC is enabled then store the data there, else try XCache
-		/*if (function_exists("apc_store"))
-			apc_store($family."|".$key, $value, 600);
-		elseif (function_exists("xcache_set"))
-			xcache_set($family."|".$key, $value, 600);*/
-
 		if($ret)
 			return $value;
 		return $ret;
@@ -224,11 +165,6 @@ class Config {
 			dbesc($family),
 			dbesc($key)
 		);
-		// If APC is enabled then delete the data from there, else try XCache
-		/*if (function_exists("apc_delete"))
-			apc_delete($family."|".$key);
-		elseif (function_exists("xcache_unset"))
-			xcache_unset($family."|".$key);*/
 
 		return $ret;
 	}
