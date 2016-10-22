@@ -22,3 +22,6 @@
 [submodule "library/php-markdown"]
 	path = library/php-markdown
 	url = https://github.com/michelf/php-markdown.git
+[submodule "library/moment"]
+	path = library/moment
+	url = https://github.com/moment/moment.git
