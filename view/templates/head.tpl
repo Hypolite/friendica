@@ -6,7 +6,7 @@
 <link rel="stylesheet" href="library/colorbox/colorbox.css" type="text/css" media="screen" />
 <link rel="stylesheet" href="library/jgrowl/jquery.jgrowl.min.css" type="text/css" media="screen" />
 <link rel="stylesheet" href="library/datetimepicker/jquery.datetimepicker.css" type="text/css" media="screen" />
-<link rel="stylesheet" href="library/perfect-scrollbar/perfect-scrollbar.min.css" type="text/css" media="screen" />
+<link rel="stylesheet" href="library/perfect-scrollbar/dist/css/perfect-scrollbar.min.css" type="text/css" media="screen" />
 <link rel="stylesheet" href="library/Text_Highlighter/sample.css" type="text/css" media="screen" />
 
 <link rel="stylesheet" type="text/css" href="{{$stylesheet}}" media="all" />
@@ -37,13 +37,13 @@
 <!-- <script type="text/javascript" src="{{$baseurl}}/js/jquery-migrate.js" ></script>-->
 <script type="text/javascript" src="{{$baseurl}}/js/jquery-migrate.js" ></script>
 <script type="text/javascript" src="{{$baseurl}}/js/jquery.textinputs.js" ></script>
-<script type="text/javascript" src="{{$baseurl}}/library/jquery-textcomplete/jquery.textcomplete.min.js" ></script>
+<script type="text/javascript" src="{{$baseurl}}/library/jquery-textcomplete/dist/jquery.textcomplete.min.js" ></script>
 <script type="text/javascript" src="{{$baseurl}}/js/autocomplete.js" ></script>
 <script type="text/javascript" src="{{$baseurl}}/library/colorbox/jquery.colorbox-min.js"></script>
 <script type="text/javascript" src="{{$baseurl}}/library/jgrowl/jquery.jgrowl.min.js"></script>
 <script type="text/javascript" src="{{$baseurl}}/library/datetimepicker/jquery.datetimepicker.js"></script>
 <script type="text/javascript" src="{{$baseurl}}/library/tinymce/jscripts/tiny_mce/tiny_mce_src.js" ></script>
-<script type="text/javascript" src="{{$baseurl}}/library/perfect-scrollbar/perfect-scrollbar.jquery.js" ></script>
+<script type="text/javascript" src="{{$baseurl}}/library/perfect-scrollbar/dist/js/perfect-scrollbar.jquery.min.js" ></script>
 <script type="text/javascript" src="{{$baseurl}}/js/acl.js" ></script>
 <script type="text/javascript" src="{{$baseurl}}/js/webtoolkit.base64.js" ></script>
 <script type="text/javascript" src="{{$baseurl}}/js/main.js" ></script>
