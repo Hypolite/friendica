@@ -9,7 +9,7 @@
 {{* All needed css files - Note: css must be inserted before js files *}}
 <link rel="stylesheet" href="view/global.css" type="text/css" media="all" />
 <link rel="stylesheet" href="library/colorbox/colorbox.css" type="text/css" media="screen" />
-<link rel="stylesheet" href="library/jgrowl/jquery.jgrowl.css" type="text/css" media="screen" />
+<link rel="stylesheet" href="library/jgrowl/jquery.jgrowl.min.css" type="text/css" media="screen" />
 <link rel="stylesheet" href="library/datetimepicker/jquery.datetimepicker.css" type="text/css" media="screen" />
 <link rel="stylesheet" href="library/perfect-scrollbar/perfect-scrollbar.min.css" type="text/css" media="screen" />
 <link rel="stylesheet" href="library/Text_Highlighter/sample.css" type="text/css" media="screen" />
@@ -63,7 +63,7 @@
 <script type="text/javascript" src="library/jquery-textcomplete/jquery.textcomplete.min.js" ></script>
 <script type="text/javascript" src="js/autocomplete.js" ></script>
 <script type="text/javascript" src="library/colorbox/jquery.colorbox-min.js"></script>
-<script type="text/javascript" src="library/jgrowl/jquery.jgrowl_minimized.js"></script>
+<script type="text/javascript" src="library/jgrowl/jquery.jgrowl.min.js"></script>
 <script type="text/javascript" src="library/datetimepicker/jquery.datetimepicker.js"></script>
 <script type="text/javascript" src="library/tinymce/jscripts/tiny_mce/tiny_mce_src.js" ></script>
 <script type="text/javascript" src="library/perfect-scrollbar/perfect-scrollbar.jquery.js" ></script>

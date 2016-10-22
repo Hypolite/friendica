@@ -12,7 +12,7 @@
 <script type="text/javascript" src="{{$baseurl}}/view/theme/decaf-mobile/js/fk.autocomplete.js" ></script>-->*}}
 {{*<!--<script type="text/javascript" src="{{$baseurl}}/library/colorbox/jquery.colorbox-min.js"></script>-->*}}
 {{*<!--<script type="text/javascript" src="{{$baseurl}}/library/tiptip/jquery.tipTip.minified.js"></script>-->*}}
-{{*<!--<script type="text/javascript" src="{{$baseurl}}/library/jgrowl/jquery.jgrowl_minimized.js"></script>
+{{*<!--<script type="text/javascript" src="{{$baseurl}}/library/jgrowl/jquery.jgrowl.min.js"></script>
 <script type="text/javascript" src="{{$baseurl}}/view/theme/decaf-mobile/js/acl.js" ></script>
 <script type="text/javascript" src="{{$baseurl}}/js/webtoolkit.base64.js" ></script>
 <script type="text/javascript" src="{{$baseurl}}/view/theme/decaf-mobile/js/main.js" ></script>-->*}}

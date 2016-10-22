@@ -25,3 +25,6 @@
 [submodule "library/fullcalendar"]
 	path = library/fullcalendar
 	url = https://github.com/fullcalendar/fullcalendar.git
+[submodule "library/jgrowl"]
+	path = library/jgrowl
+	url = https://github.com/stanlemon/jGrowl.git
