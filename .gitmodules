@@ -4,3 +4,6 @@
 [submodule "library/Chart.js"]
 	path = library/Chart.js
 	url = https://github.com/chartjs/Chart.js.git
+[submodule "library/Mobile_Detect"]
+	path = library/Mobile_Detect
+	url = https://github.com/serbanghita/Mobile-Detect.git
