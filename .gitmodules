@@ -31,3 +31,6 @@
 [submodule "library/jquery-textcomplete"]
 	path = library/jquery-textcomplete
 	url = https://github.com/yuku-t/jquery-textcomplete.git
+[submodule "library/html-to-markdown"]
+	path = library/html-to-markdown
+	url = https://github.com/thephpleague/html-to-markdown.git
