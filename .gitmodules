@@ -7,3 +7,6 @@
 [submodule "library/Mobile_Detect"]
 	path = library/Mobile_Detect
 	url = https://github.com/serbanghita/Mobile-Detect.git
+[submodule "library/colorbox"]
+	path = library/colorbox
+	url = https://github.com/jackmoore/colorbox.git
