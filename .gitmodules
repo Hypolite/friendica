@@ -22,3 +22,6 @@
 [submodule "library/php-markdown"]
 	path = library/php-markdown
 	url = https://github.com/michelf/php-markdown.git
+[submodule "library/fullcalendar"]
+	path = library/fullcalendar
+	url = https://github.com/fullcalendar/fullcalendar.git
