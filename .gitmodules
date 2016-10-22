@@ -13,3 +13,6 @@
 [submodule "library/datetimepicker"]
 	path = library/datetimepicker
 	url = https://github.com/xdan/datetimepicker.git
+[submodule "library/perfect-scrollbar"]
+	path = library/perfect-scrollbar
+	url = https://github.com/noraesae/perfect-scrollbar.git
