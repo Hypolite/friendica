@@ -16,3 +16,6 @@
 [submodule "library/perfect-scrollbar"]
 	path = library/perfect-scrollbar
 	url = https://github.com/noraesae/perfect-scrollbar.git
+[submodule "library/tinymce"]
+	path = library/tinymce
+	url = https://github.com/tinymce/tinymce.git
