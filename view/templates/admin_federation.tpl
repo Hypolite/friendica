@@ -1,4 +1,4 @@
-<script src="{{$baseurl}}/library/Chart.js-1.0.2/Chart.min.js"></script>
+<script src="{{$baseurl}}/library/Chart.js/Chart.min.js"></script>
 <canvas id="FederationChart" class="federation-graph"></canvas>
 <div id="adminpage">
     <h1>{{$title}} - {{$page}}</h1>
