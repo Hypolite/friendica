@@ -10,3 +10,6 @@
 [submodule "library/colorbox"]
 	path = library/colorbox
 	url = https://github.com/jackmoore/colorbox.git
+[submodule "library/datetimepicker"]
+	path = library/datetimepicker
+	url = https://github.com/xdan/datetimepicker.git
