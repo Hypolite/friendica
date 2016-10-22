@@ -19,3 +19,6 @@
 [submodule "library/tiptip"]
 	path = library/tiptip
 	url = https://github.com/drewwilson/TipTip.git
+[submodule "library/php-markdown"]
+	path = library/php-markdown
+	url = https://github.com/michelf/php-markdown.git
