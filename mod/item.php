@@ -233,11 +233,7 @@ function item_post(&$a) {
 	$r = q("SELECT * FROM `user` WHERE `uid` = %d LIMIT 1",
 		intval($profile_uid)
 	);
-<<<<<<< HEAD
 	if(dbm::is_result($r))
-=======
-	if (dbm::is_result($r))
->>>>>>> upstream/develop
 		$user = $r[0];
 
 	if($orig_post) {
@@ -402,11 +398,7 @@ function item_post(&$a) {
 		}
 	}
 
-<<<<<<< HEAD
 	if(dbm::is_result($r)) {
-=======
-	if (dbm::is_result($r)) {
->>>>>>> upstream/develop
 		$author = $r[0];
 		$contact_id = $author['id'];
 	}
@@ -420,11 +412,7 @@ function item_post(&$a) {
 		$r = q("SELECT * FROM `contact` WHERE `uid` = %d AND `self` = 1 LIMIT 1",
 			intval($profile_uid)
 		);
-<<<<<<< HEAD
 		if(dbm::is_result($r))
-=======
-		if (dbm::is_result($r))
->>>>>>> upstream/develop
 			$contact_record = $r[0];
 	}
 
@@ -507,11 +495,7 @@ function item_post(&$a) {
 					intval($profile_uid),
 					intval($attach)
 				);
-<<<<<<< HEAD
 				if(dbm::is_result($r)) {
-=======
-				if (dbm::is_result($r)) {
->>>>>>> upstream/develop
 					$r = q("UPDATE `attach` SET `allow_cid` = '%s', `allow_gid` = '%s', `deny_cid` = '%s', `deny_gid` = '%s'
 						WHERE `uid` = %d AND `id` = %d",
 						dbesc($str_contact_allow),
@@ -652,11 +636,7 @@ function item_post(&$a) {
 				intval($profile_uid),
 				intval($mtch)
 			);
-<<<<<<< HEAD
 			if(dbm::is_result($r)) {
-=======
-			if (dbm::is_result($r)) {
->>>>>>> upstream/develop
 				if(strlen($attachments))
 					$attachments .= ',';
 				$attachments .= '[attach]href="' . $a->get_baseurl() . '/attach/' . $r[0]['id'] . '" length="' . $r[0]['filesize'] . '" type="' . $r[0]['filetype'] . '" title="' . (($r[0]['filename']) ? $r[0]['filename'] : '') . '"[/attach]';
