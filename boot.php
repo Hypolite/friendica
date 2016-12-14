@@ -1009,16 +1009,16 @@ function clean_urls() {
 }
 
 function z_path() {
-	global $a;
-	$base = $a->get_baseurl();
+	$base = App::get_baseurl();
+
 	if(! clean_urls())
 		$base .= '/?q=';
+
 	return $base;
 }
 
 function z_root() {
-	global $a;
-	return $a->get_baseurl();
+	return App::get_baseurl();
 }
 
 function absurl($path) {
