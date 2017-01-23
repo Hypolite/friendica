@@ -1,5 +1,8 @@
 <?php
 namespace Friendica\Core;
+
+use dbm;
+
 /**
  * @file include/Core/Config.php
  *
@@ -30,11 +33,11 @@ class Config {
 	 * @return void
 	 */
 	public static function load($family) {
-		global $a;
+		$a = get_app();
 
 		$r = q("SELECT `v`, `k` FROM `config` WHERE `cat` = '%s' ORDER BY `cat`, `k`, `id`", dbesc($family));
-		if(count($r)) {
-			foreach($r as $rr) {
+		if (dbm::is_result($r)) {
+			foreach ($r as $rr) {
 				$k = $rr['k'];
 				if ($family === 'config') {
 					$a->config[$k] = $rr['v'];
@@ -70,20 +73,20 @@ class Config {
 	 *  If true the config is loaded from the db and not from the cache (default: false)
 	 * @return mixed Stored value or null if it does not exist
 	 */
-	public static function get($family, $key, $default_value=null, $refresh = false) {
+	public static function get($family, $key, $default_value = null, $refresh = false) {
 
-		global $a;
+		$a = get_app();
 
-		if(! $refresh) {
+		if (!$refresh) {
 			// Looking if the whole family isn't set
-			if(isset($a->config[$family])) {
-				if($a->config[$family] === '!<unset>!') {
+			if (isset($a->config[$family])) {
+				if ($a->config[$family] === '!<unset>!') {
 					return $default_value;
 				}
 			}
 
-			if(isset($a->config[$family][$key])) {
-				if($a->config[$family][$key] === '!<unset>!') {
+			if (isset($a->config[$family][$key])) {
+				if ($a->config[$family][$key] === '!<unset>!') {
 					return $default_value;
 				}
 				return $a->config[$family][$key];
@@ -94,14 +97,13 @@ class Config {
 			dbesc($family),
 			dbesc($key)
 		);
-		if(count($ret)) {
+		if (count($ret)) {
 			// manage array value
 			$val = (preg_match("|^a:[0-9]+:{.*}$|s", $ret[0]['v'])?unserialize( $ret[0]['v']):$ret[0]['v']);
 			$a->config[$family][$key] = $val;
 
 			return $val;
-		}
-		else {
+		} else {
 			$a->config[$family][$key] = '!<unset>!';
 		}
 		return $default_value;
@@ -123,24 +125,38 @@ class Config {
 	 *  The value to store
 	 * @return mixed Stored $value or false if the database update failed
 	 */
-	public static function set($family,$key,$value) {
-		global $a;
+	public static function set($family, $key, $value) {
+		$a = get_app();
+
+		$stored = self::get($family, $key);
+
+		if ($stored == $value) {
+			return true;
+		}
 
 		$a->config[$family][$key] = $value;
 
 		// manage array value
-		$dbvalue = (is_array($value)?serialize($value):$value);
+		$dbvalue = (is_array($value) ? serialize($value) : $value);
 		$dbvalue = (is_bool($dbvalue) ? intval($dbvalue) : $dbvalue);
 
-		$ret = q("INSERT INTO `config` ( `cat`, `k`, `v` ) VALUES ( '%s', '%s', '%s' )
-ON DUPLICATE KEY UPDATE `v` = '%s'",
-			dbesc($family),
-			dbesc($key),
-			dbesc($dbvalue),
-			dbesc($dbvalue)
-		);
-		if($ret)
+		if (is_null($stored)) {
+			$ret = q("INSERT INTO `config` (`cat`, `k`, `v`) VALUES ('%s', '%s', '%s') ON DUPLICATE KEY UPDATE `v` = '%s'",
+				dbesc($family),
+				dbesc($key),
+				dbesc($dbvalue),
+				dbesc($dbvalue)
+			);
+		} else {
+			$ret = q("UPDATE `config` SET `v` = '%s' WHERE `cat` = '%s' AND `k` = '%s'",
+				dbesc($dbvalue),
+				dbesc($family),
+				dbesc($key)
+			);
+		}
+		if ($ret) {
 			return $value;
+		}
 		return $ret;
 	}
 
@@ -156,11 +172,12 @@ ON DUPLICATE KEY UPDATE `v` = '%s'",
 	 *  The configuration key to delete
 	 * @return mixed
 	 */
-	public static function delete($family,$key) {
+	public static function delete($family, $key) {
 
-		global $a;
-		if(x($a->config[$family],$key))
+		$a = get_app();
+		if (x($a->config[$family],$key)) {
 			unset($a->config[$family][$key]);
+		}
 		$ret = q("DELETE FROM `config` WHERE `cat` = '%s' AND `k` = '%s'",
 			dbesc($family),
 			dbesc($key)

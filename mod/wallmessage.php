@@ -2,7 +2,7 @@
 
 require_once('include/message.php');
 
-function wallmessage_post(&$a) {
+function wallmessage_post(App $a) {
 
 	$replyto = get_my_url();
 	if(! $replyto) {
@@ -22,7 +22,7 @@ function wallmessage_post(&$a) {
 		dbesc($recipient)
 	);
 
-	if(! count($r)) {
+	if (! dbm::is_result($r)) {
 		logger('wallmessage: no recipient');
 		return;
 	}
@@ -73,7 +73,7 @@ function wallmessage_post(&$a) {
 }
 
 
-function wallmessage_content(&$a) {
+function wallmessage_content(App $a) {
 
 	if(! get_my_url()) {
 		notice( t('Permission denied.') . EOL);
@@ -91,7 +91,7 @@ function wallmessage_content(&$a) {
 		dbesc($recipient)
 	);
 
-	if(! count($r)) {
+	if (! dbm::is_result($r)) {
 		notice( t('No recipient.') . EOL);
 		logger('wallmessage: no recipient');
 		return;
@@ -134,9 +134,9 @@ function wallmessage_content(&$a) {
 		'$nickname' => $user['nickname'],
 		'$linkurl' => t('Please enter a link URL:')
 	));
-	
 
-	
+
+
 	$tpl = get_markup_template('wallmessage.tpl');
 	$o .= replace_macros($tpl,array(
 		'$header' => t('Send Private Message'),

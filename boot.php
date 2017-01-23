@@ -38,7 +38,7 @@ define ( 'FRIENDICA_PLATFORM',     'Friendica');
 define ( 'FRIENDICA_CODENAME',     'Asparagus');
 define ( 'FRIENDICA_VERSION',      '3.5.1-dev' );
 define ( 'DFRN_PROTOCOL_VERSION',  '2.23'    );
-define ( 'DB_UPDATE_VERSION',      1206      );
+define ( 'DB_UPDATE_VERSION',      1212      );
 
 /**
  * @brief Constant with a HTML line break.
@@ -127,6 +127,10 @@ define ( 'CACHE_MONTH',            0 );
 define ( 'CACHE_WEEK',             1 );
 define ( 'CACHE_DAY',              2 );
 define ( 'CACHE_HOUR',             3 );
+define ( 'CACHE_HALF_HOUR',        4 );
+define ( 'CACHE_QUARTER_HOUR',     5 );
+define ( 'CACHE_FIVE_MINUTES',     6 );
+define ( 'CACHE_MINUTE',           7 );
 /* @}*/
 
 /**
@@ -526,6 +530,7 @@ class App {
 	public	$videoheight = 350;
 	public	$force_max_items = 0;
 	public	$theme_thread_allow = true;
+	public	$theme_richtext_editor = true;
 	public	$theme_events_in_profile = true;
 
 	/**
@@ -605,6 +610,7 @@ class App {
 		$this->performance["markstart"] = microtime(true);
 
 		$this->callstack["database"] = array();
+		$this->callstack["database_write"] = array();
 		$this->callstack["network"] = array();
 		$this->callstack["file"] = array();
 		$this->callstack["rendering"] = array();
@@ -664,22 +670,23 @@ class App {
 
 		#set_include_path("include/$this->hostname" . PATH_SEPARATOR . get_include_path());
 
-		if((x($_SERVER,'QUERY_STRING')) && substr($_SERVER['QUERY_STRING'],0,9) === "pagename=") {
+		if ((x($_SERVER,'QUERY_STRING')) && substr($_SERVER['QUERY_STRING'],0,9) === "pagename=") {
 			$this->query_string = substr($_SERVER['QUERY_STRING'],9);
 			// removing trailing / - maybe a nginx problem
 			if (substr($this->query_string, 0, 1) == "/")
 				$this->query_string = substr($this->query_string, 1);
-		} elseif((x($_SERVER,'QUERY_STRING')) && substr($_SERVER['QUERY_STRING'],0,2) === "q=") {
+		} elseif ((x($_SERVER,'QUERY_STRING')) && substr($_SERVER['QUERY_STRING'],0,2) === "q=") {
 			$this->query_string = substr($_SERVER['QUERY_STRING'],2);
 			// removing trailing / - maybe a nginx problem
 			if (substr($this->query_string, 0, 1) == "/")
 				$this->query_string = substr($this->query_string, 1);
 		}
 
-		if (x($_GET,'pagename'))
+		if (x($_GET,'pagename')) {
 			$this->cmd = trim($_GET['pagename'],'/\\');
-		elseif (x($_GET,'q'))
+		} elseif (x($_GET,'q')) {
 			$this->cmd = trim($_GET['q'],'/\\');
+		}
 
 
 		// fix query_string
@@ -688,13 +695,15 @@ class App {
 
 		// unix style "homedir"
 
-		if(substr($this->cmd,0,1) === '~')
+		if (substr($this->cmd,0,1) === '~') {
 			$this->cmd = 'profile/' . substr($this->cmd,1);
+		}
 
 		// Diaspora style profile url
 
-		if(substr($this->cmd,0,2) === 'u/')
+		if (substr($this->cmd,0,2) === 'u/') {
 			$this->cmd = 'profile/' . substr($this->cmd,2);
+		}
 
 
 		/*
@@ -761,7 +770,7 @@ class App {
 
 	}
 
-	function get_basepath() {
+	public static function get_basepath() {
 
 		$basepath = get_config("system", "basepath");
 
@@ -781,60 +790,100 @@ class App {
 		return($this->scheme);
 	}
 
+	/**
+	 * @brief Retrieves the Friendica instance base URL
+	 *
+	 * This function assembles the base URL from multiple parts:
+	 * - Protocol is determined either by the request or a combination of
+	 * system.ssl_policy and the $ssl parameter.
+	 * - Host name is determined either by system.hostname or inferred from request
+	 * - Path is inferred from SCRIPT_NAME
+	 *
+	 * Caches the result (depending on $ssl value) for performance.
+	 *
+	 * Note: $ssl parameter value doesn't directly correlate with the resulting protocol
+	 *
+	 * @param bool $ssl Whether to append http or https under SSL_POLICY_SELFSIGN
+	 * @return string Friendica server base URL
+	 */
 	function get_baseurl($ssl = false) {
 
 		// Is the function called statically?
-		if (!is_object($this))
-			return(self::$a->get_baseurl($ssl));
+		if (!(isset($this) && get_class($this) == __CLASS__)) {
+			return self::$a->get_baseurl($ssl);
+		}
+
+		// Arbitrary values, the resulting url protocol can be different
+		$cache_index = $ssl ? 'https' : 'http';
+
+		// Cached value found, nothing to process
+		if (isset($this->baseurl[$cache_index])) {
+			return $this->baseurl[$cache_index];
+		}
 
 		$scheme = $this->scheme;
 
-		if((x($this->config,'system')) && (x($this->config['system'],'ssl_policy'))) {
-			if(intval($this->config['system']['ssl_policy']) === intval(SSL_POLICY_FULL))
+		if ((x($this->config, 'system')) && (x($this->config['system'], 'ssl_policy'))) {
+			if (intval($this->config['system']['ssl_policy']) === SSL_POLICY_FULL) {
 				$scheme = 'https';
+			}
 
 			//	Basically, we have $ssl = true on any links which can only be seen by a logged in user
 			//	(and also the login link). Anything seen by an outsider will have it turned off.
 
-			if($this->config['system']['ssl_policy'] == SSL_POLICY_SELFSIGN) {
-				if($ssl)
+			if ($this->config['system']['ssl_policy'] == SSL_POLICY_SELFSIGN) {
+				if ($ssl) {
 					$scheme = 'https';
-				else
+				} else {
 					$scheme = 'http';
+				}
 			}
 		}
 
-		if (get_config('config','hostname') != "")
-			$this->hostname = get_config('config','hostname');
+		if (get_config('config', 'hostname') != '') {
+			$this->hostname = get_config('config', 'hostname');
+		}
 
-		$this->baseurl = $scheme . "://" . $this->hostname . ((isset($this->path) && strlen($this->path)) ? '/' . $this->path : '' );
-		return $this->baseurl;
+		$this->baseurl[$cache_index] = $scheme . "://" . $this->hostname . ((isset($this->path) && strlen($this->path)) ? '/' . $this->path : '' );
+
+		return $this->baseurl[$cache_index];
 	}
 
+	/**
+	 * @brief Initializes the baseurl components
+	 *
+	 * Clears the baseurl cache to prevent inconstistencies
+	 *
+	 * @param string $url
+	 */
 	function set_baseurl($url) {
 		$parsed = @parse_url($url);
 
-		$this->baseurl = $url;
+		$this->baseurl = [];
 
 		if($parsed) {
 			$this->scheme = $parsed['scheme'];
 
 			$hostname = $parsed['host'];
-			if(x($parsed,'port'))
+			if (x($parsed, 'port')) {
 				$hostname .= ':' . $parsed['port'];
-			if(x($parsed,'path'))
-				$this->path = trim($parsed['path'],'\\/');
+			}
+			if (x($parsed, 'path')) {
+				$this->path = trim($parsed['path'], '\\/');
+			}
 
-			if (file_exists(".htpreconfig.php"))
+			if (file_exists(".htpreconfig.php")) {
 				@include(".htpreconfig.php");
+			}
 
-			if (get_config('config','hostname') != "")
-				$this->hostname = get_config('config','hostname');
+			if (get_config('config', 'hostname') != '') {
+				$this->hostname = get_config('config', 'hostname');
+			}
 
-			if (!isset($this->hostname) OR ($this->hostname == ""))
+			if (!isset($this->hostname) OR ($this->hostname == '')) {
 				$this->hostname = $hostname;
+			}
 		}
-
 	}
 
 	function get_hostname() {
@@ -982,7 +1031,7 @@ class App {
 		} else {
 			$r = q("SELECT `contact`.`avatar-date` AS picdate FROM `contact` WHERE `contact`.`thumb` like '%%/%s'",
 				$common_filename);
-			if(! dbm::is_result($r)){
+			if (! dbm::is_result($r)) {
 				$this->cached_profile_image[$avatar_image] = $avatar_image;
 			} else {
 				$this->cached_profile_picdate[$common_filename] = "?rev=".urlencode($r[0]['picdate']);
@@ -997,20 +1046,28 @@ class App {
 	/**
 	 * @brief Removes the baseurl from an url. This avoids some mixed content problems.
 	 *
-	 * @param string $url
+	 * @param string $orig_url
 	 *
 	 * @return string The cleaned url
 	 */
-	function remove_baseurl($url){
+	function remove_baseurl($orig_url){
 
 		// Is the function called statically?
-		if (!is_object($this))
-			return(self::$a->remove_baseurl($url));
+		if (!(isset($this) && get_class($this) == __CLASS__)) {
+			return(self::$a->remove_baseurl($orig_url));
+		}
 
-		$url = normalise_link($url);
+		// Remove the hostname from the url if it is an internal link
+		$nurl = normalise_link($orig_url);
 		$base = normalise_link($this->get_baseurl());
-		$url = str_replace($base."/", "", $url);
-		return $url;
+		$url = str_replace($base."/", "", $nurl);
+
+		// if it is an external link return the orignal value
+		if ($url == normalise_link($orig_url)) {
+			return $orig_url;
+		} else {
+			return $url;
+		}
 	}
 
 	/**
@@ -1100,6 +1157,9 @@ class App {
 	}
 
 	function save_timestamp($stamp, $value) {
+		if (!isset($this->config['system']['profiler']) || !$this->config['system']['profiler'])
+			return;
+
 		$duration = (float)(microtime(true)-$stamp);
 
 		if (!isset($this->performance[$value])) {
@@ -1131,23 +1191,33 @@ class App {
 
 		$this->remove_inactive_processes();
 
+		q("START TRANSACTION");
+
 		$r = q("SELECT `pid` FROM `process` WHERE `pid` = %d", intval(getmypid()));
-		if(!dbm::is_result($r))
+		if (!dbm::is_result($r)) {
 			q("INSERT INTO `process` (`pid`,`command`,`created`) VALUES (%d, '%s', '%s')",
 				intval(getmypid()),
 				dbesc($command),
 				dbesc(datetime_convert()));
+		}
+		q("COMMIT");
 	}
 
 	/**
 	 * @brief Remove inactive processes
 	 */
 	function remove_inactive_processes() {
+		q("START TRANSACTION");
+
 		$r = q("SELECT `pid` FROM `process`");
-		if(dbm::is_result($r))
-			foreach ($r AS $process)
-				if (!posix_kill($process["pid"], 0))
+		if (dbm::is_result($r)) {
+			foreach ($r AS $process) {
+				if (!posix_kill($process["pid"], 0)) {
 					q("DELETE FROM `process` WHERE `pid` = %d", intval($process["pid"]));
+				}
+			}
+		}
+		q("COMMIT");
 	}
 
 	/**
@@ -1174,11 +1244,6 @@ class App {
 			$callstack[] = $func["function"];
 
 		return implode(", ", $callstack);
-	}
-
-	function mark_timestamp($mark) {
-		//$this->performance["markstart"] -= microtime(true) - $this->performance["marktime"];
-		$this->performance["markstart"] = microtime(true) - $this->performance["markstart"] - $this->performance["marktime"];
 	}
 
 	function get_useragent() {
@@ -1232,10 +1297,6 @@ class App {
 	 */
 	function max_processes_reached() {
 
-		// Is the function called statically?
-		if (!is_object($this))
-			return(self::$a->max_processes_reached());
-
 		if ($this->is_backend()) {
 			$process = "backend";
 			$max_processes = get_config('system', 'max_processes_backend');
@@ -1266,10 +1327,6 @@ class App {
 	 * @return bool Is the load reached?
 	 */
 	function maxload_reached() {
-
-		// Is the function called statically?
-		if (!is_object($this))
-			return(self::$a->maxload_reached());
 
 		if ($this->is_backend()) {
 			$process = "backend";
@@ -1324,8 +1381,12 @@ class App {
 
 	function proc_run($args) {
 
+		if (!function_exists("proc_open")) {
+			return;
+		}
+
 		// Add the php path if it is a php call
-		if (count($args) && ($args[0] === 'php' OR is_int($args[0]))) {
+		if (count($args) && ($args[0] === 'php' OR !is_string($args[0]))) {
 
 			// If the last worker fork was less than 10 seconds before then don't fork another one.
 			// This should prevent the forking of masses of workers.
@@ -1413,17 +1474,18 @@ function system_unavailable() {
 
 
 function clean_urls() {
-	global $a;
+	$a = get_app();
 	//	if($a->config['system']['clean_urls'])
 	return true;
 	//	return false;
 }
 
 function z_path() {
-	global $a;
-	$base = $a->get_baseurl();
+	$base = App::get_baseurl();
+
 	if(! clean_urls())
 		$base .= '/?q=';
+
 	return $base;
 }
 
@@ -1433,10 +1495,10 @@ function z_path() {
  * @see App::get_baseurl()
  *
  * @return string
+ * @TODO Maybe super-flous and deprecated? Seems to only wrap App::get_baseurl()
  */
 function z_root() {
-	global $a;
-	return $a->get_baseurl();
+	return App::get_baseurl();
 }
 
 /**
@@ -1478,7 +1540,7 @@ function check_db() {
  * Sets the base url for use in cmdline programs which don't have
  * $_SERVER variables
  */
-function check_url(&$a) {
+function check_url(App $a) {
 
 	$url = get_config('system','url');
 
@@ -1489,9 +1551,9 @@ function check_url(&$a) {
 	// We will only change the url to an ip address if there is no existing setting
 
 	if(! x($url))
-		$url = set_config('system','url',$a->get_baseurl());
-	if((! link_compare($url,$a->get_baseurl())) && (! preg_match("/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/",$a->get_hostname)))
-		$url = set_config('system','url',$a->get_baseurl());
+		$url = set_config('system','url',App::get_baseurl());
+	if((! link_compare($url,App::get_baseurl())) && (! preg_match("/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/",$a->get_hostname)))
+		$url = set_config('system','url',App::get_baseurl());
 
 	return;
 }
@@ -1500,7 +1562,7 @@ function check_url(&$a) {
 /**
  * @brief Automatic database updates
  */
-function update_db(&$a) {
+function update_db(App $a) {
 	$build = get_config('system','build');
 	if(! x($build))
 		$build = set_config('system','build',DB_UPDATE_VERSION);
@@ -1616,10 +1678,10 @@ function run_update_function($x) {
  * @param App $a
  *
 	 */
-function check_plugins(&$a) {
+function check_plugins(App $a) {
 
 	$r = q("SELECT * FROM `addon` WHERE `installed` = 1");
-	if(dbm::is_result($r))
+	if (dbm::is_result($r))
 		$installed = $r;
 	else
 		$installed = array();
@@ -1837,7 +1899,7 @@ function info($s) {
  * @return int
  */
 function get_max_import_size() {
-	global $a;
+	$a = get_app();
 	return ((x($a->config,'max_import_size')) ? $a->config['max_import_size'] : 0 );
 }
 
@@ -1845,11 +1907,12 @@ function get_max_import_size() {
  * @brief Wrap calls to proc_close(proc_open()) and call hook
  *	so plugins can take part in process :)
  *
- * @param (string|integer) $cmd program to run or priority
+ * @param (string|integer|array) $cmd program to run, priority or parameter array
  *
  * next args are passed as $cmd command line
  * e.g.: proc_run("ls","-la","/tmp");
  * or: proc_run(PRIORITY_HIGH, "include/notifier.php", "drop", $drop_id);
+ * or: proc_run(array('priority' => PRIORITY_HIGH, 'dont_fork' => true), "include/create_shadowentry.php", $post_id);
  *
  * @note $cmd and string args are surrounded with ""
  *
@@ -1860,24 +1923,31 @@ function proc_run($cmd){
 
 	$a = get_app();
 
-	$args = func_get_args();
+	$proc_args = func_get_args();
 
-	$newargs = array();
-	if (!count($args))
+	$args = array();
+	if (!count($proc_args)) {
 		return;
-
-	// expand any arrays
-
-	foreach($args as $arg) {
-		if(is_array($arg)) {
-			foreach($arg as $n) {
-				$newargs[] = $n;
-			}
-		} else
-			$newargs[] = $arg;
 	}
 
-	$args = $newargs;
+	// Preserve the first parameter
+	// It could contain a command, the priority or an parameter array
+	// If we use the parameter array we have to protect it from the following function
+	$run_parameter = array_shift($proc_args);
+
+	// expand any arrays
+	foreach ($proc_args as $arg) {
+		if (is_array($arg)) {
+			foreach ($arg as $n) {
+				$args[] = $n;
+			}
+		} else {
+			$args[] = $arg;
+		}
+	}
+
+	// Now we add the run parameters back to the array
+	array_unshift($args, $run_parameter);
 
 	$arr = array('args' => $args, 'run_cmd' => true);
 
@@ -1885,16 +1955,24 @@ function proc_run($cmd){
 	if (!$arr['run_cmd'] OR !count($args))
 		return;
 
-	if (!get_config("system", "worker") OR
-		(($args[0] != 'php') AND !is_int($args[0]))) {
+	if (!get_config("system", "worker") OR (is_string($run_parameter) AND ($run_parameter != 'php'))) {
 		$a->proc_run($args);
 		return;
 	}
 
-	if (is_int($args[0]))
-		$priority = $args[0];
-	else
-		$priority = PRIORITY_MEDIUM;
+	$priority = PRIORITY_MEDIUM;
+	$dont_fork = get_config("system", "worker_dont_fork");
+
+	if (is_int($run_parameter)) {
+		$priority = $run_parameter;
+	} elseif (is_array($run_parameter)) {
+		if (isset($run_parameter['priority'])) {
+			$priority = $run_parameter['priority'];
+		}
+		if (isset($run_parameter['dont_fork'])) {
+			$dont_fork = $run_parameter['dont_fork'];
+		}
+	}
 
 	$argv = $args;
 	array_shift($argv);
@@ -1911,8 +1989,9 @@ function proc_run($cmd){
 			intval($priority));
 
 	// Should we quit and wait for the poller to be called as a cronjob?
-	if (get_config("system", "worker_dont_fork"))
+	if ($dont_fork) {
 		return;
+	}
 
 	// Checking number of workers
 	$workers = q("SELECT COUNT(*) AS `workers` FROM `workerqueue` WHERE `executed` != '0000-00-00 00:00:00'");
@@ -1946,7 +2025,7 @@ function current_theme(){
 		$r = q("select theme from user where uid = %d limit 1",
 			intval($a->profile_uid)
 		);
-		if(dbm::is_result($r))
+		if (dbm::is_result($r))
 			$page_theme = $r[0]['theme'];
 	}
 
@@ -2017,7 +2096,7 @@ function current_theme(){
  * @return string
  */
 function current_theme_url() {
-	global $a;
+	$a = get_app();
 
 	$t = current_theme();
 
@@ -2059,7 +2138,7 @@ function feed_birthday($uid,$tz) {
 			intval($uid)
 	);
 
-	if(dbm::is_result($p)) {
+	if (dbm::is_result($p)) {
 		$tmp_dob = substr($p[0]['dob'],5);
 		if(intval($tmp_dob)) {
 			$y = datetime_convert($tz,$tz,'now','Y');
@@ -2282,6 +2361,36 @@ function get_lockpath() {
 	return "";
 }
 
+/**
+ * @brief Returns the path where spool files are stored
+ *
+ * @return string Spool path
+ */
+function get_spoolpath() {
+	$spoolpath = get_config('system','spoolpath');
+	if (($spoolpath != "") AND is_dir($spoolpath) AND is_writable($spoolpath)) {
+		return($spoolpath);
+	}
+
+	$temppath = get_temppath();
+
+	if ($temppath != "") {
+		$spoolpath = $temppath."/spool";
+
+		if (!is_dir($spoolpath)) {
+			mkdir($spoolpath);
+		} elseif (!is_writable($spoolpath)) {
+			$spoolpath = $temppath;
+		}
+
+		if (is_dir($spoolpath) AND is_writable($spoolpath)) {
+			set_config("system", "spoolpath", $spoolpath);
+			return($spoolpath);
+		}
+	}
+	return "";
+}
+
 function get_temppath() {
 	$a = get_app();
 
@@ -2304,7 +2413,8 @@ function get_temppath() {
 	return("");
 }
 
-function set_template_engine(&$a, $engine = 'internal') {
+/// @deprecated
+function set_template_engine(App $a, $engine = 'internal') {
 /// @note This function is no longer necessary, but keep it as a wrapper to the class method
 /// to avoid breaking themes again unnecessarily
 

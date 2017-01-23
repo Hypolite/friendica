@@ -217,7 +217,6 @@ class Probe {
 		if ($cache) {
 			$result = Cache::get("probe_url:".$network.":".$uri);
 			if (!is_null($result)) {
-				$result = unserialize($result);
 				return $result;
 			}
 		}
@@ -257,7 +256,7 @@ class Probe {
 
 		// Only store into the cache if the value seems to be valid
 		if (!in_array($data['network'], array(NETWORK_PHANTOM, NETWORK_MAIL))) {
-			Cache::set("probe_url:".$network.":".$uri,serialize($data), CACHE_DAY);
+			Cache::set("probe_url:".$network.":".$uri, $data, CACHE_DAY);
 
 			/// @todo temporary fix - we need a real contact update function that updates only changing fields
 			/// The biggest problem is the avatar picture that could have a reduced image size.
@@ -325,7 +324,7 @@ class Probe {
 				!isset($parts["path"]))
 				return false;
 
-			// todo: Ports?
+			/// @todo: Ports?
 			$host = $parts["host"];
 
 			if ($host == 'twitter.com')
@@ -570,6 +569,8 @@ class Probe {
 
 		$data = array();
 
+		logger("Check profile ".$profile, LOGGER_DEBUG);
+
 		// Fetch data via noscrape - this is faster
 		$noscrape = str_replace(array("/hcard/", "/profile/"), "/noscrape/", $profile);
 		$data = self::poll_noscrape($noscrape, $data);
@@ -591,6 +592,8 @@ class Probe {
 		$prof_data["photo"] = $data["photo"];
 		$prof_data["fn"] = $data["name"];
 		$prof_data["key"] = $data["pubkey"];
+
+		logger("Result for profile ".$profile.": ".print_r($prof_data, true), LOGGER_DEBUG);
 
 		return $prof_data;
 	}
@@ -712,11 +715,19 @@ class Probe {
 		$photos = $xpath->query("//*[contains(concat(' ', @class, ' '), ' photo ') or contains(concat(' ', @class, ' '), ' avatar ')]", $vcard); // */
 		foreach ($photos AS $photo) {
 			$attr = array();
-			foreach ($photo->attributes as $attribute)
+			foreach ($photo->attributes as $attribute) {
 				$attr[$attribute->name] = trim($attribute->value);
+			}
 
-			if (isset($attr["src"]) AND isset($attr["width"]))
+			if (isset($attr["src"]) AND isset($attr["width"])) {
 				$avatar[$attr["width"]] = $attr["src"];
+			}
+
+			// We don't have a width. So we just take everything that we got.
+			// This is a Hubzilla workaround which doesn't send a width.
+			if ((sizeof($avatar) == 0) AND isset($attr["src"])) {
+				$avatar[] = $attr["src"];
+			}
 		}
 
 		if (sizeof($avatar)) {
@@ -1081,7 +1092,7 @@ class Probe {
 
 		$r = q("SELECT * FROM `mailacct` WHERE `uid` = %d AND `server` != '' LIMIT 1", intval($uid));
 
-		if(count($x) && count($r)) {
+		if (dbm::is_result($x) && dbm::is_result($r)) {
 			$mailbox = construct_mailbox_name($r[0]);
 			$password = '';
 			openssl_private_decrypt(hex2bin($r[0]['pass']), $password,$x[0]['prvkey']);

@@ -3,7 +3,8 @@
  * @file include/dfrn.php
  * @brief The implementation of the dfrn protocol
  *
- * https://github.com/friendica/friendica/wiki/Protocol
+ * @see https://github.com/friendica/friendica/wiki/Protocol and
+ * https://github.com/friendica/friendica/blob/master/spec/dfrn2.pdf
  */
 
 require_once("include/Contact.php");
@@ -104,15 +105,15 @@ class dfrn {
 			dbesc($owner_nick)
 		);
 
-		if(! count($r))
+		if (! dbm::is_result($r)) {
 			killme();
+		}
 
 		$owner = $r[0];
 		$owner_id = $owner['uid'];
 		$owner_nick = $owner['nickname'];
 
 		$sql_post_table = "";
-		$visibility = "";
 
 		if(! $public_feed) {
 
@@ -135,12 +136,13 @@ class dfrn {
 					break; // NOTREACHED
 			}
 
-			$r = q("SELECT * FROM `contact` WHERE `blocked` = 0 AND `pending` = 0 AND `contact`.`uid` = %d $sql_extra LIMIT 1",
+			$r = q("SELECT * FROM `contact` WHERE NOT `blocked` AND `contact`.`uid` = %d $sql_extra LIMIT 1",
 				intval($owner_id)
 			);
 
-			if(! count($r))
+			if (! dbm::is_result($r)) {
 				killme();
+			}
 
 			$contact = $r[0];
 			require_once('include/security.php');
@@ -171,9 +173,6 @@ class dfrn {
 		else
 			$sort = 'ASC';
 
-		$date_field = "`changed`";
-		$sql_order = "`item`.`parent` ".$sort.", `item`.`created` ASC";
-
 		if(! strlen($last_update))
 			$last_update = 'now -30 days';
 
@@ -190,22 +189,19 @@ class dfrn {
 
 		$check_date = datetime_convert('UTC','UTC',$last_update,'Y-m-d H:i:s');
 
-		//	AND ( `item`.`edited` > '%s' OR `item`.`changed` > '%s' )
-		//	dbesc($check_date),
-
-		$r = q("SELECT STRAIGHT_JOIN `item`.*, `item`.`id` AS `item_id`,
+		$r = q("SELECT `item`.*, `item`.`id` AS `item_id`,
 			`contact`.`name`, `contact`.`network`, `contact`.`photo`, `contact`.`url`,
 			`contact`.`name-date`, `contact`.`uri-date`, `contact`.`avatar-date`,
 			`contact`.`thumb`, `contact`.`dfrn-id`, `contact`.`self`,
 			`sign`.`signed_text`, `sign`.`signature`, `sign`.`signer`
-			FROM `item` $sql_post_table
-			INNER JOIN `contact` ON `contact`.`id` = `item`.`contact-id`
-			AND `contact`.`blocked` = 0 AND `contact`.`pending` = 0
+			FROM `item` USE INDEX (`uid_wall_changed`, `uid_type_changed`) $sql_post_table
+			STRAIGHT_JOIN `contact` ON `contact`.`id` = `item`.`contact-id`
+			AND (NOT `contact`.`blocked` OR `contact`.`pending`)
 			LEFT JOIN `sign` ON `sign`.`iid` = `item`.`id`
-			WHERE `item`.`uid` = %d AND `item`.`visible` = 1 and `item`.`moderated` = 0 AND `item`.`parent` != 0
-			AND ((`item`.`wall` = 1) $visibility) AND `item`.$date_field > '%s'
+			WHERE `item`.`uid` = %d AND `item`.`visible` AND NOT `item`.`moderated` AND `item`.`parent` != 0
+			AND `item`.`wall` AND `item`.`changed` > '%s'
 			$sql_extra
-			ORDER BY $sql_order LIMIT 0, 300",
+			ORDER BY `item`.`parent` ".$sort.", `item`.`created` ASC LIMIT 0, 300",
 			intval($owner_id),
 			dbesc($check_date),
 			dbesc($sort)
@@ -1165,7 +1161,7 @@ class dfrn {
 
 		// Until now we aren't serving different sizes - but maybe later
 		$avatarlist = array();
-		// @todo check if "avatar" or "photo" would be the best field in the specification
+		/// @todo check if "avatar" or "photo" would be the best field in the specification
 		$avatars = $xpath->query($element."/atom:link[@rel='avatar']", $context);
 		foreach($avatars AS $avatar) {
 			$href = "";
@@ -1385,7 +1381,7 @@ class dfrn {
 
 		$objxml = $obj_doc->saveXML($obj_element);
 
-		// @todo This isn't totally clean. We should find a way to transform the namespaces
+		/// @todo This isn't totally clean. We should find a way to transform the namespaces
 		$objxml = str_replace("<".$element.' xmlns="http://www.w3.org/2005/Atom">', "<".$element.">", $objxml);
 		return($objxml);
 	}
@@ -1449,6 +1445,7 @@ class dfrn {
 	 * @param array $importer Record of the importer user mixed with contact of the content
 	 */
 	private function process_suggestion($xpath, $suggestion, $importer) {
+		$a = get_app();
 
 		logger("Processing suggestions");
 
@@ -1468,7 +1465,7 @@ class dfrn {
 			dbesc(normalise_link($suggest["url"])),
 			intval($suggest["uid"])
 		);
-		if(dbm::is_result($r))
+		if (dbm::is_result($r))
 			return false;
 
 		// Do we already have an fcontact record for this person?
@@ -1479,7 +1476,7 @@ class dfrn {
 			dbesc($suggest["name"]),
 			dbesc($suggest["request"])
 		);
-		if(dbm::is_result($r)) {
+		if (dbm::is_result($r)) {
 			$fid = $r[0]["id"];
 
 			// OK, we do. Do we already have an introduction for this person ?
@@ -1487,7 +1484,7 @@ class dfrn {
 				intval($suggest["uid"]),
 				intval($fid)
 			);
-			if(dbm::is_result($r))
+			if (dbm::is_result($r))
 				return false;
 		}
 		if(!$fid)
@@ -1502,7 +1499,7 @@ class dfrn {
 			dbesc($suggest["name"]),
 			dbesc($suggest["request"])
 		);
-		if(dbm::is_result($r))
+		if (dbm::is_result($r))
 			$fid = $r[0]["id"];
 		else
 			// database record did not get created. Quietly give up.
@@ -1751,7 +1748,7 @@ class dfrn {
 				LIMIT 1",
 				dbesc($item["parent-uri"])
 			);
-			if($r && count($r)) {
+			if (dbm::is_result($r)) {
 				$r = q("SELECT `item`.`forum_mode`, `item`.`wall` FROM `item`
 					INNER JOIN `contact` ON `contact`.`id` = `item`.`contact-id`
 					WHERE `item`.`uri` = '%s' AND (`item`.`parent-uri` = '%s' OR `item`.`thr-parent` = '%s')
@@ -1763,7 +1760,7 @@ class dfrn {
 					dbesc($r[0]["parent-uri"]),
 					intval($importer["importer_uid"])
 				);
-				if($r && count($r))
+				if (dbm::is_result($r))
 					$is_a_remote_action = true;
 			}
 
@@ -1901,7 +1898,7 @@ class dfrn {
 					dbesc($item["verb"]),
 					dbesc($item["parent-uri"])
 				);
-				if($r && count($r))
+				if (dbm::is_result($r))
 					return false;
 
 				$r = q("SELECT `id` FROM `item` WHERE `uid` = %d AND `author-link` = '%s' AND `verb` = '%s' AND `thr-parent` = '%s' AND NOT `deleted` LIMIT 1",
@@ -1910,7 +1907,7 @@ class dfrn {
 					dbesc($item["verb"]),
 					dbesc($item["parent-uri"])
 				);
-				if($r && count($r))
+				if (dbm::is_result($r))
 					return false;
 			} else
 				$is_like = false;
@@ -1926,7 +1923,7 @@ class dfrn {
 						intval($importer["importer_uid"])
 					);
 
-					if(!count($r))
+					if (!dbm::is_result($r))
 						return false;
 
 					// extract tag, if not duplicate, add to parent item
@@ -2198,7 +2195,7 @@ class dfrn {
 						dbesc($item["uri"]),
 						intval($importer["uid"])
 					);
-					if(dbm::is_result($r))
+					if (dbm::is_result($r))
 						$ev["id"] = $r[0]["id"];
 
 					$event_id = event_store($ev);
@@ -2219,7 +2216,7 @@ class dfrn {
 		}
 
 		// Update content if 'updated' changes
-		if(dbm::is_result($r)) {
+		if (dbm::is_result($r)) {
 			if (self::update_content($r[0], $item, $importer, $entrytype))
 				logger("Item ".$item["uri"]." was updated.", LOGGER_DEBUG);
 			else
@@ -2241,7 +2238,7 @@ class dfrn {
 					intval($posted_id),
 					intval($importer["importer_uid"])
 				);
-				if(dbm::is_result($r)) {
+				if (dbm::is_result($r)) {
 					$parent = $r[0]["parent"];
 					$parent_uri = $r[0]["parent-uri"];
 				}
@@ -2329,7 +2326,7 @@ class dfrn {
 				intval($importer["uid"]),
 				intval($importer["id"])
 			);
-		if(!count($r)) {
+		if (!dbm::is_result($r)) {
 			logger("Item with uri ".$uri." from contact ".$importer["id"]." for user ".$importer["uid"]." wasn't found.", LOGGER_DEBUG);
 			return;
 		} else {
@@ -2358,7 +2355,7 @@ class dfrn {
 						dbesc($xt->id),
 						intval($importer["importer_uid"])
 					);
-					if(count($i)) {
+					if (dbm::is_result($i)) {
 
 						// For tags, the owner cannot remove the tag on the author's copy of the post.
 
@@ -2423,7 +2420,7 @@ class dfrn {
 							dbesc($item["parent-uri"]),
 							intval($importer["uid"])
 					);
-					if(dbm::is_result($r)) {
+					if (dbm::is_result($r)) {
 						q("UPDATE `item` SET `last-child` = 1 WHERE `id` = %d",
 							intval($r[0]["id"])
 						);

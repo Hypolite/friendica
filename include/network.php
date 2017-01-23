@@ -4,6 +4,8 @@
  * @file include/network.php
  */
 
+use \Friendica\Core\Config;
+
 require_once("include/xml.php");
 require_once('include/Probe.php');
 
@@ -93,7 +95,10 @@ function z_fetch_url($url,$binary = false, &$redirects = 0, $opts=array()) {
 	@curl_setopt($ch, CURLOPT_RETURNTRANSFER,true);
 	@curl_setopt($ch, CURLOPT_USERAGENT, $a->get_useragent());
 
-
+	$range = intval(Config::get('system', 'curl_range_bytes', 0));
+	if ($range > 0) {
+		@curl_setopt($ch, CURLOPT_RANGE, '0-'.$range);
+	}
 
 	if(x($opts,'headers')){
 		@curl_setopt($ch, CURLOPT_HTTPHEADER, $opts['headers']);
@@ -388,32 +393,23 @@ function http_status_exit($val, $description = array()) {
  * @return boolean True if it's a valid URL, fals if something wrong with it
  */
 function validate_url(&$url) {
-	logger(sprintf('[%s:%d]: url=%s - CALLED!', __FUNCTION__, __LINE__, $url), LOGGER_TRACE);
-
 	if(get_config('system','disable_url_validation'))
-		logger(sprintf('[%s:%d]: URL validation disabled, returning TRUE - EXIT!', __FUNCTION__, __LINE__), LOGGER_TRACE);
 		return true;
 
 	// no naked subdomains (allow localhost for tests)
 	if(strpos($url,'.') === false && strpos($url,'/localhost/') === false)
-		logger(sprintf('[%s:%d]: URL is not complete, returning FALSE - EXIT!', __FUNCTION__, __LINE__), LOGGER_TRACE);
 		return false;
 
-	if(substr($url,0,4) != 'http' && substr($url,0,5) != 'https')
+	if(substr($url,0,4) != 'http')
 		$url = 'http://' . $url;
 
-	logger(sprintf('[%s:%d]: url=%s - before parse_url() ...', __FUNCTION__, __LINE__, $url), LOGGER_DEBUG);
-
+	/// @TODO Really supress function outcomes? Why not find them + debug them?
 	$h = @parse_url($url);
 
-	logger(sprintf('[%s:%d]: h[]=%s', __FUNCTION__, __LINE__, gettype($h)), LOGGER_DEBUG);
-
 	if((is_array($h)) && (dns_get_record($h['host'], DNS_A + DNS_CNAME + DNS_PTR) || filter_var($h['host'], FILTER_VALIDATE_IP) )) {
-		logger(sprintf('[%s:%d]: URL %s validated. - EXIT!', __FUNCTION__, __LINE__, $url), LOGGER_TRACE);
 		return true;
 	}
 
-	logger(sprintf('[%s:%d]: URL %s maybe not valid - EXIT!', __FUNCTION__, __LINE__, $url), LOGGER_TRACE);
 	return false;
 }
 
@@ -522,8 +518,6 @@ function allowed_email($email) {
 
 function avatar_img($email) {
 
-	$a = get_app();
-
 	$avatar['size'] = 175;
 	$avatar['email'] = $email;
 	$avatar['url'] = '';
@@ -531,8 +525,9 @@ function avatar_img($email) {
 
 	call_hooks('avatar_lookup', $avatar);
 
-	if(! $avatar['success'])
-		$avatar['url'] = $a->get_baseurl() . '/images/person-175.jpg';
+	if (! $avatar['success']) {
+		$avatar['url'] = App::get_baseurl() . '/images/person-175.jpg';
+	}
 
 	logger('Avatar: ' . $avatar['email'] . ' ' . $avatar['url'], LOGGER_DEBUG);
 	return $avatar['url'];
@@ -551,10 +546,11 @@ function parse_xml_string($s,$strict = true) {
 	libxml_use_internal_errors(true);
 
 	$x = @simplexml_load_string($s2);
-	if(! $x) {
+	if (! $x) {
 		logger('libxml: parse: error: ' . $s2, LOGGER_DATA);
-		foreach(libxml_get_errors() as $err)
+		foreach (libxml_get_errors() as $err) {
 			logger('libxml: parse: ' . $err->code." at ".$err->line.":".$err->column." : ".$err->message, LOGGER_DATA);
+		}
 		libxml_clear_errors();
 	}
 	return $x;
@@ -563,8 +559,9 @@ function parse_xml_string($s,$strict = true) {
 function scale_external_images($srctext, $include_link = true, $scale_replace = false) {
 
 	// Suppress "view full size"
-	if (intval(get_config('system','no_view_full_size')))
+	if (intval(get_config('system','no_view_full_size'))) {
 		$include_link = false;
+	}
 
 	$a = get_app();
 
@@ -573,38 +570,41 @@ function scale_external_images($srctext, $include_link = true, $scale_replace = 
 
 	$matches = null;
 	$c = preg_match_all('/\[img.*?\](.*?)\[\/img\]/ism',$s,$matches,PREG_SET_ORDER);
-	if($c) {
+	if ($c) {
 		require_once('include/Photo.php');
-		foreach($matches as $mtch) {
+		foreach ($matches as $mtch) {
 			logger('scale_external_image: ' . $mtch[1]);
 
-			$hostname = str_replace('www.','',substr($a->get_baseurl(),strpos($a->get_baseurl(),'://')+3));
-			if(stristr($mtch[1],$hostname))
+			$hostname = str_replace('www.','',substr(App::get_baseurl(),strpos(App::get_baseurl(),'://')+3));
+			if (stristr($mtch[1],$hostname)) {
 				continue;
+			}
 
 			// $scale_replace, if passed, is an array of two elements. The
 			// first is the name of the full-size image. The second is the
 			// name of a remote, scaled-down version of the full size image.
 			// This allows Friendica to display the smaller remote image if
 			// one exists, while still linking to the full-size image
-			if($scale_replace)
+			if ($scale_replace) {
 				$scaled = str_replace($scale_replace[0], $scale_replace[1], $mtch[1]);
-			else
+			} else {
 				$scaled = $mtch[1];
-			$i = @fetch_url($scaled);
-			if(! $i)
+			}
+			$i = fetch_url($scaled);
+			if (! $i) {
 				return $srctext;
+			}
 
 			// guess mimetype from headers or filename
 			$type = guess_image_type($mtch[1],true);
 
-			if($i) {
+			if ($i) {
 				$ph = new Photo($i, $type);
-				if($ph->is_valid()) {
+				if ($ph->is_valid()) {
 					$orig_width = $ph->getWidth();
 					$orig_height = $ph->getHeight();
 
-					if($orig_width > 640 || $orig_height > 640) {
+					if ($orig_width > 640 || $orig_height > 640) {
 
 						$ph->scaleImage(640);
 						$new_width = $ph->getWidth();
@@ -630,7 +630,7 @@ function scale_external_images($srctext, $include_link = true, $scale_replace = 
 function fix_contact_ssl_policy(&$contact,$new_policy) {
 
 	$ssl_changed = false;
-	if((intval($new_policy) == SSL_POLICY_SELFSIGN || $new_policy === 'self') && strstr($contact['url'],'https:')) {
+	if ((intval($new_policy) == SSL_POLICY_SELFSIGN || $new_policy === 'self') && strstr($contact['url'],'https:')) {
 		$ssl_changed = true;
 		$contact['url']     = 	str_replace('https:','http:',$contact['url']);
 		$contact['request'] = 	str_replace('https:','http:',$contact['request']);
@@ -640,7 +640,7 @@ function fix_contact_ssl_policy(&$contact,$new_policy) {
 		$contact['poco']    = 	str_replace('https:','http:',$contact['poco']);
 	}
 
-	if((intval($new_policy) == SSL_POLICY_FULL || $new_policy === 'full') && strstr($contact['url'],'http:')) {
+	if ((intval($new_policy) == SSL_POLICY_FULL || $new_policy === 'full') && strstr($contact['url'],'http:')) {
 		$ssl_changed = true;
 		$contact['url']     = 	str_replace('http:','https:',$contact['url']);
 		$contact['request'] = 	str_replace('http:','https:',$contact['request']);
@@ -650,15 +650,15 @@ function fix_contact_ssl_policy(&$contact,$new_policy) {
 		$contact['poco']    = 	str_replace('http:','https:',$contact['poco']);
 	}
 
-	if($ssl_changed) {
-		q("update contact set
-			url = '%s',
-			request = '%s',
-			notify = '%s',
-			poll = '%s',
-			confirm = '%s',
-			poco = '%s'
-			where id = %d limit 1",
+	if ($ssl_changed) {
+		q("UPDATE `contact` SET
+			`url` = '%s',
+			`request` = '%s',
+			`notify` = '%s',
+			`poll` = '%s',
+			`confirm` = '%s',
+			`poco` = '%s'
+			WHERE `id` = %d LIMIT 1",
 			dbesc($contact['url']),
 			dbesc($contact['request']),
 			dbesc($contact['notify']),
@@ -809,12 +809,12 @@ function short_link($url) {
 		$yourls->set('password', $yourls_password);
 		$yourls->set('ssl', $yourls_ssl);
 		$yourls->set('yourls-url', $yourls_url);
-		$slinky->set_cascade( array($yourls, new Slinky_UR1ca(), new Slinky_Trim(), new Slinky_IsGd(), new Slinky_TinyURL()));
+		$slinky->set_cascade(array($yourls, new Slinky_Ur1ca(), new Slinky_TinyURL()));
 	} else {
 		// setup a cascade of shortening services
 		// try to get a short link from these services
-		// in the order ur1.ca, trim, id.gd, tinyurl
-		$slinky->set_cascade(array(new Slinky_UR1ca(), new Slinky_Trim(), new Slinky_IsGd(), new Slinky_TinyURL()));
+		// in the order ur1.ca, tinyurl
+		$slinky->set_cascade(array(new Slinky_Ur1ca(), new Slinky_TinyURL()));
 	}
 	return $slinky->short();
 }

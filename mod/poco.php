@@ -2,7 +2,7 @@
 // See here for a documentation for portable contacts:
 // https://web.archive.org/web/20160405005550/http://portablecontacts.net/draft-spec.html
 
-function poco_init(&$a) {
+function poco_init(App $a) {
 	require_once("include/bbcode.php");
 
 	$system_mode = false;
@@ -16,8 +16,9 @@ function poco_init(&$a) {
 	}
 	if(! x($user)) {
 		$c = q("SELECT * FROM `pconfig` WHERE `cat` = 'system' AND `k` = 'suggestme' AND `v` = 1");
-		if(! count($c))
+		if (! dbm::is_result($c)) {
 			http_status_exit(401);
+		}
 		$system_mode = true;
 	}
 
@@ -45,7 +46,7 @@ function poco_init(&$a) {
 			where `user`.`nickname` = '%s' and `profile`.`is-default` = 1 limit 1",
 			dbesc($user)
 		);
-		if(! count($r) || $r[0]['hidewall'] || $r[0]['hide-friends'])
+		if(! dbm::is_result($r) || $r[0]['hidewall'] || $r[0]['hide-friends'])
 			http_status_exit(404);
 
 		$user = $r[0];
@@ -83,7 +84,7 @@ function poco_init(&$a) {
 			dbesc(NETWORK_STATUSNET)
 		);
 	}
-	if(dbm::is_result($r))
+	if (dbm::is_result($r))
 		$totalResults = intval($r[0]['total']);
 	else
 		$totalResults = 0;
@@ -173,8 +174,8 @@ function poco_init(&$a) {
 	}
 
 	if(is_array($r)) {
-		if(dbm::is_result($r)) {
-			foreach($r as $rr) {
+		if (dbm::is_result($r)) {
+			foreach ($r as $rr) {
 				if (!isset($rr['generation'])) {
 					if ($global)
 						$rr['generation'] = 3;

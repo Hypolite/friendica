@@ -26,7 +26,6 @@ function update_fail($update_id, $error_message){
 	}
 
 	// every admin could had different language
-
 	foreach ($adminlist as $admin) {
 		$lang = (($admin['language'])?$admin['language']:'en');
 		push_lang($lang);
@@ -56,11 +55,11 @@ function update_fail($update_id, $error_message){
 	$email_tpl = get_intltext_template("update_fail_eml.tpl");
 	$email_msg = replace_macros($email_tpl, array(
 		'$sitename' => $a->config['sitename'],
-		'$siteurl' =>  $a->get_baseurl(),
+		'$siteurl' =>  App::get_baseurl(),
 		'$update' => DB_UPDATE_VERSION,
 		'$error' => sprintf(t('Update %s failed. See error logs.'), DB_UPDATE_VERSION)
 	));
-	$subject=sprintf(t('Update Error at %s'), $a->get_baseurl());
+	$subject=sprintf(t('Update Error at %s'), App::get_baseurl());
 	require_once('include/email.php');
 	$subject = email_header_encode($subject,'UTF-8');
 	mail($a->config['admin_email'], $subject, $email_msg,
@@ -83,8 +82,9 @@ function table_structure($table) {
 
 	if (dbm::is_result($indexes))
 		foreach ($indexes AS $index) {
-			if ($index["Index_type"] == "FULLTEXT")
+			if ($index["Index_type"] == "FULLTEXT") {
 				continue;
+			}
 
 			if ($index['Key_name'] != 'PRIMARY' && $index['Non_unique'] == '0' && !isset($indexdata[$index["Key_name"]])) {
 				$indexdata[$index["Key_name"]] = array('UNIQUE');
@@ -95,26 +95,31 @@ function table_structure($table) {
 			// To avoid the need to add this to every index definition we just ignore it here.
 			// Exception are primary indexes
 			// Since there are some combindex primary indexes we use the limit of 180 here.
-			if (($index["Sub_part"] != "") AND (($index["Sub_part"] < 180) OR ($index["Key_name"] == "PRIMARY")))
+			if (($index["Sub_part"] != "") AND (($index["Sub_part"] < 180) OR ($index["Key_name"] == "PRIMARY"))) {
 				$column .= "(".$index["Sub_part"].")";
+			}
 
 			$indexdata[$index["Key_name"]][] = $column;
 		}
 
 	if (dbm::is_result($structures)) {
-		foreach($structures AS $field) {
+		foreach ($structures AS $field) {
 			$fielddata[$field["Field"]]["type"] = $field["Type"];
-			if ($field["Null"] == "NO")
+			if ($field["Null"] == "NO") {
 				$fielddata[$field["Field"]]["not null"] = true;
+			}
 
-			if (isset($field["Default"]))
+			if (isset($field["Default"])) {
 				$fielddata[$field["Field"]]["default"] = $field["Default"];
+			}
 
-			if ($field["Extra"] != "")
+			if ($field["Extra"] != "") {
 				$fielddata[$field["Field"]]["extra"] = $field["Extra"];
+			}
 
-			if ($field["Key"] == "PRI")
+			if ($field["Key"] == "PRI") {
 				$fielddata[$field["Field"]]["primary"] = true;
+			}
 		}
 	}
 	return(array("fields"=>$fielddata, "indexes"=>$indexdata));
@@ -138,13 +143,15 @@ function print_structure($database, $charset) {
 function update_structure($verbose, $action, $tables=null, $definition=null) {
 	global $a, $db;
 
-	if ($action)
+	if ($action) {
 		set_config('system', 'maintenance', 1);
+	}
 
-	if (isset($a->config["system"]["db_charset"]))
+	if (isset($a->config["system"]["db_charset"])) {
 		$charset = $a->config["system"]["db_charset"];
-	else
+	} else {
 		$charset = "utf8";
+	}
 
 	$errors = false;
 
@@ -153,8 +160,9 @@ function update_structure($verbose, $action, $tables=null, $definition=null) {
 	// Get the current structure
 	$database = array();
 
-	if (is_null($tables))
-		$tables = q("show tables");
+	if (is_null($tables)) {
+		$tables = q("SHOW TABLES");
+	}
 
 	foreach ($tables AS $table) {
 		$table = current($table);
@@ -164,21 +172,24 @@ function update_structure($verbose, $action, $tables=null, $definition=null) {
 	}
 
 	// Get the definition
-	if (is_null($definition))
+	if (is_null($definition)) {
 		$definition = db_definition($charset);
+	}
 
 	// Ensure index conversion to unique removes duplicates
 	$sql_config = "SET session old_alter_table=1;";
-	if ($verbose)
+	if ($verbose) {
 		echo $sql_config."\n";
-	if ($action)
-		@$db->q($sql_config);
+	}
+	if ($action) {
+		$db->q($sql_config);
+	}
 
 	// MySQL >= 5.7.4 doesn't support the IGNORE keyword in ALTER TABLE statements
 	if ((version_compare($db->server_info(), '5.7.4') >= 0) AND
 		!(strpos($db->server_info(), 'MariaDB') !== false)) {
 		$ignore = '';
-	}else {
+	} else {
 		$ignore = ' IGNORE';
 	}
 
@@ -188,15 +199,17 @@ function update_structure($verbose, $action, $tables=null, $definition=null) {
 		$sql3="";
 		if (!isset($database[$name])) {
 			$r = db_create_table($name, $structure["fields"], $charset, $verbose, $action, $structure['indexes']);
-			if(!dbm::is_result($r)) {
+			if (!dbm::is_result($r)) {
 				$errors .=  t('Errors encountered creating database tables.').$name.EOL;
 			}
 			$is_new_table = True;
 		} else {
-			// Drop the index if it isn't present in the definition
-			// or the definition differ from current status
-			// and index name doesn't start with "local_"
-			foreach ($database[$name]["indexes"] AS $indexname => $fieldnames) {
+			/*
+			 * Drop the index if it isn't present in the definition
+			 * or the definition differ from current status
+			 * and index name doesn't start with "local_"
+			 */
+			foreach ($database[$name]["indexes"] as $indexname => $fieldnames) {
 				$current_index_definition = implode(",",$fieldnames);
 				if (isset($structure["indexes"][$indexname])) {
 					$new_index_definition = implode(",",$structure["indexes"][$indexname]);
@@ -205,39 +218,44 @@ function update_structure($verbose, $action, $tables=null, $definition=null) {
 				}
 				if ($current_index_definition != $new_index_definition && substr($indexname, 0, 6) != 'local_') {
 					$sql2=db_drop_index($indexname);
-					if ($sql3 == "")
+					if ($sql3 == "") {
 						$sql3 = "ALTER".$ignore." TABLE `".$name."` ".$sql2;
-					else
+					} else {
 						$sql3 .= ", ".$sql2;
+					}
 				}
 			}
 			// Compare the field structure field by field
 			foreach ($structure["fields"] AS $fieldname => $parameters) {
 				if (!isset($database[$name]["fields"][$fieldname])) {
 					$sql2=db_add_table_field($fieldname, $parameters);
-					if ($sql3 == "")
+					if ($sql3 == "") {
 						$sql3 = "ALTER TABLE `".$name."` ".$sql2;
-					else
+					} else {
 						$sql3 .= ", ".$sql2;
+					}
 				} else {
 					// Compare the field definition
 					$current_field_definition = implode(",",$database[$name]["fields"][$fieldname]);
 					$new_field_definition = implode(",",$parameters);
 					if ($current_field_definition != $new_field_definition) {
 						$sql2=db_modify_table_field($fieldname, $parameters);
-						if ($sql3 == "")
+						if ($sql3 == "") {
 							$sql3 = "ALTER TABLE `".$name."` ".$sql2;
-						else
+						} else {
 							$sql3 .= ", ".$sql2;
+						}
 					}
 
 				}
 			}
 		}
 
-		// Create the index if the index don't exists in database
-		// or the definition differ from the current status.
-		// Don't create keys if table is new
+		/*
+		 * Create the index if the index don't exists in database
+		 * or the definition differ from the current status.
+		 * Don't create keys if table is new
+		 */
 		if (!$is_new_table) {
 			foreach ($structure["indexes"] AS $indexname => $fieldnames) {
 				if (isset($database[$name]["indexes"][$indexname])) {
@@ -265,7 +283,7 @@ function update_structure($verbose, $action, $tables=null, $definition=null) {
 
 			if ($action) {
 				$r = @$db->q($sql3);
-				if(dbm::is_result($r))
+				if (dbm::is_result($r))
 					$errors .= t('Errors encountered performing database changes.').$sql3.EOL;
 			}
 		}
@@ -367,10 +385,11 @@ function db_create_index($indexname, $fieldnames, $method="ADD") {
 		if ($names != "")
 			$names .= ",";
 
-		if (preg_match('|(.+)\((\d+)\)|', $fieldname, $matches))
+		if (preg_match('|(.+)\((\d+)\)|', $fieldname, $matches)) {
 			$names .= "`".dbesc($matches[1])."`(".intval($matches[2]).")";
-		else
+		} else {
 			$names .= "`".dbesc($fieldname)."`";
+		}
 	}
 
 	if ($indexname == "PRIMARY") {
@@ -383,8 +402,9 @@ function db_create_index($indexname, $fieldnames, $method="ADD") {
 }
 
 function db_index_suffix($charset, $reduce = 0) {
-	if ($charset != "utf8mb4")
+	if ($charset != "utf8mb4") {
 		return "";
+	}
 
 	// On utf8mb4 indexes can only have a length of 191
 	$indexlength = 191 - $reduce;
@@ -444,14 +464,15 @@ function db_definition($charset) {
 			);
 	$database["cache"] = array(
 			"fields" => array(
-					"k" => array("type" => "varchar(255)", "not null" => "1", "primary" => "1"),
+					"k" => array("type" => "varbinary(255)", "not null" => "1", "primary" => "1"),
 					"v" => array("type" => "text"),
 					"expire_mode" => array("type" => "int(11)", "not null" => "1", "default" => "0"),
 					"updated" => array("type" => "datetime", "not null" => "1", "default" => "0000-00-00 00:00:00"),
 					),
 			"indexes" => array(
-					"PRIMARY" => array("k".db_index_suffix($charset)),
+					"PRIMARY" => array("k"),
 					"updated" => array("updated"),
+					"expire_mode_updated" => array("expire_mode", "updated"),
 					)
 			);
 	$database["challenge"] = array(
@@ -483,13 +504,13 @@ function db_definition($charset) {
 	$database["config"] = array(
 			"fields" => array(
 					"id" => array("type" => "int(10) unsigned", "not null" => "1", "extra" => "auto_increment", "primary" => "1"),
-					"cat" => array("type" => "varchar(255)", "not null" => "1", "default" => ""),
-					"k" => array("type" => "varchar(255)", "not null" => "1", "default" => ""),
+					"cat" => array("type" => "varbinary(255)", "not null" => "1", "default" => ""),
+					"k" => array("type" => "varbinary(255)", "not null" => "1", "default" => ""),
 					"v" => array("type" => "text"),
 					),
 			"indexes" => array(
 					"PRIMARY" => array("id"),
-					"cat_k" => array("UNIQUE", "cat(30)","k(30)"),
+					"cat_k" => array("UNIQUE", "cat", "k"),
 					)
 			);
 	$database["contact"] = array(
@@ -565,8 +586,16 @@ function db_definition($charset) {
 					),
 			"indexes" => array(
 					"PRIMARY" => array("id"),
-					"uid" => array("uid"),
-					"nurl" => array("nurl"),
+					"uid_name" => array("uid", "name"),
+					"uid_self" => array("uid", "self"),
+					"alias_uid" => array("alias(32)", "uid"),
+					"uid_pending" => array("uid", "pending"),
+					"uid_blocked" => array("uid", "blocked"),
+					"uid_rel_network_poll" => array("uid", "rel", "network", "poll(64)", "archive"),
+					"uid_network_batch" => array("uid", "network", "batch(64)"),
+					"addr_uid" => array("addr(32)", "uid"),
+					"nurl_uid" => array("nurl(32)", "uid"),
+					"nick_uid" => array("nick(32)", "uid"),
 					)
 			);
 	$database["conv"] = array(
@@ -588,17 +617,19 @@ function db_definition($charset) {
 	$database["deliverq"] = array(
 			"fields" => array(
 					"id" => array("type" => "int(10) unsigned", "not null" => "1", "extra" => "auto_increment", "primary" => "1"),
-					"cmd" => array("type" => "varchar(32)", "not null" => "1", "default" => ""),
+					"cmd" => array("type" => "varbinary(32)", "not null" => "1", "default" => ""),
 					"item" => array("type" => "int(11)", "not null" => "1", "default" => "0"),
 					"contact" => array("type" => "int(11)", "not null" => "1", "default" => "0"),
 					),
 			"indexes" => array(
 					"PRIMARY" => array("id"),
+					"cmd_item_contact" => array("UNIQUE", "cmd", "item", "contact"),
 					)
 			);
 	$database["event"] = array(
 			"fields" => array(
 					"id" => array("type" => "int(11)", "not null" => "1", "extra" => "auto_increment", "primary" => "1"),
+					"guid" => array("type" => "varchar(255)", "not null" => "1", "default" => ""),
 					"uid" => array("type" => "int(11)", "not null" => "1", "default" => "0"),
 					"cid" => array("type" => "int(11)", "not null" => "1", "default" => "0"),
 					"uri" => array("type" => "varchar(255)", "not null" => "1", "default" => ""),
@@ -620,7 +651,7 @@ function db_definition($charset) {
 					),
 			"indexes" => array(
 					"PRIMARY" => array("id"),
-					"uid" => array("uid"),
+					"uid_start" => array("uid", "start"),
 					)
 			);
 	$database["fcontact"] = array(
@@ -645,7 +676,7 @@ function db_definition($charset) {
 					),
 			"indexes" => array(
 					"PRIMARY" => array("id"),
-					"addr" => array("addr"),
+					"addr" => array("addr(32)"),
 					)
 			);
 	$database["ffinder"] = array(
@@ -668,7 +699,7 @@ function db_definition($charset) {
 					),
 			"indexes" => array(
 					"PRIMARY" => array("id"),
-					"server" => array("server"),
+					"server" => array("server(32)"),
 					)
 			);
 	$database["fsuggest"] = array(
@@ -730,10 +761,10 @@ function db_definition($charset) {
 					),
 			"indexes" => array(
 					"PRIMARY" => array("id"),
-					"nurl" => array("nurl"),
-					"name" => array("name"),
-					"nick" => array("nick"),
-					"addr" => array("addr"),
+					"nurl" => array("nurl(32)"),
+					"name" => array("name(32)"),
+					"nick" => array("nick(32)"),
+					"addr" => array("addr(32)"),
 					"updated" => array("updated"),
 					)
 			);
@@ -748,7 +779,7 @@ function db_definition($charset) {
 					),
 			"indexes" => array(
 					"PRIMARY" => array("id"),
-					"cid_uid_gcid_zcid" => array("cid","uid","gcid","zcid"),
+					"cid_uid_gcid_zcid" => array("UNIQUE", "cid","uid","gcid","zcid"),
 					"gcid" => array("gcid"),
 					"zcid" => array("zcid"),
 					)
@@ -775,7 +806,9 @@ function db_definition($charset) {
 					),
 			"indexes" => array(
 					"PRIMARY" => array("id"),
-					"uid_gid_contactid" => array("uid","gid","contact-id"),
+					"gid_contactid" => array("gid", "contact-id"),
+					"uid_contactid" => array("uid", "contact-id"),
+					"uid_gid_contactid" => array("UNIQUE", "uid", "gid", "contact-id"),
 					)
 			);
 	$database["gserver"] = array(
@@ -798,7 +831,7 @@ function db_definition($charset) {
 					),
 			"indexes" => array(
 					"PRIMARY" => array("id"),
-					"nurl" => array("nurl"),
+					"nurl" => array("nurl(32)"),
 					)
 			);
 	$database["hook"] = array(
@@ -913,24 +946,17 @@ function db_definition($charset) {
 					"uid_network_received" => array("uid","network","received"),
 					"uid_received" => array("uid","received"),
 					"uid_network_commented" => array("uid","network","commented"),
-					"uid_commented" => array("uid","commented"),
 					"uid_title" => array("uid","title"),
 					"uid_thrparent" => array("uid","thr-parent"),
 					"uid_parenturi" => array("uid","parent-uri"),
 					"uid_contactid_id" => array("uid","contact-id","id"),
 					"uid_contactid_created" => array("uid","contact-id","created"),
-					"gcontactid_uid_created" => array("gcontact-id","uid","created"),
 					"authorid_created" => array("author-id","created"),
-					"ownerid_created" => array("owner-id","created"),
-					"wall_body" => array("wall","body(6)"),
-					"uid_visible_moderated_created" => array("uid","visible","moderated","created"),
-					"uid_uri" => array("uid","uri"),
+					"uid_uri" => array("uid", "uri"),
 					"uid_wall_created" => array("uid","wall","created"),
 					"resource-id" => array("resource-id"),
 					"uid_type" => array("uid","type"),
-					"uid_starred_id" => array("uid","starred", "id"),
 					"contactid_allowcid_allowpid_denycid_denygid" => array("contact-id","allow_cid(10)","allow_gid(10)","deny_cid(10)","deny_gid(10)"),
-					"uid_wall_parent_created" => array("uid","wall","parent","created"),
 					"uid_type_changed" => array("uid","type","changed"),
 					"contactid_verb" => array("contact-id","verb"),
 					"deleted_changed" => array("deleted","changed"),
@@ -952,7 +978,7 @@ function db_definition($charset) {
 					"PRIMARY" => array("id"),
 					"uid" => array("uid"),
 					"sid" => array("sid"),
-					"service" => array("service"),
+					"service" => array("service(32)"),
 					"iid" => array("iid"),
 					)
 			);
@@ -990,11 +1016,10 @@ function db_definition($charset) {
 			"indexes" => array(
 					"PRIMARY" => array("id"),
 					"uid" => array("uid"),
-					"guid" => array("guid"),
+					"uid_seen" => array("uid", "seen"),
 					"convid" => array("convid"),
-					"reply" => array("reply"),
-					"uri" => array("uri"),
-					"parent-uri" => array("parent-uri"),
+					"uri" => array("uri(64)"),
+					"parent-uri" => array("parent-uri(64)"),
 					)
 			);
 	$database["mailacct"] = array(
@@ -1045,10 +1070,16 @@ function db_definition($charset) {
 					"seen" => array("type" => "tinyint(1)", "not null" => "1", "default" => "0"),
 					"verb" => array("type" => "varchar(255)", "not null" => "1", "default" => ""),
 					"otype" => array("type" => "varchar(16)", "not null" => "1", "default" => ""),
+					"name_cache" => array("type" => "tinytext"),
+					"msg_cache" => array("type" => "mediumtext")
 					),
 			"indexes" => array(
 					"PRIMARY" => array("id"),
-					"uid" => array("uid"),
+					"uid_hash" => array("uid", "hash"),
+					"uid_seen_date" => array("uid", "seen", "date"),
+					"uid_type_link" => array("uid", "type", "link"),
+					"uid_link" => array("uid", "link"),
+					"uid_date" => array("uid", "date"),
 					)
 			);
 	$database["notify-threads"] = array(
@@ -1062,30 +1093,29 @@ function db_definition($charset) {
 			"indexes" => array(
 					"PRIMARY" => array("id"),
 					"master-parent-item" => array("master-parent-item"),
-					"receiver-uid" => array("receiver-uid"),
 					)
 			);
 	$database["oembed"] = array(
 			"fields" => array(
-					"url" => array("type" => "varchar(255)", "not null" => "1", "primary" => "1"),
+					"url" => array("type" => "varbinary(255)", "not null" => "1", "primary" => "1"),
 					"content" => array("type" => "text"),
 					"created" => array("type" => "datetime", "not null" => "1", "default" => "0000-00-00 00:00:00"),
 					),
 			"indexes" => array(
-					"PRIMARY" => array("url".db_index_suffix($charset)),
+					"PRIMARY" => array("url"),
 					"created" => array("created"),
 					)
 			);
 	$database["parsed_url"] = array(
 			"fields" => array(
-					"url" => array("type" => "varchar(255)", "not null" => "1", "primary" => "1"),
+					"url" => array("type" => "varbinary(255)", "not null" => "1", "primary" => "1"),
 					"guessing" => array("type" => "tinyint(1)", "not null" => "1", "default" => "0", "primary" => "1"),
 					"oembed" => array("type" => "tinyint(1)", "not null" => "1", "default" => "0", "primary" => "1"),
 					"content" => array("type" => "text"),
 					"created" => array("type" => "datetime", "not null" => "1", "default" => "0000-00-00 00:00:00"),
 					),
 			"indexes" => array(
-					"PRIMARY" => array("url".db_index_suffix($charset), "guessing", "oembed"),
+					"PRIMARY" => array("url", "guessing", "oembed"),
 					"created" => array("created"),
 					)
 			);
@@ -1093,13 +1123,13 @@ function db_definition($charset) {
 			"fields" => array(
 					"id" => array("type" => "int(11)", "not null" => "1", "extra" => "auto_increment", "primary" => "1"),
 					"uid" => array("type" => "int(11)", "not null" => "1", "default" => "0"),
-					"cat" => array("type" => "varchar(255)", "not null" => "1", "default" => ""),
-					"k" => array("type" => "varchar(255)", "not null" => "1", "default" => ""),
+					"cat" => array("type" => "varbinary(255)", "not null" => "1", "default" => ""),
+					"k" => array("type" => "varbinary(255)", "not null" => "1", "default" => ""),
 					"v" => array("type" => "mediumtext"),
 					),
 			"indexes" => array(
 					"PRIMARY" => array("id"),
-					"uid_cat_k" => array("UNIQUE", "uid","cat(30)","k(30)"),
+					"uid_cat_k" => array("UNIQUE", "uid", "cat", "k"),
 					)
 			);
 	$database["photo"] = array(
@@ -1129,9 +1159,11 @@ function db_definition($charset) {
 					),
 			"indexes" => array(
 					"PRIMARY" => array("id"),
-					"uid" => array("uid"),
-					"resource-id" => array("resource-id"),
-					"guid" => array("guid"),
+					"uid_contactid" => array("uid", "contact-id"),
+					"uid_profile" => array("uid", "profile"),
+					"uid_album_created" => array("uid", "album(32)", "created"),
+					"uid_album_resource-id_created" => array("uid", "album(32)", "resource-id(64)", "created"),
+					"resource-id" => array("resource-id(64)"),
 					)
 			);
 	$database["poll"] = array(
@@ -1169,7 +1201,7 @@ function db_definition($charset) {
 	$database["process"] = array(
 			"fields" => array(
 					"pid" => array("type" => "int(10) unsigned", "not null" => "1", "primary" => "1"),
-					"command" => array("type" => "varchar(32)", "not null" => "1", "default" => ""),
+					"command" => array("type" => "varbinary(32)", "not null" => "1", "default" => ""),
 					"created" => array("type" => "datetime", "not null" => "1", "default" => "0000-00-00 00:00:00"),
 					),
 			"indexes" => array(
@@ -1224,7 +1256,6 @@ function db_definition($charset) {
 					),
 			"indexes" => array(
 					"PRIMARY" => array("id"),
-					"hometown" => array("hometown"),
 					)
 			);
 	$database["profile_check"] = array(
@@ -1282,6 +1313,7 @@ function db_definition($charset) {
 					"uid" => array("type" => "int(11) unsigned", "not null" => "1", "default" => "0"),
 					"password" => array("type" => "varchar(255)", "not null" => "1", "default" => ""),
 					"language" => array("type" => "varchar(16)", "not null" => "1", "default" => ""),
+					"note" => array("type" => "text"),
 					),
 			"indexes" => array(
 					"PRIMARY" => array("id"),
@@ -1296,19 +1328,18 @@ function db_definition($charset) {
 			"indexes" => array(
 					"PRIMARY" => array("id"),
 					"uid" => array("uid"),
-					"term" => array("term"),
 					)
 			);
 	$database["session"] = array(
 			"fields" => array(
 					"id" => array("type" => "bigint(20) unsigned", "not null" => "1", "extra" => "auto_increment", "primary" => "1"),
-					"sid" => array("type" => "varchar(255)", "not null" => "1", "default" => ""),
+					"sid" => array("type" => "varbinary(255)", "not null" => "1", "default" => ""),
 					"data" => array("type" => "text"),
 					"expire" => array("type" => "int(10) unsigned", "not null" => "1", "default" => "0"),
 					),
 			"indexes" => array(
 					"PRIMARY" => array("id"),
-					"sid" => array("sid"),
+					"sid" => array("sid(64)"),
 					"expire" => array("expire"),
 					)
 			);
@@ -1360,11 +1391,11 @@ function db_definition($charset) {
 			"indexes" => array(
 					"PRIMARY" => array("tid"),
 					"oid_otype_type_term" => array("oid","otype","type","term"),
-					"uid_term_tid" => array("uid","term","tid"),
-					"type_term" => array("type","term"),
-					"uid_otype_type_term_global_created" => array("uid","otype","type","term","global","created"),
-					"otype_type_term_tid" => array("otype","type","term","tid"),
-					"guid" => array("guid"),
+					"uid_term_tid" => array("uid","term(32)","tid"),
+					"type_term" => array("type","term(32)"),
+					"uid_otype_type_term_global_created" => array("uid","otype","type","term(32)","global","created"),
+					"uid_otype_type_url" => array("uid","otype","type","url(64)"),
+					"guid" => array("guid(64)"),
 					)
 			);
 	$database["thread"] = array(
@@ -1404,9 +1435,6 @@ function db_definition($charset) {
 					"uid_network_created" => array("uid","network","created"),
 					"uid_contactid_commented" => array("uid","contact-id","commented"),
 					"uid_contactid_created" => array("uid","contact-id","created"),
-					"uid_gcontactid_commented" => array("uid","gcontact-id","commented"),
-					"uid_gcontactid_created" => array("uid","gcontact-id","created"),
-					"wall_private_received" => array("wall","private","received"),
 					"uid_created" => array("uid","created"),
 					"uid_commented" => array("uid","commented"),
 					)
@@ -1472,7 +1500,7 @@ function db_definition($charset) {
 					),
 			"indexes" => array(
 					"PRIMARY" => array("uid"),
-					"nickname" => array("nickname"),
+					"nickname" => array("nickname(32)"),
 					)
 			);
 	$database["userd"] = array(
@@ -1482,7 +1510,7 @@ function db_definition($charset) {
 					),
 			"indexes" => array(
 					"PRIMARY" => array("id"),
-					"username" => array("username"),
+					"username" => array("username(32)"),
 					)
 			);
 	$database["workerqueue"] = array(
@@ -1563,9 +1591,6 @@ function dbstructure_run(&$argv, &$argc) {
 	echo "update		update database schema\n";
 	echo "dumpsql		dump database schema\n";
 	return;
-
-
-
 
 }
 

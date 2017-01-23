@@ -1,5 +1,8 @@
 <?php
 namespace Friendica\Core;
+
+use dbm;
+
 /**
  * @file include/Core/PConfig.php
  * @brief contains the class with methods for the management
@@ -27,14 +30,14 @@ class PConfig {
 	 *  The category of the configuration value
 	 * @return void
 	 */
-	public static function load($uid,$family) {
-		global $a;
+	public static function load($uid, $family) {
+		$a = get_app();
 		$r = q("SELECT `v`,`k` FROM `pconfig` WHERE `cat` = '%s' AND `uid` = %d ORDER BY `cat`, `k`, `id`",
 			dbesc($family),
 			intval($uid)
 		);
-		if(count($r)) {
-			foreach($r as $rr) {
+		if (dbm::is_result($r)) {
+			foreach ($r as $rr) {
 				$k = $rr['k'];
 				$a->config[$uid][$family][$k] = $rr['v'];
 			}
@@ -65,18 +68,18 @@ class PConfig {
 	 */
 	public static function get($uid, $family, $key, $default_value = null, $refresh = false) {
 
-		global $a;
+		$a = get_app();
 
-		if(! $refresh) {
+		if (!$refresh) {
 			// Looking if the whole family isn't set
-			if(isset($a->config[$uid][$family])) {
-				if($a->config[$uid][$family] === '!<unset>!') {
+			if (isset($a->config[$uid][$family])) {
+				if ($a->config[$uid][$family] === '!<unset>!') {
 					return $default_value;
 				}
 			}
 
-			if(isset($a->config[$uid][$family][$key])) {
-				if($a->config[$uid][$family][$key] === '!<unset>!') {
+			if (isset($a->config[$uid][$family][$key])) {
+				if ($a->config[$uid][$family][$key] === '!<unset>!') {
 					return $default_value;
 				}
 				return $a->config[$uid][$family][$key];
@@ -89,13 +92,12 @@ class PConfig {
 			dbesc($key)
 		);
 
-		if(count($ret)) {
+		if (count($ret)) {
 			$val = (preg_match("|^a:[0-9]+:{.*}$|s", $ret[0]['v'])?unserialize( $ret[0]['v']):$ret[0]['v']);
 			$a->config[$uid][$family][$key] = $val;
 
 			return $val;
-		}
-		else {
+		} else {
 			$a->config[$uid][$family][$key] = '!<unset>!';
 		}
 		return $default_value;
@@ -119,25 +121,41 @@ class PConfig {
 	 *  The value to store
 	 * @return mixed Stored $value or false
 	 */
-	public static function set($uid,$family,$key,$value) {
+	public static function set($uid, $family, $key, $value) {
 
-		global $a;
+		$a = get_app();
+
+		$stored = self::get($uid, $family, $key);
+
+		if ($stored == $value) {
+			return true;
+		}
 
 		// manage array value
-		$dbvalue = (is_array($value)?serialize($value):$value);
+		$dbvalue = (is_array($value) ? serialize($value):$value);
 
 		$a->config[$uid][$family][$key] = $value;
 
-		$ret = q("INSERT INTO `pconfig` ( `uid`, `cat`, `k`, `v` ) VALUES ( %d, '%s', '%s', '%s' )
-ON DUPLICATE KEY UPDATE `v` = '%s'",
-			intval($uid),
-			dbesc($family),
-			dbesc($key),
-			dbesc($dbvalue),
-			dbesc($dbvalue)
-		);
-		if($ret)
+                if (is_null($stored)) {
+			$ret = q("INSERT INTO `pconfig` (`uid`, `cat`, `k`, `v`) VALUES (%d, '%s', '%s', '%s') ON DUPLICATE KEY UPDATE `v` = '%s'",
+				intval($uid),
+				dbesc($family),
+				dbesc($key),
+				dbesc($dbvalue),
+				dbesc($dbvalue)
+			);
+		} else {
+			$ret = q("UPDATE `pconfig` SET `v` = '%s' WHERE `uid` = %d AND `cat` = '%s' AND `k` = '%s'",
+				dbesc($dbvalue),
+				intval($uid),
+				dbesc($family),
+				dbesc($key)
+			);
+		}
+
+		if ($ret) {
 			return $value;
+		}
 		return $ret;
 	}
 
@@ -156,14 +174,18 @@ ON DUPLICATE KEY UPDATE `v` = '%s'",
 	 */
 	public static function delete($uid,$family,$key) {
 
-		global $a;
-		if(x($a->config[$uid][$family],$key))
+		$a = get_app();
+
+		if (x($a->config[$uid][$family], $key)) {
 			unset($a->config[$uid][$family][$key]);
+		}
+
 		$ret = q("DELETE FROM `pconfig` WHERE `uid` = %d AND `cat` = '%s' AND `k` = '%s'",
 			intval($uid),
 			dbesc($family),
 			dbesc($key)
 		);
+
 		return $ret;
 	}
 }

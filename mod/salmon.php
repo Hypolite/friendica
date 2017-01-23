@@ -19,7 +19,7 @@ function salmon_return($val) {
 
 }
 
-function salmon_post(&$a) {
+function salmon_post(App $a) {
 
 	$xml = file_get_contents('php://input');
 
@@ -31,8 +31,9 @@ function salmon_post(&$a) {
 	$r = q("SELECT * FROM `user` WHERE `nickname` = '%s' AND `account_expired` = 0 AND `account_removed` = 0 LIMIT 1",
 		dbesc($nick)
 	);
-	if(! count($r))
+	if (! dbm::is_result($r)) {
 		http_status_exit(500);
+	}
 
 	$importer = $r[0];
 
@@ -150,12 +151,12 @@ function salmon_post(&$a) {
 		dbesc(normalise_link($author_link)),
 		intval($importer['uid'])
 	);
-	if(! count($r)) {
+	if (! dbm::is_result($r)) {
 		logger('mod-salmon: Author unknown to us.');
 		if(get_pconfig($importer['uid'],'system','ostatus_autofriend')) {
 			$result = new_contact($importer['uid'],$author_link);
 			if($result['success']) {
-				$r = q("SELECT * FROM `contact` WHERE `network` = '%s' AND ( `url` = '%s' OR `alias` = '%s') 
+				$r = q("SELECT * FROM `contact` WHERE `network` = '%s' AND ( `url` = '%s' OR `alias` = '%s')
 					AND `uid` = %d LIMIT 1",
 					dbesc(NETWORK_OSTATUS),
 					dbesc($author_link),
@@ -170,7 +171,7 @@ function salmon_post(&$a) {
 	// If so we can not accept this post.
 
 	//if((dbm::is_result($r)) && (($r[0]['readonly']) || ($r[0]['rel'] == CONTACT_IS_FOLLOWER) || ($r[0]['blocked']))) {
-	if(dbm::is_result($r) && $r[0]['blocked']) {
+	if (dbm::is_result($r) && $r[0]['blocked']) {
 		logger('mod-salmon: Ignoring this author.');
 		http_status_exit(202);
 		// NOTREACHED

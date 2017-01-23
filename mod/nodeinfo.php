@@ -1,26 +1,26 @@
 <?php
 /**
  * @file mod/nodeinfo.php
- * 
+ *
  * Documentation: http://nodeinfo.diaspora.software/schema.html
 */
 
 require_once("include/plugin.php");
 
-function nodeinfo_wellknown(&$a) {
+function nodeinfo_wellknown(App $a) {
 	if (!get_config("system", "nodeinfo")) {
 		http_status_exit(404);
 		killme();
 	}
 	$nodeinfo = array("links" => array(array("rel" => "http://nodeinfo.diaspora.software/ns/schema/1.0",
-					"href" => $a->get_baseurl()."/nodeinfo/1.0")));
+					"href" => App::get_baseurl()."/nodeinfo/1.0")));
 
 	header('Content-type: application/json; charset=utf-8');
 	echo json_encode($nodeinfo, JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES);
 	exit;
 }
 
-function nodeinfo_init(&$a){
+function nodeinfo_init(App $a) {
 	if (!get_config("system", "nodeinfo")) {
 		http_status_exit(404);
 		killme();
@@ -185,10 +185,10 @@ function nodeinfo_cron() {
 	}
         logger("cron_start");
 
-	$users = q("SELECT `user`.`uid`, `user`.`login_date`,
-			(SELECT MAX(`changed`) FROM `item` FORCE INDEX (`uid_wall_changed`) WHERE `wall` AND `uid` = `user`.`uid`) AS `lastitem_date`
+	$users = qu("SELECT `user`.`uid`, `user`.`login_date`, `contact`.`last-item`
 			FROM `user`
 			INNER JOIN `profile` ON `profile`.`uid` = `user`.`uid` AND `profile`.`is-default`
+			INNER JOIN `contact` ON `contact`.`uid` = `user`.`uid` AND `contact`.`self`
 			WHERE (`profile`.`publish` OR `profile`.`net-publish`) AND `user`.`verified`
 				AND NOT `user`.`blocked` AND NOT `user`.`account_removed`
 				AND NOT `user`.`account_expired`");
@@ -202,11 +202,11 @@ function nodeinfo_cron() {
 
 			foreach ($users AS $user) {
 				if ((strtotime($user['login_date']) > $halfyear) OR
-					(strtotime($user['lastitem_date']) > $halfyear))
+					(strtotime($user['last-item']) > $halfyear))
 					++$active_users_halfyear;
 
 				if ((strtotime($user['login_date']) > $month) OR
-					(strtotime($user['lastitem_date']) > $month))
+					(strtotime($user['last-item']) > $month))
 					++$active_users_monthly;
 
 			}
@@ -217,11 +217,7 @@ function nodeinfo_cron() {
 			set_config('nodeinfo','active_users_monthly', $active_users_monthly);
 	}
 
-	//$posts = q("SELECT COUNT(*) AS local_posts FROM `item` WHERE `wall` AND `uid` != 0 AND `id` = `parent` AND left(body, 6) != '[share'");
-	$posts = q("SELECT COUNT(*) AS `local_posts` FROM `item`
-			INNER JOIN `contact` ON `contact`.`id` = `item`.`contact-id`
-			WHERE `contact`.`self` and `item`.`id` = `item`.`parent` AND left(body, 6) != '[share' AND `item`.`network` IN ('%s', '%s', '%s')",
-			dbesc(NETWORK_OSTATUS), dbesc(NETWORK_DIASPORA), dbesc(NETWORK_DFRN));
+	$posts = qu("SELECT COUNT(*) AS local_posts FROM `thread` WHERE `thread`.`wall` AND `thread`.`uid` != 0");
 
 	if (!is_array($posts))
 		$local_posts = -1;
@@ -232,7 +228,7 @@ function nodeinfo_cron() {
 
         logger("local_posts: ".$local_posts, LOGGER_DEBUG);
 
-	$posts = q("SELECT COUNT(*) AS `local_comments` FROM `item`
+	$posts = qu("SELECT COUNT(*) AS `local_comments` FROM `item`
 			INNER JOIN `contact` ON `contact`.`id` = `item`.`contact-id`
 			WHERE `contact`.`self` and `item`.`id` != `item`.`parent` AND `item`.`network` IN ('%s', '%s', '%s')",
 			dbesc(NETWORK_OSTATUS), dbesc(NETWORK_DIASPORA), dbesc(NETWORK_DFRN));

@@ -1,6 +1,6 @@
 -- ------------------------------------------
 -- Friendica 3.5.1-dev (Asparagus)
--- DB_UPDATE_VERSION 1205
+-- DB_UPDATE_VERSION 1212
 -- ------------------------------------------
 
 
@@ -54,12 +54,13 @@ CREATE TABLE IF NOT EXISTS `auth_codes` (
 -- TABLE cache
 --
 CREATE TABLE IF NOT EXISTS `cache` (
-	`k` varchar(255) NOT NULL,
+	`k` varbinary(255) NOT NULL,
 	`v` text,
 	`expire_mode` int(11) NOT NULL DEFAULT 0,
 	`updated` datetime NOT NULL DEFAULT '0000-00-00 00:00:00',
-	 PRIMARY KEY(`k`(191)),
-	 INDEX `updated` (`updated`)
+	 PRIMARY KEY(`k`),
+	 INDEX `updated` (`updated`),
+	 INDEX `expire_mode_updated` (`expire_mode`,`updated`)
 ) DEFAULT CHARSET=utf8mb4;
 
 --
@@ -93,11 +94,11 @@ CREATE TABLE IF NOT EXISTS `clients` (
 --
 CREATE TABLE IF NOT EXISTS `config` (
 	`id` int(10) unsigned NOT NULL auto_increment,
-	`cat` varchar(255) NOT NULL DEFAULT '',
-	`k` varchar(255) NOT NULL DEFAULT '',
+	`cat` varbinary(255) NOT NULL DEFAULT '',
+	`k` varbinary(255) NOT NULL DEFAULT '',
 	`v` text,
 	 PRIMARY KEY(`id`),
-	 UNIQUE INDEX `cat_k` (`cat`(30),`k`(30))
+	 UNIQUE INDEX `cat_k` (`cat`,`k`)
 ) DEFAULT CHARSET=utf8mb4;
 
 --
@@ -173,8 +174,16 @@ CREATE TABLE IF NOT EXISTS `contact` (
 	`fetch_further_information` tinyint(1) NOT NULL DEFAULT 0,
 	`ffi_keyword_blacklist` mediumtext,
 	 PRIMARY KEY(`id`),
-	 INDEX `uid` (`uid`),
-	 INDEX `nurl` (`nurl`)
+	 INDEX `uid_name` (`uid`,`name`),
+	 INDEX `uid_self` (`uid`,`self`),
+	 INDEX `alias_uid` (`alias`(32),`uid`),
+	 INDEX `uid_pending` (`uid`,`pending`),
+	 INDEX `uid_blocked` (`uid`,`blocked`),
+	 INDEX `uid_rel_network_poll` (`uid`,`rel`,`network`,`poll`(64),`archive`),
+	 INDEX `uid_network_batch` (`uid`,`network`,`batch`(64)),
+	 INDEX `addr_uid` (`addr`(32),`uid`),
+	 INDEX `nurl_uid` (`nurl`(32),`uid`),
+	 INDEX `nick_uid` (`nick`(32),`uid`)
 ) DEFAULT CHARSET=utf8mb4;
 
 --
@@ -198,10 +207,11 @@ CREATE TABLE IF NOT EXISTS `conv` (
 --
 CREATE TABLE IF NOT EXISTS `deliverq` (
 	`id` int(10) unsigned NOT NULL auto_increment,
-	`cmd` varchar(32) NOT NULL DEFAULT '',
+	`cmd` varbinary(32) NOT NULL DEFAULT '',
 	`item` int(11) NOT NULL DEFAULT 0,
 	`contact` int(11) NOT NULL DEFAULT 0,
-	 PRIMARY KEY(`id`)
+	 PRIMARY KEY(`id`),
+	 UNIQUE INDEX `cmd_item_contact` (`cmd`,`item`,`contact`)
 ) DEFAULT CHARSET=utf8mb4;
 
 --
@@ -209,6 +219,7 @@ CREATE TABLE IF NOT EXISTS `deliverq` (
 --
 CREATE TABLE IF NOT EXISTS `event` (
 	`id` int(11) NOT NULL auto_increment,
+	`guid` varchar(255) NOT NULL DEFAULT '',
 	`uid` int(11) NOT NULL DEFAULT 0,
 	`cid` int(11) NOT NULL DEFAULT 0,
 	`uri` varchar(255) NOT NULL DEFAULT '',
@@ -228,7 +239,7 @@ CREATE TABLE IF NOT EXISTS `event` (
 	`deny_cid` mediumtext,
 	`deny_gid` mediumtext,
 	 PRIMARY KEY(`id`),
-	 INDEX `uid` (`uid`)
+	 INDEX `uid_start` (`uid`,`start`)
 ) DEFAULT CHARSET=utf8mb4;
 
 --
@@ -253,7 +264,7 @@ CREATE TABLE IF NOT EXISTS `fcontact` (
 	`pubkey` text,
 	`updated` datetime NOT NULL DEFAULT '0000-00-00 00:00:00',
 	 PRIMARY KEY(`id`),
-	 INDEX `addr` (`addr`)
+	 INDEX `addr` (`addr`(32))
 ) DEFAULT CHARSET=utf8mb4;
 
 --
@@ -276,7 +287,7 @@ CREATE TABLE IF NOT EXISTS `fserver` (
 	`posturl` varchar(255) NOT NULL DEFAULT '',
 	`key` text,
 	 PRIMARY KEY(`id`),
-	 INDEX `server` (`server`)
+	 INDEX `server` (`server`(32))
 ) DEFAULT CHARSET=utf8mb4;
 
 --
@@ -338,10 +349,10 @@ CREATE TABLE IF NOT EXISTS `gcontact` (
 	`generation` tinyint(3) NOT NULL DEFAULT 0,
 	`server_url` varchar(255) NOT NULL DEFAULT '',
 	 PRIMARY KEY(`id`),
-	 INDEX `nurl` (`nurl`),
-	 INDEX `name` (`name`),
-	 INDEX `nick` (`nick`),
-	 INDEX `addr` (`addr`),
+	 INDEX `nurl` (`nurl`(32)),
+	 INDEX `name` (`name`(32)),
+	 INDEX `nick` (`nick`(32)),
+	 INDEX `addr` (`addr`(32)),
 	 INDEX `updated` (`updated`)
 ) DEFAULT CHARSET=utf8mb4;
 
@@ -356,7 +367,7 @@ CREATE TABLE IF NOT EXISTS `glink` (
 	`zcid` int(11) NOT NULL DEFAULT 0,
 	`updated` datetime NOT NULL DEFAULT '0000-00-00 00:00:00',
 	 PRIMARY KEY(`id`),
-	 INDEX `cid_uid_gcid_zcid` (`cid`,`uid`,`gcid`,`zcid`),
+	 UNIQUE INDEX `cid_uid_gcid_zcid` (`cid`,`uid`,`gcid`,`zcid`),
 	 INDEX `gcid` (`gcid`),
 	 INDEX `zcid` (`zcid`)
 ) DEFAULT CHARSET=utf8mb4;
@@ -383,7 +394,9 @@ CREATE TABLE IF NOT EXISTS `group_member` (
 	`gid` int(10) unsigned NOT NULL DEFAULT 0,
 	`contact-id` int(10) unsigned NOT NULL DEFAULT 0,
 	 PRIMARY KEY(`id`),
-	 INDEX `uid_gid_contactid` (`uid`,`gid`,`contact-id`)
+	 INDEX `cid_contactid` (`cid`,`contact-id`),
+	 INDEX `uid_contactid` (`uid`,`contact-id`),
+	 UNIQUE INDEX `uid_gid_contactid` (`uid`,`gid`,`contact-id`)
 ) DEFAULT CHARSET=utf8mb4;
 
 --
@@ -406,7 +419,7 @@ CREATE TABLE IF NOT EXISTS `gserver` (
 	`last_contact` datetime DEFAULT '0000-00-00 00:00:00',
 	`last_failure` datetime DEFAULT '0000-00-00 00:00:00',
 	 PRIMARY KEY(`id`),
-	 INDEX `nurl` (`nurl`)
+	 INDEX `nurl` (`nurl`(32))
 ) DEFAULT CHARSET=utf8mb4;
 
 --
@@ -521,24 +534,17 @@ CREATE TABLE IF NOT EXISTS `item` (
 	 INDEX `uid_network_received` (`uid`,`network`,`received`),
 	 INDEX `uid_received` (`uid`,`received`),
 	 INDEX `uid_network_commented` (`uid`,`network`,`commented`),
-	 INDEX `uid_commented` (`uid`,`commented`),
 	 INDEX `uid_title` (`uid`,`title`),
 	 INDEX `uid_thrparent` (`uid`,`thr-parent`),
 	 INDEX `uid_parenturi` (`uid`,`parent-uri`),
 	 INDEX `uid_contactid_id` (`uid`,`contact-id`,`id`),
 	 INDEX `uid_contactid_created` (`uid`,`contact-id`,`created`),
-	 INDEX `gcontactid_uid_created` (`gcontact-id`,`uid`,`created`),
 	 INDEX `authorid_created` (`author-id`,`created`),
-	 INDEX `ownerid_created` (`owner-id`,`created`),
-	 INDEX `wall_body` (`wall`,`body`(6)),
-	 INDEX `uid_visible_moderated_created` (`uid`,`visible`,`moderated`,`created`),
 	 INDEX `uid_uri` (`uid`,`uri`),
 	 INDEX `uid_wall_created` (`uid`,`wall`,`created`),
 	 INDEX `resource-id` (`resource-id`),
 	 INDEX `uid_type` (`uid`,`type`),
-	 INDEX `uid_starred_id` (`uid`,`starred`,`id`),
 	 INDEX `contactid_allowcid_allowpid_denycid_denygid` (`contact-id`,`allow_cid`(10),`allow_gid`(10),`deny_cid`(10),`deny_gid`(10)),
-	 INDEX `uid_wall_parent_created` (`uid`,`wall`,`parent`,`created`),
 	 INDEX `uid_type_changed` (`uid`,`type`,`changed`),
 	 INDEX `contactid_verb` (`contact-id`,`verb`),
 	 INDEX `deleted_changed` (`deleted`,`changed`),
@@ -560,7 +566,7 @@ CREATE TABLE IF NOT EXISTS `item_id` (
 	 PRIMARY KEY(`id`),
 	 INDEX `uid` (`uid`),
 	 INDEX `sid` (`sid`),
-	 INDEX `service` (`service`),
+	 INDEX `service` (`service`(32)),
 	 INDEX `iid` (`iid`)
 ) DEFAULT CHARSET=utf8mb4;
 
@@ -598,11 +604,10 @@ CREATE TABLE IF NOT EXISTS `mail` (
 	`created` datetime NOT NULL DEFAULT '0000-00-00 00:00:00',
 	 PRIMARY KEY(`id`),
 	 INDEX `uid` (`uid`),
-	 INDEX `guid` (`guid`),
+	 INDEX `uid_seen` (`uid`,`seen`),
 	 INDEX `convid` (`convid`),
-	 INDEX `reply` (`reply`),
-	 INDEX `uri` (`uri`),
-	 INDEX `parent-uri` (`parent-uri`)
+	 INDEX `uri` (`uri`(64)),
+	 INDEX `parent-uri` (`parent-uri`(64))
 ) DEFAULT CHARSET=utf8mb4;
 
 --
@@ -655,8 +660,14 @@ CREATE TABLE IF NOT EXISTS `notify` (
 	`seen` tinyint(1) NOT NULL DEFAULT 0,
 	`verb` varchar(255) NOT NULL DEFAULT '',
 	`otype` varchar(16) NOT NULL DEFAULT '',
+	`name_cache` tinytext,
+	`msg_cache` mediumtext,
 	 PRIMARY KEY(`id`),
-	 INDEX `uid` (`uid`)
+	 INDEX `uid_hash` (`uid`,`hash`),
+	 INDEX `uid_seen_date` (`uid`,`seen`,`date`),
+	 INDEX `uid_type_link` (`uid`,`type`,`link`),
+	 INDEX `uid_link` (`uid`,`link`),
+	 INDEX `uid_date` (`uid`,`date`)
 ) DEFAULT CHARSET=utf8mb4;
 
 --
@@ -669,18 +680,17 @@ CREATE TABLE IF NOT EXISTS `notify-threads` (
 	`parent-item` int(10) unsigned NOT NULL DEFAULT 0,
 	`receiver-uid` int(11) NOT NULL DEFAULT 0,
 	 PRIMARY KEY(`id`),
-	 INDEX `master-parent-item` (`master-parent-item`),
-	 INDEX `receiver-uid` (`receiver-uid`)
+	 INDEX `master-parent-item` (`master-parent-item`)
 ) DEFAULT CHARSET=utf8mb4;
 
 --
 -- TABLE oembed
 --
 CREATE TABLE IF NOT EXISTS `oembed` (
-	`url` varchar(255) NOT NULL,
+	`url` varbinary(255) NOT NULL,
 	`content` text,
 	`created` datetime NOT NULL DEFAULT '0000-00-00 00:00:00',
-	 PRIMARY KEY(`url`(191)),
+	 PRIMARY KEY(`url`),
 	 INDEX `created` (`created`)
 ) DEFAULT CHARSET=utf8mb4;
 
@@ -688,12 +698,12 @@ CREATE TABLE IF NOT EXISTS `oembed` (
 -- TABLE parsed_url
 --
 CREATE TABLE IF NOT EXISTS `parsed_url` (
-	`url` varchar(255) NOT NULL,
+	`url` varbinary(255) NOT NULL,
 	`guessing` tinyint(1) NOT NULL DEFAULT 0,
 	`oembed` tinyint(1) NOT NULL DEFAULT 0,
 	`content` text,
 	`created` datetime NOT NULL DEFAULT '0000-00-00 00:00:00',
-	 PRIMARY KEY(`url`(191),`guessing`,`oembed`),
+	 PRIMARY KEY(`url`,`guessing`,`oembed`),
 	 INDEX `created` (`created`)
 ) DEFAULT CHARSET=utf8mb4;
 
@@ -703,11 +713,11 @@ CREATE TABLE IF NOT EXISTS `parsed_url` (
 CREATE TABLE IF NOT EXISTS `pconfig` (
 	`id` int(11) NOT NULL auto_increment,
 	`uid` int(11) NOT NULL DEFAULT 0,
-	`cat` varchar(255) NOT NULL DEFAULT '',
-	`k` varchar(255) NOT NULL DEFAULT '',
+	`cat` varbinary(255) NOT NULL DEFAULT '',
+	`k` varbinary(255) NOT NULL DEFAULT '',
 	`v` mediumtext,
 	 PRIMARY KEY(`id`),
-	 UNIQUE INDEX `uid_cat_k` (`uid`,`cat`(30),`k`(30))
+	 UNIQUE INDEX `uid_cat_k` (`uid`,`cat`,`k`)
 ) DEFAULT CHARSET=utf8mb4;
 
 --
@@ -737,9 +747,11 @@ CREATE TABLE IF NOT EXISTS `photo` (
 	`deny_cid` mediumtext,
 	`deny_gid` mediumtext,
 	 PRIMARY KEY(`id`),
-	 INDEX `uid` (`uid`),
-	 INDEX `resource-id` (`resource-id`),
-	 INDEX `guid` (`guid`)
+	 INDEX `uid_contactid` (`uid`,`contact-id`),
+	 INDEX `uid_profile` (`uid`,`profile`),
+	 INDEX `uid_album_created` (`uid`,`album`(32),`created`),
+	 INDEX `uid_album_resource-id_created` (`uid`,`album`(32),`resource-id`(64),`created`),
+	 INDEX `resource-id` (`resource-id`(64))
 ) DEFAULT CHARSET=utf8mb4;
 
 --
@@ -779,7 +791,7 @@ CREATE TABLE IF NOT EXISTS `poll_result` (
 --
 CREATE TABLE IF NOT EXISTS `process` (
 	`pid` int(10) unsigned NOT NULL,
-	`command` varchar(32) NOT NULL DEFAULT '',
+	`command` varbinary(32) NOT NULL DEFAULT '',
 	`created` datetime NOT NULL DEFAULT '0000-00-00 00:00:00',
 	 PRIMARY KEY(`pid`),
 	 INDEX `command` (`command`)
@@ -831,8 +843,7 @@ CREATE TABLE IF NOT EXISTS `profile` (
 	`thumb` varchar(255) NOT NULL DEFAULT '',
 	`publish` tinyint(1) NOT NULL DEFAULT 0,
 	`net-publish` tinyint(1) NOT NULL DEFAULT 0,
-	 PRIMARY KEY(`id`),
-	 INDEX `hometown` (`hometown`)
+	 PRIMARY KEY(`id`)
 ) DEFAULT CHARSET=utf8mb4;
 
 --
@@ -892,6 +903,7 @@ CREATE TABLE IF NOT EXISTS `register` (
 	`uid` int(11) unsigned NOT NULL DEFAULT 0,
 	`password` varchar(255) NOT NULL DEFAULT '',
 	`language` varchar(16) NOT NULL DEFAULT '',
+	`note` text,
 	 PRIMARY KEY(`id`)
 ) DEFAULT CHARSET=utf8mb4;
 
@@ -903,8 +915,7 @@ CREATE TABLE IF NOT EXISTS `search` (
 	`uid` int(11) NOT NULL DEFAULT 0,
 	`term` varchar(255) NOT NULL DEFAULT '',
 	 PRIMARY KEY(`id`),
-	 INDEX `uid` (`uid`),
-	 INDEX `term` (`term`)
+	 INDEX `uid` (`uid`)
 ) DEFAULT CHARSET=utf8mb4;
 
 --
@@ -912,11 +923,11 @@ CREATE TABLE IF NOT EXISTS `search` (
 --
 CREATE TABLE IF NOT EXISTS `session` (
 	`id` bigint(20) unsigned NOT NULL auto_increment,
-	`sid` varchar(255) NOT NULL DEFAULT '',
+	`sid` varbinary(255) NOT NULL DEFAULT '',
 	`data` text,
 	`expire` int(10) unsigned NOT NULL DEFAULT 0,
 	 PRIMARY KEY(`id`),
-	 INDEX `sid` (`sid`),
+	 INDEX `sid` (`sid`(64)),
 	 INDEX `expire` (`expire`)
 ) DEFAULT CHARSET=utf8mb4;
 
@@ -968,11 +979,11 @@ CREATE TABLE IF NOT EXISTS `term` (
 	`uid` int(10) unsigned NOT NULL DEFAULT 0,
 	 PRIMARY KEY(`tid`),
 	 INDEX `oid_otype_type_term` (`oid`,`otype`,`type`,`term`),
-	 INDEX `uid_term_tid` (`uid`,`term`,`tid`),
-	 INDEX `type_term` (`type`,`term`),
-	 INDEX `uid_otype_type_term_global_created` (`uid`,`otype`,`type`,`term`,`global`,`created`),
-	 INDEX `otype_type_term_tid` (`otype`,`type`,`term`,`tid`),
-	 INDEX `guid` (`guid`)
+	 INDEX `uid_term_tid` (`uid`,`term`(32),`tid`),
+	 INDEX `type_term` (`type`,`term`(32)),
+	 INDEX `uid_otype_type_term_global_created` (`uid`,`otype`,`type`,`term`(32),`global`,`created`),
+	 INDEX `uid_otype_type_url` (`uid`,`otype`,`type`,`url`(64)),
+	 INDEX `guid` (`guid`(64))
 ) DEFAULT CHARSET=utf8mb4;
 
 --
@@ -1012,9 +1023,6 @@ CREATE TABLE IF NOT EXISTS `thread` (
 	 INDEX `uid_network_created` (`uid`,`network`,`created`),
 	 INDEX `uid_contactid_commented` (`uid`,`contact-id`,`commented`),
 	 INDEX `uid_contactid_created` (`uid`,`contact-id`,`created`),
-	 INDEX `uid_gcontactid_commented` (`uid`,`gcontact-id`,`commented`),
-	 INDEX `uid_gcontactid_created` (`uid`,`gcontact-id`,`created`),
-	 INDEX `wall_private_received` (`wall`,`private`,`received`),
 	 INDEX `uid_created` (`uid`,`created`),
 	 INDEX `uid_commented` (`uid`,`commented`)
 ) DEFAULT CHARSET=utf8mb4;
@@ -1080,7 +1088,7 @@ CREATE TABLE IF NOT EXISTS `user` (
 	`deny_gid` mediumtext,
 	`openidserver` text,
 	 PRIMARY KEY(`uid`),
-	 INDEX `nickname` (`nickname`)
+	 INDEX `nickname` (`nickname`(32))
 ) DEFAULT CHARSET=utf8mb4;
 
 --
@@ -1090,7 +1098,7 @@ CREATE TABLE IF NOT EXISTS `userd` (
 	`id` int(11) NOT NULL auto_increment,
 	`username` varchar(255) NOT NULL,
 	 PRIMARY KEY(`id`),
-	 INDEX `username` (`username`)
+	 INDEX `username` (`username`(32))
 ) DEFAULT CHARSET=utf8mb4;
 
 --

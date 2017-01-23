@@ -1,6 +1,6 @@
 <?php
 
-function directory_init(&$a) {
+function directory_init(App $a) {
 	$a->set_pager_itemspage(60);
 
 	if(local_user()) {
@@ -20,19 +20,19 @@ function directory_init(&$a) {
 }
 
 
-function directory_post(&$a) {
+function directory_post(App $a) {
 	if(x($_POST,'search'))
 		$a->data['search'] = $_POST['search'];
 }
 
 
 
-function directory_content(&$a) {
+function directory_content(App $a) {
 	global $db;
 
 	require_once("mod/proxy.php");
 
-	if((get_config('system','block_public')) && (! local_user()) && (! remote_user()) || 
+	if((get_config('system','block_public')) && (! local_user()) && (! remote_user()) ||
 		(get_config('system','block_local_dir')) && (! local_user()) && (! remote_user())) {
 		notice( t('Public access denied.') . EOL);
 		return;
@@ -78,7 +78,7 @@ function directory_content(&$a) {
 	$r = $db->q("SELECT COUNT(*) AS `total` FROM `profile`
 			LEFT JOIN `user` ON `user`.`uid` = `profile`.`uid`
 			WHERE `is-default` = 1 $publish AND `user`.`blocked` = 0 $sql_extra ");
-	if(dbm::is_result($r))
+	if (dbm::is_result($r))
 		$a->set_pager_total($r[0]['total']);
 
 	$order = " ORDER BY `name` ASC ";
@@ -90,14 +90,16 @@ function directory_content(&$a) {
 			LEFT JOIN `user` ON `user`.`uid` = `profile`.`uid`
 			LEFT JOIN `contact` ON `contact`.`uid` = `user`.`uid`
 			WHERE `is-default` = 1 $publish AND `user`.`blocked` = 0 AND `contact`.`self` $sql_extra $order LIMIT ".$limit);
-	if(dbm::is_result($r)) {
+	if (dbm::is_result($r)) {
 
-		if(in_array('small', $a->argv))
+		if (in_array('small', $a->argv)) {
 			$photo = 'thumb';
-		else
+		}
+		else {
 			$photo = 'photo';
+		}
 
-		foreach($r as $rr) {
+		foreach ($r as $rr) {
 
 			$itemurl= '';
 
@@ -122,7 +124,7 @@ function directory_content(&$a) {
 			}
 //			if(strlen($rr['dob'])) {
 //				if(($years = age($rr['dob'],$rr['timezone'],'')) != 0)
-//					$details .= '<br />' . t('Age: ') . $years ; 
+//					$details .= '<br />' . t('Age: ') . $years ;
 //			}
 //			if(strlen($rr['gender']))
 //				$details .= '<br />' . t('Gender: ') . $rr['gender'];

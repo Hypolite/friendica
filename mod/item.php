@@ -27,7 +27,7 @@ require_once('include/Scrape.php');
 require_once('include/diaspora.php');
 require_once('include/Contact.php');
 
-function item_post(&$a) {
+function item_post(App $a) {
 
 	if((! local_user()) && (! remote_user()) && (! x($_REQUEST,'commenter')))
 		return;
@@ -59,13 +59,14 @@ function item_post(&$a) {
 	// Check for doubly-submitted posts, and reject duplicates
 	// Note that we have to ignore previews, otherwise nothing will post
 	// after it's been previewed
-	if(!$preview && x($_REQUEST['post_id_random'])) {
-		if(x($_SESSION['post-random']) && $_SESSION['post-random'] == $_REQUEST['post_id_random']) {
+	if (!$preview && x($_REQUEST['post_id_random'])) {
+		if (x($_SESSION['post-random']) && $_SESSION['post-random'] == $_REQUEST['post_id_random']) {
 			logger("item post: duplicate post", LOGGER_DEBUG);
-			item_post_return($a->get_baseurl(), $api_source, $return_path);
+			item_post_return(App::get_baseurl(), $api_source, $return_path);
 		}
-		else
+		else {
 			$_SESSION['post-random'] = $_REQUEST['post_id_random'];
+		}
 	}
 
 	/**
@@ -82,18 +83,19 @@ function item_post(&$a) {
 	$r = false;
 	$objecttype = null;
 
-	if($parent || $parent_uri) {
+	if ($parent || $parent_uri) {
 
 		$objecttype = ACTIVITY_OBJ_COMMENT;
 
-		if(! x($_REQUEST,'type'))
+		if (! x($_REQUEST,'type')) {
 			$_REQUEST['type'] = 'net-comment';
+		}
 
-		if($parent) {
+		if ($parent) {
 			$r = q("SELECT * FROM `item` WHERE `id` = %d LIMIT 1",
 				intval($parent)
 			);
-		} elseif($parent_uri && local_user()) {
+		} elseif ($parent_uri && local_user()) {
 			// This is coming from an API source, and we are logged in
 			$r = q("SELECT * FROM `item` WHERE `uri` = '%s' AND `uid` = %d LIMIT 1",
 				dbesc($parent_uri),
@@ -102,20 +104,21 @@ function item_post(&$a) {
 		}
 
 		// if this isn't the real parent of the conversation, find it
-		if($r !== false && count($r)) {
+		if (dbm::is_result($r)) {
 			$parid = $r[0]['parent'];
 			$parent_uri = $r[0]['uri'];
-			if($r[0]['id'] != $r[0]['parent']) {
+			if ($r[0]['id'] != $r[0]['parent']) {
 				$r = q("SELECT * FROM `item` WHERE `id` = `parent` AND `parent` = %d LIMIT 1",
 					intval($parid)
 				);
 			}
 		}
 
-		if(($r === false) || (! count($r))) {
+		if (! dbm::is_result($r)) {
 			notice( t('Unable to locate original post.') . EOL);
-			if(x($_REQUEST,'return'))
-				goaway($a->get_baseurl() . "/" . $return_path );
+			if (x($_REQUEST,'return')) {
+				goaway($return_path);
+			}
 			killme();
 		}
 		$parent_item = $r[0];
@@ -125,28 +128,20 @@ function item_post(&$a) {
 		//if(($parid) && ($parid != $parent))
 		$thr_parent = $parent_uri;
 
-		if($parent_item['contact-id'] && $uid) {
+		if ($parent_item['contact-id'] && $uid) {
 			$r = q("SELECT * FROM `contact` WHERE `id` = %d AND `uid` = %d LIMIT 1",
 				intval($parent_item['contact-id']),
 				intval($uid)
 			);
-			if(dbm::is_result($r))
+			if (dbm::is_result($r)) {
 				$parent_contact = $r[0];
+			}
 
 			// If the contact id doesn't fit with the contact, then set the contact to null
 			$thrparent = q("SELECT `author-link`, `network` FROM `item` WHERE `uri` = '%s' LIMIT 1", dbesc($thr_parent));
-			if (count($thrparent) AND ($thrparent[0]["network"] === NETWORK_OSTATUS)
+			if (dbm::is_result($thrparent) AND ($thrparent[0]["network"] === NETWORK_OSTATUS)
 				AND (normalise_link($parent_contact["url"]) != normalise_link($thrparent[0]["author-link"]))) {
-				$parent_contact = null;
-
-				$r = q("SELECT * FROM `gcontact` WHERE `nurl` = '%s' LIMIT 1",
-					dbesc(normalise_link($thrparent[0]["author-link"])));
-				if (dbm::is_result($r)) {
-					$parent_contact = $r[0];
-					$parent_contact["thumb"] = $parent_contact["photo"];
-					$parent_contact["micro"] = $parent_contact["photo"];
-					unset($parent_contact["id"]);
-				}
+				$parent_contact = get_contact_details_by_url($thrparent[0]["author-link"]);
 
 				if (!isset($parent_contact["nick"])) {
 					require_once("include/Scrape.php");
@@ -173,7 +168,8 @@ function item_post(&$a) {
 	$profile_uid = ((x($_REQUEST,'profile_uid')) ? intval($_REQUEST['profile_uid']) : 0);
 	$post_id     = ((x($_REQUEST,'post_id'))     ? intval($_REQUEST['post_id'])     : 0);
 	$app         = ((x($_REQUEST,'source'))      ? strip_tags($_REQUEST['source'])  : '');
-	$extid       = ((x($_REQUEST,'extid'))       ? strip_tags($_REQUEST['extid'])  : '');
+	$extid       = ((x($_REQUEST,'extid'))       ? strip_tags($_REQUEST['extid'])   : '');
+	$object      = ((x($_REQUEST,'object'))      ? $_REQUEST['object']              : '');
 
 	// Check for multiple posts with the same message id (when the post was created via API)
 	if (($message_id != '') AND ($profile_uid != 0)) {
@@ -197,7 +193,7 @@ function item_post(&$a) {
 	if((x($_REQUEST,'commenter')) && ((! $parent) || (! $parent_item['wall']))) {
 		notice( t('Permission denied.') . EOL) ;
 		if(x($_REQUEST,'return'))
-			goaway($a->get_baseurl() . "/" . $return_path );
+			goaway($return_path);
 		killme();
 	}
 
@@ -209,7 +205,7 @@ function item_post(&$a) {
 	if((! can_write_wall($a,$profile_uid)) && (! $allow_moderated)) {
 		notice( t('Permission denied.') . EOL) ;
 		if(x($_REQUEST,'return'))
-			goaway($a->get_baseurl() . "/" . $return_path );
+			goaway($return_path);
 		killme();
 	}
 
@@ -223,8 +219,9 @@ function item_post(&$a) {
 			intval($profile_uid),
 			intval($post_id)
 		);
-		if(! count($i))
+		if (! dbm::is_result($i)) {
 			killme();
+		}
 		$orig_post = $i[0];
 	}
 
@@ -233,10 +230,11 @@ function item_post(&$a) {
 	$r = q("SELECT * FROM `user` WHERE `uid` = %d LIMIT 1",
 		intval($profile_uid)
 	);
-	if(dbm::is_result($r))
+	if (dbm::is_result($r)) {
 		$user = $r[0];
+	}
 
-	if($orig_post) {
+	if ($orig_post) {
 		$str_group_allow   = $orig_post['allow_gid'];
 		$str_contact_allow = $orig_post['allow_cid'];
 		$str_group_deny    = $orig_post['deny_gid'];
@@ -329,7 +327,7 @@ function item_post(&$a) {
 				$r = q("SELECT * FROM `mailacct` WHERE `uid` = %d AND `server` != '' LIMIT 1",
 					intval(local_user())
 				);
-				if(dbm::is_result($r) && intval($r[0]['pubmail']))
+				if (dbm::is_result($r) && intval($r[0]['pubmail']))
 					$pubmail_enabled = true;
 			}
 		}
@@ -339,7 +337,7 @@ function item_post(&$a) {
 				killme();
 			info( t('Empty post discarded.') . EOL );
 			if(x($_REQUEST,'return'))
-				goaway($a->get_baseurl() . "/" . $return_path );
+				goaway($return_path);
 			killme();
 		}
 	}
@@ -398,22 +396,22 @@ function item_post(&$a) {
 		}
 	}
 
-	if(dbm::is_result($r)) {
+	if (dbm::is_result($r)) {
 		$author = $r[0];
 		$contact_id = $author['id'];
 	}
 
 	// get contact info for owner
 
-	if($profile_uid == local_user()) {
+	if ($profile_uid == local_user()) {
 		$contact_record = $author;
-	}
-	else {
+	} else {
 		$r = q("SELECT * FROM `contact` WHERE `uid` = %d AND `self` = 1 LIMIT 1",
 			intval($profile_uid)
 		);
-		if(dbm::is_result($r))
+		if (dbm::is_result($r)) {
 			$contact_record = $r[0];
+		}
 	}
 
 	$post_type = notags(trim($_REQUEST['type']));
@@ -447,13 +445,15 @@ function item_post(&$a) {
 
 			$objecttype = ACTIVITY_OBJ_IMAGE;
 
-			foreach($images as $image) {
-				if(! stristr($image,$a->get_baseurl() . '/photo/'))
+			foreach ($images as $image) {
+				if (! stristr($image,App::get_baseurl() . '/photo/')) {
 					continue;
+				}
 				$image_uri = substr($image,strrpos($image,'/') + 1);
 				$image_uri = substr($image_uri,0, strpos($image_uri,'-'));
-				if(! strlen($image_uri))
+				if (! strlen($image_uri)) {
 					continue;
+				}
 				$srch = '<' . intval($contact_id) . '>';
 
 				$r = q("SELECT `id` FROM `photo` WHERE `allow_cid` = '%s' AND `allow_gid` = '' AND `deny_cid` = '' AND `deny_gid` = ''
@@ -463,8 +463,9 @@ function item_post(&$a) {
 					intval($profile_uid)
 				);
 
-				if(! count($r))
+				if (! dbm::is_result($r)) {
 					continue;
+				}
 
 				$r = q("UPDATE `photo` SET `allow_cid` = '%s', `allow_gid` = '%s', `deny_cid` = '%s', `deny_gid` = '%s'
 					WHERE `resource-id` = '%s' AND `uid` = %d AND `album` = '%s' ",
@@ -495,7 +496,7 @@ function item_post(&$a) {
 					intval($profile_uid),
 					intval($attach)
 				);
-				if(dbm::is_result($r)) {
+				if (dbm::is_result($r)) {
 					$r = q("UPDATE `attach` SET `allow_cid` = '%s', `allow_gid` = '%s', `deny_cid` = '%s', `deny_gid` = '%s'
 						WHERE `uid` = %d AND `id` = %d",
 						dbesc($str_contact_allow),
@@ -560,12 +561,8 @@ function item_post(&$a) {
 	 * add a statusnet style reply tag if the original post was from there
 	 * and we are replying, and there isn't one already
 	 */
-
-	if($parent AND ($parent_contact['network'] === NETWORK_OSTATUS)) {
-		if ($parent_contact['id'] != "")
-			$contact = '@'.$parent_contact['nick'].'+'.$parent_contact['id'];
-		else
-			$contact = '@[url='.$parent_contact['url'].']'.$parent_contact['nick'].'[/url]';
+	if ($parent AND ($parent_contact['network'] == NETWORK_OSTATUS)) {
+		$contact = '@[url='.$parent_contact['url'].']'.$parent_contact['nick'].'[/url]';
 
 		if (!in_array($contact,$tags)) {
 			$body = $contact.' '.$body;
@@ -611,16 +608,17 @@ function item_post(&$a) {
 				continue;
 
 			$success = handle_tag($a, $body, $inform, $str_tags, (local_user()) ? local_user() : $profile_uid , $tag, $network);
-			if($success['replaced'])
+			if ($success['replaced']) {
 				$tagged[] = $tag;
-			if(is_array($success['contact']) && intval($success['contact']['prv'])) {
+			}
+			if (is_array($success['contact']) && intval($success['contact']['prv'])) {
 				$private_forum = true;
 				$private_id = $success['contact']['id'];
 			}
 		}
 	}
 
-	if(($private_forum) && (! $parent) && (! $private)) {
+	if (($private_forum) && (! $parent) && (! $private)) {
 		// we tagged a private forum in a top level post and the message was public.
 		// Restrict it.
 		$private = 1;
@@ -630,16 +628,17 @@ function item_post(&$a) {
 	$attachments = '';
 	$match = false;
 
-	if(preg_match_all('/(\[attachment\]([0-9]+)\[\/attachment\])/',$body,$match)) {
-		foreach($match[2] as $mtch) {
+	if (preg_match_all('/(\[attachment\]([0-9]+)\[\/attachment\])/',$body,$match)) {
+		foreach ($match[2] as $mtch) {
 			$r = q("SELECT `id`,`filename`,`filesize`,`filetype` FROM `attach` WHERE `uid` = %d AND `id` = %d LIMIT 1",
 				intval($profile_uid),
 				intval($mtch)
 			);
-			if(dbm::is_result($r)) {
-				if(strlen($attachments))
+			if (dbm::is_result($r)) {
+				if (strlen($attachments)) {
 					$attachments .= ',';
-				$attachments .= '[attach]href="' . $a->get_baseurl() . '/attach/' . $r[0]['id'] . '" length="' . $r[0]['filesize'] . '" type="' . $r[0]['filetype'] . '" title="' . (($r[0]['filename']) ? $r[0]['filename'] : '') . '"[/attach]';
+				}
+				$attachments .= '[attach]href="' . App::get_baseurl() . '/attach/' . $r[0]['id'] . '" length="' . $r[0]['filesize'] . '" type="' . $r[0]['filetype'] . '" title="' . (($r[0]['filename']) ? $r[0]['filename'] : '') . '"[/attach]';
 			}
 			$body = str_replace($match[1],'',$body);
 		}
@@ -647,14 +646,17 @@ function item_post(&$a) {
 
 	$wall = 0;
 
-	if($post_type === 'wall' || $post_type === 'wall-comment')
+	if ($post_type === 'wall' || $post_type === 'wall-comment') {
 		$wall = 1;
+	}
 
-	if(! strlen($verb))
+	if (! strlen($verb)) {
 		$verb = ACTIVITY_POST ;
+	}
 
-	if ($network == "")
+	if ($network == "") {
 		$network = NETWORK_DFRN;
+	}
 
 	$gravity = (($parent) ? 6 : 0 );
 
@@ -668,8 +670,9 @@ function item_post(&$a) {
 	$uri = (($message_id) ? $message_id : item_new_uri($a->get_hostname(),$profile_uid, $guid));
 
 	// Fallback so that we alway have a thr-parent
-	if(!$thr_parent)
+	if (!$thr_parent) {
 		$thr_parent = $uri;
+	}
 
 	$datarray = array();
 	$datarray['uid']           = $profile_uid;
@@ -718,6 +721,7 @@ function item_post(&$a) {
 	$datarray['moderated']     = $allow_moderated;
 	$datarray['gcontact-id']   = get_gcontact_id(array("url" => $datarray['author-link'], "network" => $datarray['network'],
 							"photo" => $datarray['author-avatar'], "name" => $datarray['author-name']));
+	$datarray['object']        = $object;
 
 	/**
 	 * These fields are for the convenience of plugins...
@@ -730,7 +734,7 @@ function item_post(&$a) {
 //	$datarray['prvnets']       = $user['prvnets'];
 
 	$datarray['parent-uri'] = ($parent == 0) ? $uri : $parent_item['uri'];
-	$datarray['plink'] = $a->get_baseurl().'/display/'.urlencode($datarray['guid']);
+	$datarray['plink'] = App::get_baseurl().'/display/'.urlencode($datarray['guid']);
 	$datarray['last-child'] = 1;
 	$datarray['visible'] = 1;
 
@@ -744,6 +748,9 @@ function item_post(&$a) {
 
 	if($preview) {
 		require_once('include/conversation.php');
+		// We set the datarray ID to -1 because in preview mode the dataray
+		// doesn't have an ID.
+		$datarray["id"] = -1;
 		$o = conversation($a,array(array_merge($contact_record,$datarray)),'search', false, true);
 		logger('preview: ' . $o);
 		echo json_encode(array('preview' => $o));
@@ -756,12 +763,13 @@ function item_post(&$a) {
 	if(x($datarray,'cancel')) {
 		logger('mod_item: post cancelled by plugin.');
 		if($return_path) {
-			goaway($a->get_baseurl() . "/" . $return_path);
+			goaway($return_path);
 		}
 
 		$json = array('cancel' => 1);
-		if(x($_REQUEST,'jsreload') && strlen($_REQUEST['jsreload']))
-			$json['reload'] = $a->get_baseurl() . '/' . $_REQUEST['jsreload'];
+		if (x($_REQUEST,'jsreload') && strlen($_REQUEST['jsreload'])) {
+			$json['reload'] = App::get_baseurl() . '/' . $_REQUEST['jsreload'];
+		}
 
 		echo json_encode($json);
 		killme();
@@ -795,11 +803,14 @@ function item_post(&$a) {
 		proc_run(PRIORITY_HIGH, "include/notifier.php", 'edit_post', $post_id);
 		if((x($_REQUEST,'return')) && strlen($return_path)) {
 			logger('return: ' . $return_path);
-			goaway($a->get_baseurl() . "/" . $return_path );
+			goaway($return_path);
 		}
 		killme();
 	} else
 		$post_id = 0;
+
+	q("COMMIT");
+	q("START TRANSACTION;");
 
 	$r = q("INSERT INTO `item` (`guid`, `extid`, `uid`,`type`,`wall`,`gravity`, `network`, `contact-id`,
 					`owner-name`,`owner-link`,`owner-avatar`, `owner-id`,
@@ -809,7 +820,7 @@ function item_post(&$a) {
 					`tag`, `inform`, `verb`, `object-type`, `postopts`,
 					`allow_cid`, `allow_gid`, `deny_cid`, `deny_gid`, `private`,
 					`pubmail`, `attach`, `bookmark`,`origin`, `moderated`, `file`,
-					`rendered-html`, `rendered-hash`,
+					`rendered-html`, `rendered-hash`, `gcontact-id`, `object`,
 					`parent`, `parent-uri`, `plink`, `last-child`, `visible`)
 		VALUES('%s', '%s', %d, '%s', %d, %d, '%s', %d,
 			'%s', '%s', '%s', %d,
@@ -819,7 +830,7 @@ function item_post(&$a) {
 			'%s', '%s', '%s', '%s', '%s',
 			'%s', '%s', '%s', '%s', %d,
 			%d, '%s', %d, %d, %d, '%s',
-			'%s', '%s',
+			'%s', '%s', %d, '%s',
 			%d, '%s', '%s', %d, %d)",
 		dbesc($datarray['guid']),
 		dbesc($datarray['extid']),
@@ -867,6 +878,8 @@ function item_post(&$a) {
 		dbesc($datarray['file']),
 		dbesc($datarray['rendered-html']),
 		dbesc($datarray['rendered-hash']),
+		intval($datarray['gcontact-id']),
+		dbesc($datarray['object']),
 		intval($datarray['parent']),
 		dbesc($datarray['parent-uri']),
 		dbesc($datarray['plink']),
@@ -874,19 +887,31 @@ function item_post(&$a) {
 		intval($datarray['visible'])
 	       );
 
-	$r = q("SELECT `id` FROM `item` WHERE `uri` = '%s' LIMIT 1",
-		dbesc($datarray['uri']));
-	if(!count($r)) {
+	if (dbm::is_result($r)) {
+		$r = q("SELECT LAST_INSERT_ID() AS `item-id`");
+		if (dbm::is_result($r)) {
+			$post_id = $r[0]['item-id'];
+		} else {
+			$post_id = 0;
+		}
+	} else {
+		logger('mod_item: unable to create post.');
+		$post_id = 0;
+	}
+
+	if ($post_id == 0) {
+		q("COMMIT");
 		logger('mod_item: unable to retrieve post that was just stored.');
-		notice( t('System error. Post not saved.') . EOL);
-		goaway($a->get_baseurl() . "/" . $return_path );
+		notice(t('System error. Post not saved.') . EOL);
+		goaway($return_path);
 		// NOTREACHED
 	}
 
-	$post_id = $r[0]['id'];
 	logger('mod_item: saved item ' . $post_id);
 
 	$datarray["id"] = $post_id;
+
+	item_set_last_item($datarray);
 
 	// update filetags in pconfig
 	file_tag_update_pconfig($uid,$categories_old,$categories_new,'category');
@@ -916,7 +941,7 @@ function item_post(&$a) {
 				'to_email'     => $user['email'],
 				'uid'          => $user['uid'],
 				'item'         => $datarray,
-				'link'		=> $a->get_baseurl().'/display/'.urlencode($datarray['guid']),
+				'link'		=> App::get_baseurl().'/display/'.urlencode($datarray['guid']),
 				'source_name'  => $datarray['author-name'],
 				'source_link'  => $datarray['author-link'],
 				'source_photo' => $datarray['author-avatar'],
@@ -930,7 +955,7 @@ function item_post(&$a) {
 
 
 		// Store the comment signature information in case we need to relay to Diaspora
-		diaspora::store_comment_signature($datarray, $author, ($self ? $user['prvkey'] : false), $post_id);
+		Diaspora::store_comment_signature($datarray, $author, ($self ? $user['prvkey'] : false), $post_id);
 
 	} else {
 		$parent = $post_id;
@@ -948,7 +973,7 @@ function item_post(&$a) {
 				'to_email'     => $user['email'],
 				'uid'          => $user['uid'],
 				'item'         => $datarray,
-				'link'		=> $a->get_baseurl().'/display/'.urlencode($datarray['guid']),
+				'link'		=> App::get_baseurl().'/display/'.urlencode($datarray['guid']),
 				'source_name'  => $datarray['author-name'],
 				'source_link'  => $datarray['author-link'],
 				'source_photo' => $datarray['author-avatar'],
@@ -969,14 +994,14 @@ function item_post(&$a) {
 					continue;
 				$disclaimer = '<hr />' . sprintf( t('This message was sent to you by %s, a member of the Friendica social network.'),$a->user['username'])
 					. '<br />';
-				$disclaimer .= sprintf( t('You may visit them online at %s'), $a->get_baseurl() . '/profile/' . $a->user['nickname']) . EOL;
+				$disclaimer .= sprintf( t('You may visit them online at %s'), App::get_baseurl() . '/profile/' . $a->user['nickname']) . EOL;
 				$disclaimer .= t('Please contact the sender by replying to this post if you do not wish to receive these messages.') . EOL;
 				if (!$datarray['title']=='') {
 				    $subject = email_header_encode($datarray['title'],'UTF-8');
 				} else {
 				    $subject = email_header_encode('[Friendica]' . ' ' . sprintf( t('%s posted an update.'),$a->user['username']),'UTF-8');
 				}
-				$link = '<a href="' . $a->get_baseurl() . '/profile/' . $a->user['nickname'] . '"><img src="' . $author['thumb'] . '" alt="' . $a->user['username'] . '" /></a><br /><br />';
+				$link = '<a href="' . App::get_baseurl() . '/profile/' . $a->user['nickname'] . '"><img src="' . $author['thumb'] . '" alt="' . $a->user['username'] . '" /></a><br /><br />';
 				$html    = prepare_body($datarray);
 				$message = '<html><body>' . $link . $html . $disclaimer . '</body></html>';
 				include_once('include/html2plain.php');
@@ -994,62 +1019,29 @@ function item_post(&$a) {
 		}
 	}
 
+	if ($post_id == $parent) {
+		add_thread($post_id);
+	} else {
+		update_thread($parent, true);
+	}
+
+	q("COMMIT");
+
 	create_tags_from_item($post_id);
 	create_files_from_item($post_id);
 
-	if ($post_id == $parent)
-		add_thread($post_id);
-	else {
-		update_thread($parent, true);
+	// Insert an item entry for UID=0 for global entries.
+	// We now do it in the background to save some time.
+	// This is important in interactive environments like the frontend or the API.
+	// We don't fork a new process since this is done anyway with the following command
+	proc_run(array('priority' => PRIORITY_HIGH, 'dont_fork' => true), "include/create_shadowentry.php", $post_id);
 
-		// Insert an item entry for UID=0 for global entries
-		// We have to remove or change some data before that,
-		// so that the post appear like a regular received post.
-		// Additionally there is some data that isn't a database field.
-		$arr = $datarray;
-
-		$arr['app'] = $arr['source'];
-		unset($arr['source']);
-
-		unset($arr['self']);
-		unset($arr['wall']);
-		unset($arr['origin']);
-		unset($arr['api_source']);
-		unset($arr['message_id']);
-		unset($arr['profile_uid']);
-		unset($arr['post_id']);
-		unset($arr['dropitems']);
-		unset($arr['commenter']);
-		unset($arr['return']);
-		unset($arr['preview']);
-		unset($arr['post_id_random']);
-		unset($arr['emailcc']);
-		unset($arr['pubmail_enable']);
-		unset($arr['category']);
-		unset($arr['jsreload']);
-
-		if (in_array($arr['type'], array("net-comment", "wall-comment"))) {
-			$arr['type'] = 'remote-comment';
-		} elseif ($arr['type'] == 'wall') {
-			$arr['type'] = 'remote';
-		}
-		add_shadow_entry($arr);
-	}
-
-	// This is a real juggling act on shared hosting services which kill your processes
-	// e.g. dreamhost. We used to start delivery to our native delivery agents in the background
-	// and then run our plugin delivery from the foreground. We're now doing plugin delivery first,
-	// because as soon as you start loading up a bunch of remote delivey processes, *this* page is
-	// likely to get killed off. If you end up looking at an /item URL and a blank page,
-	// it's very likely the delivery got killed before all your friends could be notified.
-	// Currently the only realistic fixes are to use a reliable server - which precludes shared hosting,
-	// or cut back on plugins which do remote deliveries.
-
+	// Call the background process that is delivering the item to the receivers
 	proc_run(PRIORITY_HIGH, "include/notifier.php", $notify_type, $post_id);
 
 	logger('post_complete');
 
-	item_post_return($a->get_baseurl(), $api_source, $return_path);
+	item_post_return(App::get_baseurl(), $api_source, $return_path);
 	// NOTREACHED
 }
 
@@ -1059,13 +1051,14 @@ function item_post_return($baseurl, $api_source, $return_path) {
 	if($api_source)
 		return;
 
-	if($return_path) {
-		goaway($baseurl . "/" . $return_path);
+	if ($return_path) {
+		goaway($return_path);
 	}
 
 	$json = array('success' => 1);
-	if(x($_REQUEST,'jsreload') && strlen($_REQUEST['jsreload']))
+	if (x($_REQUEST,'jsreload') && strlen($_REQUEST['jsreload'])) {
 		$json['reload'] = $baseurl . '/' . $_REQUEST['jsreload'];
+	}
 
 	logger('post_json: ' . print_r($json,true), LOGGER_DEBUG);
 
@@ -1075,17 +1068,18 @@ function item_post_return($baseurl, $api_source, $return_path) {
 
 
 
-function item_content(&$a) {
+function item_content(App $a) {
 
-	if((! local_user()) && (! remote_user()))
+	if ((! local_user()) && (! remote_user())) {
 		return;
+	}
 
 	require_once('include/security.php');
 
 	$o = '';
-	if(($a->argc == 3) && ($a->argv[1] === 'drop') && intval($a->argv[2])) {
+	if (($a->argc == 3) && ($a->argv[1] === 'drop') && intval($a->argv[2])) {
 		$o = drop_item($a->argv[2], !is_ajax());
-		if (is_ajax()){
+		if (is_ajax()) {
 			// ajax return: [<item id>, 0 (no perm) | <owner id>]
 			echo json_encode(array(intval($a->argv[2]), intval($o)));
 			killme();
@@ -1098,6 +1092,7 @@ function item_content(&$a) {
  * This function removes the tag $tag from the text $body and replaces it with
  * the appropiate link.
  *
+ * @param App $a Application instance @TODO is unused in this function's scope (excluding included files)
  * @param unknown_type $body the text to replace the tag in
  * @param string $inform a comma-seperated string containing everybody to inform
  * @param string $str_tags string to add the tag to
@@ -1115,13 +1110,14 @@ function handle_tag($a, &$body, &$inform, &$str_tags, $profile_uid, $tag, $netwo
 	$r = null;
 
 	//is it a person tag?
-	if(strpos($tag,'@') === 0) {
+	if (strpos($tag,'@') === 0) {
 		//is it already replaced?
-		if(strpos($tag,'[url=')) {
+		if (strpos($tag,'[url=')) {
 			//append tag to str_tags
-			if(!stristr($str_tags,$tag)) {
-				if(strlen($str_tags))
+			if (!stristr($str_tags,$tag)) {
+				if (strlen($str_tags)) {
 					$str_tags .= ',';
+				}
 				$str_tags .= $tag;
 			}
 
