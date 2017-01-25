@@ -29,11 +29,11 @@ function po2php_run(&$argv, &$argc) {
 	$out="<?php\n\n";
 
 	$infile = file($pofile);
-	$k="";
-	$v="";
-	$arr = False;
-	$ink = False;
-	$inv = False;
+	$k = "";
+	$v = "";
+	$arr = false;
+	$ink = false;
+	$inv = false;
 	$escape_s_exp = '|[^\\\\]\$[a-z]|';
 	function escape_s($match){
 		return str_replace('$','\$',$match[0]);
