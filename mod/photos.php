@@ -1341,16 +1341,13 @@ function photos_content(App $a) {
 		$prevlink = '';
 		$nextlink = '';
 
-		/// @todo This query is totally bad, the whole functionality has to be changed
-		// The query leads to a really intense used index.
-		// By now we hide it if someone wants to.
-		if (!Config::get('system', 'no_count', false)) {
-			if ($_GET['order'] === 'posted') {
-				$order = 'ASC';
-			} else {
-				$order = 'DESC';
-			}
+		if ($_GET['order'] === 'posted') {
+			$order = 'ASC';
+		} else {
+			$order = 'DESC';
+		}
 
+		/// @TODO wrong indending!
 			$prvnxt = qu("SELECT `resource-id` FROM `photo` WHERE `album` = '%s' AND `uid` = %d AND `scale` = 0
 				$sql_extra ORDER BY `created` $order ",
 				dbesc($ph[0]['album']),
@@ -1374,7 +1371,7 @@ function photos_content(App $a) {
 				$edit_suffix = ((($cmd === 'edit') && ($can_post)) ? '/edit' : '');
 				$prevlink = 'photos/' . $a->data['user']['nickname'] . '/image/' . $prvnxt[$prv]['resource-id'] . $edit_suffix . (($_GET['order'] === 'posted') ? '?f=&order=posted' : '');
 				$nextlink = 'photos/' . $a->data['user']['nickname'] . '/image/' . $prvnxt[$nxt]['resource-id'] . $edit_suffix . (($_GET['order'] === 'posted') ? '?f=&order=posted' : '');
- 			}
+			}
 		}
 
 		if (count($ph) == 1) {

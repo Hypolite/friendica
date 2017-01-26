@@ -653,8 +653,9 @@ function profiles_content(App $a) {
 		$detailled_profile = (get_pconfig(local_user(),'system','detailled_profile') AND $personal_account);
 
 		$f = get_config('system','birthday_input_format');
-		if (! $f)
+		if (! $f) {
 			$f = 'ymd';
+		}
 
 		$is_default = (($r[0]['is-default']) ? 1 : 0);
 		$tpl = get_markup_template("profile_edit.tpl");
