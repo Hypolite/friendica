@@ -142,8 +142,7 @@ class Smilies {
 			for($x = 0; $x < count($params['texts']); $x ++) {
 				$s .= '<dl><dt>' . $params['texts'][$x] . '</dt><dd>' . $params['icons'][$x] . '</dd></dl>';
 			}
-		}
-		else {
+		} else {
 			$params['string'] = preg_replace_callback('/&lt;(3+)/','self::preg_heart',$params['string']);
 			$s = str_replace($params['texts'],$params['icons'],$params['string']);
 		}

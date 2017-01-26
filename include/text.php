@@ -1971,9 +1971,7 @@ function file_tag_update_pconfig($uid, $file_old, $file_new, $type = 'file') {
 
 	if (! intval($uid)) {
 		return false;
-	}
-
-	if ($file_old == $file_new) {
+	} elseif ($file_old == $file_new) {
 		return true;
 	}
 

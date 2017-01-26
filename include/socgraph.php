@@ -1186,22 +1186,26 @@ function poco_check_server($server_url, $network = "", $force = false) {
 			$serverret = z_fetch_url($server_url."/api/statusnet/config.json");
 			if ($serverret["success"]) {
 				$data = json_decode($serverret["body"]);
+
 				if (isset($data->site->server)) {
 					if (isset($data->site->platform)) {
 						$platform = $data->site->platform->PLATFORM_NAME;
 						$version = $data->site->platform->STD_VERSION;
 						$network = NETWORK_DIASPORA;
 					}
+
 					if (isset($data->site->BlaBlaNet)) {
 						$platform = $data->site->BlaBlaNet->PLATFORM_NAME;
 						$version = $data->site->BlaBlaNet->STD_VERSION;
 						$network = NETWORK_DIASPORA;
 					}
+
 					if (isset($data->site->hubzilla)) {
 						$platform = $data->site->hubzilla->PLATFORM_NAME;
 						$version = $data->site->hubzilla->RED_VERSION;
 						$network = NETWORK_DIASPORA;
 					}
+
 					if (isset($data->site->redmatrix)) {
 						if (isset($data->site->redmatrix->PLATFORM_NAME)) {
 							$platform = $data->site->redmatrix->PLATFORM_NAME;
@@ -1212,6 +1216,7 @@ function poco_check_server($server_url, $network = "", $force = false) {
 						$version = $data->site->redmatrix->RED_VERSION;
 						$network = NETWORK_DIASPORA;
 					}
+
 					if (isset($data->site->friendica)) {
 						$platform = $data->site->friendica->FRIENDICA_PLATFORM;
 						$version = $data->site->friendica->FRIENDICA_VERSION;
@@ -1353,7 +1358,7 @@ function poco_check_server($server_url, $network = "", $force = false) {
 	$info = strip_tags($info);
 	$platform = strip_tags($platform);
 
-	if ($servers) {
+	if (dbm::is_result($servers)) {
 		 q("UPDATE `gserver` SET `url` = '%s', `version` = '%s', `site_name` = '%s', `info` = '%s', `register_policy` = %d, `poco` = '%s', `noscrape` = '%s',
 			`network` = '%s', `platform` = '%s', `last_contact` = '%s', `last_failure` = '%s' WHERE `nurl` = '%s'",
 			dbesc($server_url),
@@ -1388,6 +1393,7 @@ function poco_check_server($server_url, $network = "", $force = false) {
 				dbesc(datetime_convert())
 		);
 	}
+
 	logger("End discovery for server " . $server_url, LOGGER_DEBUG);
 
 	return !$failure;
@@ -1413,7 +1419,6 @@ function count_common_friends($uid, $cid) {
 	return 0;
 
 }
-
 
 function common_friends($uid, $cid, $start = 0, $limit = 9999, $shuffle = false) {
 
@@ -1501,6 +1506,7 @@ function count_all_friends($uid, $cid) {
 	if (dbm::is_result($r)) {
 		return $r[0]['total'];
 	}
+
 	return 0;
 
 }
@@ -1619,7 +1625,7 @@ function suggestion_query($uid, $start = 0, $limit = 80) {
 	}
 
 	/*
-	 * Uncommented because the result of the queries are to big to store it in the cache.
+	 * Commented out because the result of the queries are to big to store it in the cache.
 	 * We need to decide if we want to change the db column type or if we want to delete it.
 	 */
 	//Cache::set("suggestion_query:".$uid.":".$start.":".$limit, $list, CACHE_FIVE_MINUTES);
@@ -1877,6 +1883,7 @@ function poco_discover_server_users($data, $server) {
 	}
 }
 
+/// @TODO find type-hint for $data, seems to be object
 function poco_discover_server($data, $default_generation = 0) {
 
 	if (!isset($data->entry) || !count($data->entry)) {
@@ -2147,6 +2154,7 @@ function update_gcontact($contact) {
 		FROM `gcontact` WHERE `id` = %d LIMIT 1",
 		intval($gcontact_id));
 
+	/// @TODO $r may be not an array, use dbm::is_result()
 	// Get all field names
 	$fields = array();
 	foreach ($r[0] as $field => $data) {
@@ -2315,10 +2323,13 @@ function update_gcontact_for_user($uid) {
 		WHERE `profile`.`uid` = %d AND `profile`.`is-default` AND `contact`.`self`",
 		intval($uid));
 
+	/// @TODO $r can be not an array, secure with dbm::is_result() here
+
 	$location = formatted_location(array("locality" => $r[0]["locality"], "region" => $r[0]["region"],
 						"country-name" => $r[0]["country-name"]));
 
 	// The "addr" field was added in 3.4.3 so it can be empty for older users
+	/// @TODO Huh? Maybe not != here?!
 	if ($r[0]["addr"] != "") {
 		$addr = $r[0]["nickname"].'@'.str_replace(array("http://", "https://"), "", App::get_baseurl());
 	} else {
