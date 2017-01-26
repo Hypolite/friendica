@@ -202,15 +202,17 @@ function profile_sidebar($profile, $block = 0) {
 	$address = false;
 //		$pdesc = true;
 
-	if((! is_array($profile)) && (! count($profile)))
+	if ((! is_array($profile)) && (! count($profile))) {
 		return $o;
+	}
 
 	$profile['picdate'] = urlencode($profile['picdate']);
 
 	if (($profile['network'] != "") AND ($profile['network'] != NETWORK_DFRN)) {
 		$profile['network_name'] = format_network_name($profile['network'],$profile['url']);
-	} else
+	} else {
 		$profile['network_name'] = "";
+	}
 
 	call_hooks('profile_sidebar_enter', $profile);
 
@@ -832,7 +834,7 @@ function profile_tabs($a, $is_owner=False, $nickname=Null){
 			);
 	}
 
-	if ($is_owner){
+	if ($is_owner) {
 		$tabs[] = array(
 			'label' => t('Personal Notes'),
 			'url'	=> App::get_baseurl() . '/notes',
@@ -863,7 +865,7 @@ function profile_tabs($a, $is_owner=False, $nickname=Null){
 }
 
 function get_my_url() {
-	if(x($_SESSION,'my_url')) {
+	if (x($_SESSION,'my_url')) {
 		return $_SESSION['my_url'];
 	}
 	return false;
