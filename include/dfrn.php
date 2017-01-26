@@ -1274,7 +1274,8 @@ class dfrn {
 		foreach ($avatars AS $avatar) {
 			$href = "";
 			$width = 0;
-			foreach($avatar->attributes AS $attributes) {
+			foreach ($avatar->attributes AS $attributes) {
+				/// @TODO Rewrite these similar if() to one switch
 				if ($attributes->name == "href") {
 					$href = $attributes->textContent;
 				}
@@ -1709,8 +1710,11 @@ class dfrn {
 		$r = q("SELECT `photo`, `url` FROM `contact` WHERE `id` = %d AND `uid` = %d;",
 			intval($importer["id"]),
 			intval($importer["importer_uid"]));
-		if (!$r)
-			return false;
+
+		if (!dbm::is_result($r)) {
+			logger("Query failed to execute, no result returned in " . __FUNCTION__);
+			killme();
+		}
 
 		$old = $r[0];
 
@@ -2031,8 +2035,9 @@ class dfrn {
 					dbesc($item["verb"]),
 					dbesc($item["parent-uri"])
 				);
-				if (dbm::is_result($r))
+				if (dbm::is_result($r)) {
 					return false;
+				}
 
 				$r = q("SELECT `id` FROM `item` WHERE `uid` = %d AND `author-link` = '%s' AND `verb` = '%s' AND `thr-parent` = '%s' AND NOT `deleted` LIMIT 1",
 					intval($item["uid"]),
@@ -2040,28 +2045,32 @@ class dfrn {
 					dbesc($item["verb"]),
 					dbesc($item["parent-uri"])
 				);
-				if (dbm::is_result($r))
+				if (dbm::is_result($r)) {
 					return false;
-			} else
+				}
+			} else {
 				$is_like = false;
+			}
 
-			if(($item["verb"] == ACTIVITY_TAG) && ($item["object-type"] == ACTIVITY_OBJ_TAGTERM)) {
+			if (($item["verb"] == ACTIVITY_TAG) && ($item["object-type"] == ACTIVITY_OBJ_TAGTERM)) {
 
 				$xo = parse_xml_string($item["object"],false);
 				$xt = parse_xml_string($item["target"],false);
 
-				if($xt->type == ACTIVITY_OBJ_NOTE) {
+				if ($xt->type == ACTIVITY_OBJ_NOTE) {
 					$r = q("SELECT `id`, `tag` FROM `item` WHERE `uri` = '%s' AND `uid` = %d LIMIT 1",
 						dbesc($xt->id),
 						intval($importer["importer_uid"])
 					);
 
-					if (!dbm::is_result($r))
-						return false;
+					if (!dbm::is_result($r)) {
+						logger("Query failed to execute, no result returned in " . __FUNCTION__);
+						killme();
+					}
 
 					// extract tag, if not duplicate, add to parent item
-					if($xo->content) {
-						if(!(stristr($r[0]["tag"],trim($xo->content)))) {
+					if ($xo->content) {
+						if (!(stristr($r[0]["tag"],trim($xo->content)))) {
 							q("UPDATE `item` SET `tag` = '%s' WHERE `id` = %d",
 								dbesc($r[0]["tag"] . (strlen($r[0]["tag"]) ? ',' : '') . '#[url=' . $xo->id . ']'. $xo->content . '[/url]'),
 								intval($r[0]["id"])
@@ -2088,19 +2097,25 @@ class dfrn {
 		$length = "0";
 		$title = "";
 		foreach ($links AS $link) {
-			foreach($link->attributes AS $attributes) {
-				if ($attributes->name == "href")
+			foreach ($link->attributes AS $attributes) {
+				/// @TODO Rewrite these repeated (same) if() statements to a switch()
+				if ($attributes->name == "href") {
 					$href = $attributes->textContent;
-				if ($attributes->name == "rel")
+				}
+				if ($attributes->name == "rel") {
 					$rel = $attributes->textContent;
-				if ($attributes->name == "type")
+				}
+				if ($attributes->name == "type") [
 					$type = $attributes->textContent;
-				if ($attributes->name == "length")
+				}
+				if ($attributes->name == "length") {
 					$length = $attributes->textContent;
-				if ($attributes->name == "title")
+				}
+				if ($attributes->name == "title") {
 					$title = $attributes->textContent;
+				}
 			}
-			if (($rel != "") AND ($href != ""))
+			if (($rel != "") AND ($href != "")) {
 				switch($rel) {
 					case "alternate":
 						$item["plink"] = $href;
@@ -2113,6 +2128,7 @@ class dfrn {
 						$item["attach"] .= '[attach]href="'.$href.'" length="'.$length.'" type="'.$type.'" title="'.$title.'"[/attach]';
 						break;
 				}
+			}
 		}
 	}
 
@@ -2358,7 +2374,7 @@ class dfrn {
 
 		// Update content if 'updated' changes
 		if (dbm::is_result($current)) {
-			if (self::update_content($r[0], $item, $importer, $entrytype))
+			if (self::update_content($r[0], $item, $importer, $entrytype)) {
 				logger("Item ".$item["uri"]." was updated.", LOGGER_DEBUG);
 			else
 				logger("Item ".$item["uri"]." already existed.", LOGGER_DEBUG);
