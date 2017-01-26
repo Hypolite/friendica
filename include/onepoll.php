@@ -377,7 +377,7 @@ function onepoll_run(&$argv, &$argc){
 				else {
 					$msgs = array_combine($msgs, $metas);
 
-					foreach($msgs as $msg_uid => $meta) {
+					foreach ($msgs as $msg_uid => $meta) {
 						logger("Mail: Parsing mail ".$msg_uid, LOGGER_DATA);
 
 						$datarray = array();
@@ -440,22 +440,24 @@ function onepoll_run(&$argv, &$argc){
 						if ($raw_refs) {
 							$refs_arr = explode(' ', $raw_refs);
 							if (count($refs_arr)) {
-								for($x = 0; $x < count($refs_arr); $x ++)
+								for ($x = 0; $x < count($refs_arr); $x ++) {
 									$refs_arr[$x] = "'" . msgid2iri(str_replace(array('<','>',' '),array('','',''),dbesc($refs_arr[$x]))) . "'";
+								}
 							}
 							$qstr = implode(',',$refs_arr);
 							$r = q("SELECT `uri` , `parent-uri` FROM `item` USE INDEX (`uid_uri`) WHERE `uri` IN ($qstr) AND `uid` = %d LIMIT 1",
 								intval($importer_uid)
 							);
-							if (dbm::is_result($r))
+							if (dbm::is_result($r)) {
 								$datarray['parent-uri'] = $r[0]['parent-uri'];  // Set the parent as the top-level item
-	//							$datarray['parent-uri'] = $r[0]['uri'];
+								//$datarray['parent-uri'] = $r[0]['uri'];
+							}
 						}
 
 						// Decoding the header
 						$subject = imap_mime_header_decode($meta->subject);
 						$datarray['title'] = "";
-						foreach($subject as $subpart)
+						foreach ($subject as $subpart)
 							if ($subpart->charset != "default")
 								$datarray['title'] .= iconv($subpart->charset, 'UTF-8//IGNORE', $subpart->text);
 							else
@@ -504,7 +506,7 @@ function onepoll_run(&$argv, &$argc){
 						if (! stristr($meta->from,$contact['addr'])) {
 							$from = imap_mime_header_decode($meta->from);
 							$fromdecoded = "";
-							foreach($from as $frompart)
+							foreach ($from as $frompart)
 								if ($frompart->charset != "default")
 									$fromdecoded .= iconv($frompart->charset, 'UTF-8//IGNORE', $frompart->text);
 								else
@@ -625,7 +627,7 @@ function onepoll_run(&$argv, &$argc){
 			logger('poller: hub ' . $hubmode . ' : ' . $hub . ' contact name : ' . $contact['name'] . ' local user : ' . $importer['name']);
 			$hubs = explode(',', $hub);
 			if (count($hubs)) {
-				foreach($hubs as $h) {
+				foreach ($hubs as $h) {
 					$h = trim($h);
 					if (! strlen($h))
 						continue;

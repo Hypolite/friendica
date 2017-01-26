@@ -137,7 +137,7 @@ function fileas_widget($baseurl,$selected = '') {
 	$terms = array();
 	$cnt = preg_match_all('/\[(.*?)\]/',$saved,$matches,PREG_SET_ORDER);
 	if ($cnt) {
-		foreach($matches as $mtch) {
+		foreach ($matches as $mtch) {
 			$unescaped = xmlify(file_tag_decode($mtch[1]));
 			$terms[] = array('name' => $unescaped,'selected' => (($selected == $unescaped) ? 'selected' : ''));
 		}
@@ -171,7 +171,7 @@ function categories_widget($baseurl,$selected = '') {
 	$terms = array();
         $cnt = preg_match_all('/<(.*?)>/',$saved,$matches,PREG_SET_ORDER);
         if ($cnt) {
-                foreach($matches as $mtch) {
+                foreach ($matches as $mtch) {
 		        $unescaped = xmlify(file_tag_decode($mtch[1]));
 			$terms[] = array('name' => $unescaped,'selected' => (($selected == $unescaped) ? 'selected' : ''));
 		}
@@ -198,7 +198,7 @@ function common_friends_visitor_widget($profile_uid) {
 	$cid = $zcid = 0;
 
 	if (is_array($_SESSION['remote'])) {
-		foreach($_SESSION['remote'] as $visitor) {
+		foreach ($_SESSION['remote'] as $visitor) {
 			if ($visitor['uid'] == $profile_uid) {
 				$cid = $visitor['cid'];
 				break;

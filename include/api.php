@@ -331,7 +331,7 @@
 							break;
 						case "json":
 							header ("Content-Type: application/json");
-							foreach($r as $rr)
+							foreach ($r as $rr)
 								$json = json_encode($rr);
 								if ($_GET['callback'])
 									$json = $_GET['callback']."(".$json.")";
@@ -2470,7 +2470,7 @@
 
 		$ret = Array();
 
-		foreach($r as $item) {
+		foreach ($r as $item) {
 
 			localize_item($item);
 			list($status_user, $owner_user) = api_item_get_user($a,$item);
@@ -2656,7 +2656,7 @@
 		);
 
 		$ret = array();
-		foreach($r as $cid){
+		foreach ($r as $cid){
 			$user = api_get_user($a, $cid['nurl']);
 			// "uid" and "self" are only needed for some internal stuff, so remove it from here
 			unset($user["uid"]);
@@ -2762,7 +2762,7 @@
 			return;
 
 		$ids = array();
-		foreach($r as $rr)
+		foreach ($r as $rr)
 			if ($stringify_ids)
 				$ids[] = $rr['id'];
 			else
@@ -2986,7 +2986,7 @@
 		}
 
 		$ret = Array();
-		foreach($r as $item) {
+		foreach ($r as $item) {
 			if ($box == "inbox" || $item['from-url'] != $profile_url){
 				$recipient = $user_info;
 				$sender = api_get_user($a,normalise_link($item['contact-url']));
@@ -3928,7 +3928,7 @@
 			$success = array('success' => false, 'search_results' => 'nothing found');
 		else {
 			$ret = Array();
-			foreach($r as $item) {
+			foreach ($r as $item) {
 				if ($box == "inbox" || $item['from-url'] != $profile_url){
 					$recipient = $user_info;
 					$sender = api_get_user($a,normalise_link($item['contact-url']));

@@ -73,7 +73,7 @@ function poco_load($cid,$uid = 0,$zcid = 0,$url = null) {
 		return;
 
 	$total = 0;
-	foreach($j->entry as $entry) {
+	foreach ($j->entry as $entry) {
 
 		$total ++;
 		$profile_url = '';
@@ -137,7 +137,7 @@ function poco_load($cid,$uid = 0,$zcid = 0,$url = null) {
 		}
 
 		if (isset($entry->tags)) {
-			foreach($entry->tags as $tag) {
+			foreach ($entry->tags as $tag) {
 				$keywords = implode(", ", $tag);
 			}
 		}
@@ -762,7 +762,7 @@ function poco_check_server($server_url, $network = "", $force = false) {
 		else {
 			$lines = explode("\n",$serverret["header"]);
 			if (count($lines))
-				foreach($lines as $line) {
+				foreach ($lines as $line) {
 					$line = trim($line);
 					if (stristr($line,'X-Diaspora-Version:')) {
 						$platform = "Diaspora";
@@ -1240,7 +1240,7 @@ function poco_discover_federation() {
 	if ($serverdata) {
 		$servers = json_decode($serverdata);
 
-		foreach($servers->pods AS $server)
+		foreach ($servers->pods AS $server)
 			poco_check_server("https://".$server->host);
 	}
 
@@ -1252,7 +1252,7 @@ function poco_discover_federation() {
 		if ($result["success"]) {
 			$servers = json_decode($result["body"]);
 
-			foreach($servers->data AS $server)
+			foreach ($servers->data AS $server)
 				poco_check_server($server->instance_address);
 		}
 	}
@@ -1341,7 +1341,7 @@ function poco_discover_server_users($data, $server) {
 	foreach ($data->entry AS $entry) {
 		$username = "";
 		if (isset($entry->urls)) {
-			foreach($entry->urls as $url)
+			foreach ($entry->urls as $url)
 				if ($url->type == 'profile') {
 					$profile_url = $url->value;
 					$urlparts = parse_url($profile_url);
@@ -1385,7 +1385,7 @@ function poco_discover_server($data, $default_generation = 0) {
 		$name = $entry->displayName;
 
 		if (isset($entry->urls)) {
-			foreach($entry->urls as $url) {
+			foreach ($entry->urls as $url) {
 				if ($url->type == 'profile') {
 					$profile_url = $url->value;
 					continue;
