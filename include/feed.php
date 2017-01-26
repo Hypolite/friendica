@@ -330,6 +330,7 @@ function feed_import($xml,$importer,&$contact, &$hub, $simulate = false) {
 			if (title_is_body($item["title"], $body)) {
 				$item["title"] = "";
 			}
+
 			$item["body"] = html2bbcode($body);
 		}
 
