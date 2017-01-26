@@ -308,19 +308,23 @@ function feed_import($xml,$importer,&$contact, &$hub, $simulate = false) {
 		} else {
 			$body = trim($xpath->evaluate('atom:content/text()', $entry)->item(0)->nodeValue);
 
-			if ($body == "")
+			if ($body == "") {
 				$body = trim($xpath->evaluate('content:encoded/text()', $entry)->item(0)->nodeValue);
+			}
 
-			if ($body == "")
+			if ($body == "") {
 				$body = trim($xpath->evaluate('description/text()', $entry)->item(0)->nodeValue);
+			}
 
-			if ($body == "")
+			if ($body == "") {
 				$body = trim($xpath->evaluate('atom:summary/text()', $entry)->item(0)->nodeValue);
+			}
 
 			// remove the content of the title if it is identically to the body
 			// This helps with auto generated titles e.g. from tumblr
-			if (title_is_body($item["title"], $body))
+			if (title_is_body($item["title"], $body)) {
 				$item["title"] = "";
+			}
 
 			$item["body"] = html2bbcode($body);
 		}

@@ -1436,12 +1436,15 @@ function find_thread_parent_index($arr,$x) {
 	return false;
 }
 
+/// @TODO Type-hint is array
 function render_location_dummy($item) {
-	if ($item['location'] != "")
+	if ($item['location'] != "") {
 		return $item['location'];
+	}
 
-	if ($item['coord'] != "")
+	if ($item['coord'] != "") {
 		return $item['coord'];
+	}
 }
 
 function get_responses($conv_responses,$response_verbs,$ob,$item) {
