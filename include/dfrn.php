@@ -1271,7 +1271,7 @@ class dfrn {
 			$href = "";
 			$width = 0;
 			foreach ($avatar->attributes AS $attributes) {
-				/// @TODO Rewrite these similar if () to one switch
+				/// @TODO Rewrite these similar if() to one switch
 				if ($attributes->name == "href") {
 					$href = $attributes->textContent;
 				}
@@ -2116,7 +2116,7 @@ class dfrn {
 		$title = "";
 		foreach ($links AS $link) {
 			foreach ($link->attributes AS $attributes) {
-				/// @TODO Rewrite these repeated (same) if () statements to a switch()
+				/// @TODO Rewrite these repeated (same) if() statements to a switch()
 				if ($attributes->name == "href") {
 					$href = $attributes->textContent;
 				}
