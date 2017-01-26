@@ -1489,7 +1489,7 @@ function find_thread_parent_index($arr, $x) {
 	return false;
 }
 
-/// @TODO Add type-hint
+/// @TODO Type-hint is array
 function render_location_dummy($item) {
 	if ($item['location'] != "") {
 		return $item['location'];
