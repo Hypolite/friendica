@@ -757,11 +757,11 @@ function poco_check_server($server_url, $network = "", $force = false) {
 		// Test for Diaspora
 		$serverret = z_fetch_url($server_url);
 
-		if (!$serverret["success"] OR ($serverret["body"] == ""))
+		if (!$serverret["success"] OR ($serverret["body"] == "")) {
 			$failure = true;
-		else {
+		} else {
 			$lines = explode("\n",$serverret["header"]);
-			if (count($lines))
+			if (count($lines)) {
 				foreach ($lines as $line) {
 					$line = trim($line);
 					if (stristr($line,'X-Diaspora-Version:')) {
@@ -780,6 +780,7 @@ function poco_check_server($server_url, $network = "", $force = false) {
 						$version = "";
 					}
 				}
+			}
 		}
 	}
 

@@ -487,13 +487,15 @@ function get_birthdays() {
 		$classtoday = $istoday ? ' birthday-today ' : '';
 		if ($total) {
 			foreach ($r as &$rr) {
-				if (! strlen($rr['name']))
+				if (! strlen($rr['name'])) {
 					continue;
+				}
 
 				// avoid duplicates
 
-				if (in_array($rr['cid'],$cids))
+				if (in_array($rr['cid'],$cids)) {
 					continue;
+				}
 				$cids[] = $rr['cid'];
 
 				$today = (((strtotime($rr['start'] . ' +00:00') < $now) && (strtotime($rr['finish'] . ' +00:00') > $now)) ? true : false);

@@ -458,11 +458,13 @@ function onepoll_run(&$argv, &$argc){
 						// Decoding the header
 						$subject = imap_mime_header_decode($meta->subject);
 						$datarray['title'] = "";
-						foreach ($subject as $subpart)
-							if ($subpart->charset != "default")
+						foreach ($subject as $subpart) {
+							if ($subpart->charset != "default") {
 								$datarray['title'] .= iconv($subpart->charset, 'UTF-8//IGNORE', $subpart->text);
-							else
+							} else {
 								$datarray['title'] .= $subpart->text;
+							}
+						}
 
 						$datarray['title'] = notags(trim($datarray['title']));
 
@@ -483,8 +485,9 @@ function onepoll_run(&$argv, &$argc){
 								dbesc(protect_sprintf($datarray['title'])),
 								intval($importer_uid),
 								dbesc(NETWORK_MAIL));
-							if (dbm::is_result($r))
+							if (dbm::is_result($r)) {
 								$datarray['parent-uri'] = $r[0]['parent-uri'];
+							}
 						}
 
 						if (! x($datarray,'parent-uri'))
@@ -630,8 +633,9 @@ function onepoll_run(&$argv, &$argc){
 			if (count($hubs)) {
 				foreach ($hubs as $h) {
 					$h = trim($h);
-					if (! strlen($h))
+					if (! strlen($h)) {
 						continue;
+					}
 					subscribe_to_hub($h,$importer,$contact,$hubmode);
 				}
 			}

@@ -131,7 +131,7 @@ function discover_users() {
 function discover_directory($search) {
 
 	$data = Cache::get("dirsearch:".$search);
-	if (!is_null($data)){
+	if (!is_null($data)) {
 		// Only search for the same item every 24 hours
 		if (time() < $data + (60 * 60 * 24)) {
 			logger("Already searched for ".$search." in the last 24 hours", LOGGER_DEBUG);
@@ -142,7 +142,7 @@ function discover_directory($search) {
 	$x = fetch_url(get_server()."/lsearch?p=1&n=500&search=".urlencode($search));
 	$j = json_decode($x);
 
-	if (count($j->results))
+	if (count($j->results)) {
 		foreach ($j->results as $jj) {
 			// Check if the contact already exists
 			$exists = q("SELECT `id`, `last_contact`, `last_failure`, `updated` FROM `gcontact` WHERE `nurl` = '%s'", normalise_link($jj->url));
@@ -176,6 +176,7 @@ function discover_directory($search) {
 				poco_check($data["url"], $data["name"], $data["network"], $data["photo"], "", "", "", $jj->tags, $data["addr"], "", 0);
 			}
 		}
+	}
 	Cache::set("dirsearch:".$search, time(), CACHE_DAY);
 }
 

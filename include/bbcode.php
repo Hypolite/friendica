@@ -241,8 +241,9 @@ function bb_find_open_close($s, $open, $close, $occurance = 1) {
 
 function get_bb_tag_pos($s, $name, $occurance = 1) {
 
-	if ($occurance < 1)
+	if ($occurance < 1) {
 		$occurance = 1;
+	}
 
 	$start_open = -1;
 	for ($i = 1; $i <= $occurance; $i++) {
@@ -251,8 +252,9 @@ function get_bb_tag_pos($s, $name, $occurance = 1) {
 		}
 	}
 
-	if ( $start_open === false)
+	if ( $start_open === false) {
 		return false;
+	}
 
 	$start_equal = strpos($s, '=', $start_open);
 	$start_close = strpos($s, ']', $start_open);

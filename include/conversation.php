@@ -346,8 +346,9 @@ function count_descendants($item) {
 
 	if ($total > 0) {
 		foreach ($item['children'] as $child) {
-			if (! visible_activity($child))
+			if (! visible_activity($child)) {
 				$total --;
+			}
 			$total += count_descendants($child);
 		}
 	}
@@ -616,8 +617,9 @@ function conversation(App $a, $items, $mode, $update, $preview = false) {
 							break;
 						}
 					}
-					if ($blocked)
+					if ($blocked) {
 						continue;
+					}
 				}
 
 
