@@ -18,12 +18,12 @@ function community_content(App $a, $update = 0) {
 	if ($update)
 		return;
 
-	if((get_config('system','block_public')) && (! local_user()) && (! remote_user())) {
+	if ((get_config('system','block_public')) && (! local_user()) && (! remote_user())) {
 		notice( t('Public access denied.') . EOL);
 		return;
 	}
 
-	if(get_config('system','community_page_style') == CP_NO_COMMUNITY_PAGE) {
+	if (get_config('system','community_page_style') == CP_NO_COMMUNITY_PAGE) {
 		notice( t('Not available.') . EOL);
 		return;
 	}
@@ -34,11 +34,11 @@ function community_content(App $a, $update = 0) {
 
 
 	$o .= '<h3>' . t('Community') . '</h3>';
-	if(! $update) {
+	if (! $update) {
 		nav_set_selected('community');
 	}
 
-	if(x($a->data,'search'))
+	if (x($a->data,'search'))
 		$search = notags(trim($a->data['search']));
 	else
 		$search = ((x($_GET,'search')) ? notags(trim(rawurldecode($_GET['search']))) : '');
@@ -48,7 +48,7 @@ function community_content(App $a, $update = 0) {
 	// Only public posts can be shown
 	// OR your own posts if you are a logged in member
 
-	if(get_config('system', 'old_pager')) {
+	if (get_config('system', 'old_pager')) {
 		$r = qu("SELECT COUNT(distinct(`item`.`uri`)) AS `total`
 			FROM `item` INNER JOIN `contact` ON `contact`.`id` = `item`.`contact-id`
 			AND `contact`.`blocked` = 0 AND `contact`.`pending` = 0
@@ -62,7 +62,7 @@ function community_content(App $a, $update = 0) {
 		if (dbm::is_result($r))
 			$a->set_pager_total($r[0]['total']);
 
-		if(! $r[0]['total']) {
+		if (! $r[0]['total']) {
 			info( t('No results.') . EOL);
 			return $o;
 		}
@@ -100,17 +100,18 @@ function community_content(App $a, $update = 0) {
 				$r = community_getitems($a->pager['start'] + ($count * $a->pager['itemspage']), $a->pager['itemspage']);
 
 		} while ((sizeof($s) < $a->pager['itemspage']) AND (++$count < 50) AND (sizeof($r) > 0));
-	} else
+	} else {
 		$s = $r;
+	}
 
 	// we behave the same in message lists as the search module
 
 	$o .= conversation($a,$s,'community',$update);
 
-	if(!get_config('system', 'old_pager')) {
-	        $o .= alt_pager($a,count($r));
+	if (!get_config('system', 'old_pager')) {
+		$o .= alt_pager($a,count($r));
 	} else {
-	        $o .= paginate($a);
+		$o .= paginate($a);
 	}
 
 	return $o;
