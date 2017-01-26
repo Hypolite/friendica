@@ -434,10 +434,11 @@ if(! function_exists('sanitise_acl')) {
  * @param string $item
  */
 function sanitise_acl(&$item) {
-	if(intval($item))
+	if (intval($item)) {
 		$item = '<' . intval(notags(trim($item))) . '>';
-	else
+	} else {
 		unset($item);
+	}
 }}
 
 
@@ -453,10 +454,11 @@ if(! function_exists('perms2str')) {
  */
 function perms2str($p) {
 	$ret = '';
-	if(is_array($p))
+	if (is_array($p)) {
 		$tmp = $p;
-	else
-		$tmp = explode(',',$p);
+	} else {
+		$tmp = explode(',', $p);
+	}
 
 	if(is_array($tmp)) {
 		array_walk($tmp,'sanitise_acl');
@@ -1692,12 +1694,12 @@ function str_getcsv($input, $delimiter = ',', $enclosure = '"', $escape = '\\', 
 					 */
 					if (is_array($line) && !empty($line[0])) {
 						$output[$line_num] = $line;
-				}
+					}
 				}
 			}
 			return $output;
 		} else {
-		return false;
+			return false;
 		}
 	} else {
 		return false;
