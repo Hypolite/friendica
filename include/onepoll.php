@@ -15,11 +15,11 @@ function RemoveReply($subject) {
 function onepoll_run(&$argv, &$argc){
 	global $a, $db;
 
-	if(is_null($a)) {
+	if (is_null($a)) {
 		$a = new App;
 	}
 
-	if(is_null($db)) {
+	if (is_null($db)) {
 		@include(".htconfig.php");
 		require_once("include/dba.php");
 		$db = new dba($db_host, $db_user, $db_pass, $db_data);
@@ -48,13 +48,13 @@ function onepoll_run(&$argv, &$argc){
 	$force      = false;
 	$restart    = false;
 
-	if(($argc > 1) && (intval($argv[1])))
+	if (($argc > 1) && (intval($argv[1])))
 		$contact_id = intval($argv[1]);
 
-	if(($argc > 2) && ($argv[2] == "force"))
+	if (($argc > 2) && ($argv[2] == "force"))
 		$force = true;
 
-	if(! $contact_id) {
+	if (! $contact_id) {
 		logger('onepoll: no contact');
 		return;
 	}
@@ -83,7 +83,7 @@ function onepoll_run(&$argv, &$argc){
 		intval($contact_id)
 	);
 
-	if(! count($contacts))
+	if (! count($contacts))
 		return;
 
 	$contact = $contacts[0];
@@ -127,12 +127,12 @@ function onepoll_run(&$argv, &$argc){
 
 	$t = $contact['last-update'];
 
-	if($contact['subhub']) {
+	if ($contact['subhub']) {
 		$poll_interval = get_config('system','pushpoll_frequency');
 		$contact['priority'] = (($poll_interval !== false) ? intval($poll_interval) : 3);
 		$hub_update = false;
 
-		if(datetime_convert('UTC','UTC', 'now') > datetime_convert('UTC','UTC', $t . " + 1 day"))
+		if (datetime_convert('UTC','UTC', 'now') > datetime_convert('UTC','UTC', $t . " + 1 day"))
 				$hub_update = true;
 	}
 	else
@@ -158,7 +158,7 @@ function onepoll_run(&$argv, &$argc){
 	);
 
 	// Update the contact entry
-	if(($contact['network'] === NETWORK_OSTATUS) || ($contact['network'] === NETWORK_DIASPORA) || ($contact['network'] === NETWORK_DFRN)) {
+	if (($contact['network'] === NETWORK_OSTATUS) || ($contact['network'] === NETWORK_DIASPORA) || ($contact['network'] === NETWORK_DFRN)) {
 		if (!poco_reachable($contact['url'])) {
 			logger("Skipping probably dead contact ".$contact['url']);
 			return;
@@ -171,13 +171,13 @@ function onepoll_run(&$argv, &$argc){
 			unmark_for_death($contact);
 	}
 
-	if($contact['network'] === NETWORK_DFRN) {
+	if ($contact['network'] === NETWORK_DFRN) {
 
 
 		$idtosend = $orig_id = (($contact['dfrn-id']) ? $contact['dfrn-id'] : $contact['issued-id']);
-		if(intval($contact['duplex']) && $contact['dfrn-id'])
+		if (intval($contact['duplex']) && $contact['dfrn-id'])
 			$idtosend = '0:' . $orig_id;
-		if(intval($contact['duplex']) && $contact['issued-id'])
+		if (intval($contact['duplex']) && $contact['issued-id'])
 			$idtosend = '1:' . $orig_id;
 
 		// they have permission to write to us. We already filtered this in the contact query.
@@ -185,7 +185,7 @@ function onepoll_run(&$argv, &$argc){
 
 		// But this may be our first communication, so set the writable flag if it isn't set already.
 
-		if(! intval($contact['writable']))
+		if (! intval($contact['writable']))
 			q("update contact set writable = 1 where id = %d", intval($contact['id']));
 
 
@@ -200,7 +200,7 @@ function onepoll_run(&$argv, &$argc){
 		logger('onepoll: handshake with url ' . $url . ' returns xml: ' . $handshake_xml, LOGGER_DATA);
 
 
-		if((! strlen($handshake_xml)) || ($html_code >= 400) || (! $html_code)) {
+		if ((! strlen($handshake_xml)) || ($html_code >= 400) || (! $html_code)) {
 			logger("poller: $url appears to be dead - marking for death ");
 
 			// dead connection - might be a transient event, or this might
@@ -219,7 +219,7 @@ function onepoll_run(&$argv, &$argc){
 			return;
 		}
 
-		if(! strstr($handshake_xml,'<')) {
+		if (! strstr($handshake_xml,'<')) {
 			logger('poller: response from ' . $url . ' did not contain XML.');
 
 			mark_for_death($contact);
@@ -235,7 +235,7 @@ function onepoll_run(&$argv, &$argc){
 
 		$res = parse_xml_string($handshake_xml);
 
-		if(intval($res->status) == 1) {
+		if (intval($res->status) == 1) {
 			logger("poller: $url replied status 1 - marking for death ");
 
 			// we may not be friends anymore. Will keep trying for one month.
@@ -250,16 +250,16 @@ function onepoll_run(&$argv, &$argc){
 			mark_for_death($contact);
 		}
 		else {
-			if($contact['term-date'] != '0000-00-00 00:00:00') {
+			if ($contact['term-date'] != '0000-00-00 00:00:00') {
 				logger("poller: $url back from the dead - removing mark for death");
 				unmark_for_death($contact);
 			}
 		}
 
-		if((intval($res->status) != 0) || (! strlen($res->challenge)) || (! strlen($res->dfrn_id)))
+		if ((intval($res->status) != 0) || (! strlen($res->challenge)) || (! strlen($res->dfrn_id)))
 			return;
 
-		if(((float) $res->dfrn_version > 2.21) && ($contact['poco'] == '')) {
+		if (((float) $res->dfrn_version > 2.21) && ($contact['poco'] == '')) {
 			q("update contact set poco = '%s' where id = %d",
 				dbesc(str_replace('/profile/','/poco/', $contact['url'])),
 				intval($contact['id'])
@@ -273,7 +273,7 @@ function onepoll_run(&$argv, &$argc){
 
 		$final_dfrn_id = '';
 
-		if(($contact['duplex']) && strlen($contact['prvkey'])) {
+		if (($contact['duplex']) && strlen($contact['prvkey'])) {
 			openssl_private_decrypt($sent_dfrn_id,$final_dfrn_id,$contact['prvkey']);
 			openssl_private_decrypt($challenge,$postvars['challenge'],$contact['prvkey']);
 		}
@@ -284,10 +284,10 @@ function onepoll_run(&$argv, &$argc){
 
 		$final_dfrn_id = substr($final_dfrn_id, 0, strpos($final_dfrn_id, '.'));
 
-		if(strpos($final_dfrn_id,':') == 1)
+		if (strpos($final_dfrn_id,':') == 1)
 			$final_dfrn_id = substr($final_dfrn_id,2);
 
-		if($final_dfrn_id != $orig_id) {
+		if ($final_dfrn_id != $orig_id) {
 			logger('poller: ID did not decode: ' . $contact['id'] . ' orig: ' . $orig_id . ' final: ' . $final_dfrn_id);
 			// did not decode properly - cannot trust this site
 			return;
@@ -300,7 +300,7 @@ function onepoll_run(&$argv, &$argc){
 		$xml = post_url($contact['poll'],$postvars);
 
 	}
-	elseif(($contact['network'] === NETWORK_OSTATUS)
+	elseif (($contact['network'] === NETWORK_OSTATUS)
 		|| ($contact['network'] === NETWORK_DIASPORA)
 		|| ($contact['network'] === NETWORK_FEED) ) {
 
@@ -311,10 +311,10 @@ function onepoll_run(&$argv, &$argc){
 		$stat_writeable = ((($contact['notify']) && ($contact['rel'] == CONTACT_IS_FOLLOWER || $contact['rel'] == CONTACT_IS_FRIEND)) ? 1 : 0);
 
 		// Contacts from OStatus are always writable
-		if($contact['network'] === NETWORK_OSTATUS)
+		if ($contact['network'] === NETWORK_OSTATUS)
 			$stat_writeable = 1;
 
-		if($stat_writeable != $contact['writable']) {
+		if ($stat_writeable != $contact['writable']) {
 			q("UPDATE `contact` SET `writable` = %d WHERE `id` = %d",
 				intval($stat_writeable),
 				intval($contact['id'])
@@ -323,19 +323,19 @@ function onepoll_run(&$argv, &$argc){
 
 		// Are we allowed to import from this person?
 
-		if($contact['rel'] == CONTACT_IS_FOLLOWER || $contact['blocked'] || $contact['readonly'])
+		if ($contact['rel'] == CONTACT_IS_FOLLOWER || $contact['blocked'] || $contact['readonly'])
 			return;
 
 		$cookiejar = tempnam(get_temppath(), 'cookiejar-onepoll-');
 		$xml = fetch_url($contact['poll'], false, $redirects, 0, Null, $cookiejar);
 		unlink($cookiejar);
 	}
-	elseif($contact['network'] === NETWORK_MAIL || $contact['network'] === NETWORK_MAIL2) {
+	elseif ($contact['network'] === NETWORK_MAIL || $contact['network'] === NETWORK_MAIL2) {
 
 		logger("Mail: Fetching", LOGGER_DEBUG);
 
 		$mail_disabled = ((function_exists('imap_open') && (! get_config('system','imap_disabled'))) ? 0 : 1);
-		if($mail_disabled)
+		if ($mail_disabled)
 			return;
 
 		logger("Mail: Enabled", LOGGER_DEBUG);
@@ -347,14 +347,14 @@ function onepoll_run(&$argv, &$argc){
 		$mailconf = q("SELECT * FROM `mailacct` WHERE `server` != '' AND `uid` = %d LIMIT 1",
 			intval($importer_uid)
 		);
-		if(count($x) && count($mailconf)) {
+		if (count($x) && count($mailconf)) {
 		    $mailbox = construct_mailbox_name($mailconf[0]);
 			$password = '';
 			openssl_private_decrypt(hex2bin($mailconf[0]['pass']),$password,$x[0]['prvkey']);
 			$mbox = email_connect($mailbox,$mailconf[0]['user'],$password);
 			unset($password);
 			logger("Mail: Connect to " . $mailconf[0]['user']);
-			if($mbox) {
+			if ($mbox) {
 				q("UPDATE `mailacct` SET `last_check` = '%s' WHERE `id` = %d AND `uid` = %d",
 					dbesc(datetime_convert()),
 					intval($mailconf[0]['id']),
@@ -364,15 +364,15 @@ function onepoll_run(&$argv, &$argc){
 			} else
 				logger("Mail: Connection error ".$mailconf[0]['user']." ".print_r(imap_errors(), true));
 		}
-		if($mbox) {
+		if ($mbox) {
 
 			$msgs = email_poll($mbox,$contact['addr']);
 
-			if(count($msgs)) {
+			if (count($msgs)) {
 				logger("Mail: Parsing ".count($msgs)." mails for ".$mailconf[0]['user'], LOGGER_DEBUG);
 
 				$metas = email_msg_meta($mbox,implode(',',$msgs));
-				if(count($metas) != count($msgs)) {
+				if (count($metas) != count($msgs)) {
 					logger("onepoll: for " . $mailconf[0]['user'] . " there are ". count($msgs) . " messages but received " . count($metas) . " metas", LOGGER_DEBUG);
 				}
 				else {
@@ -400,7 +400,7 @@ function onepoll_run(&$argv, &$argc){
 
 							// Only delete when mails aren't automatically moved or deleted
 							if (($mailconf[0]['action'] != 1) AND ($mailconf[0]['action'] != 3))
-								if($meta->deleted && ! $r[0]['deleted']) {
+								if ($meta->deleted && ! $r[0]['deleted']) {
 									q("UPDATE `item` SET `deleted` = 1, `changed` = '%s' WHERE `id` = %d",
 										dbesc(datetime_convert()),
 										intval($r[0]['id'])
@@ -434,13 +434,13 @@ function onepoll_run(&$argv, &$argc){
 
 	//					$raw_refs = ((x($headers,'references')) ? str_replace("\t",'',$headers['references']) : '');
 						$raw_refs = ((property_exists($meta,'references')) ? str_replace("\t",'',$meta->references) : '');
-						if(! trim($raw_refs))
+						if (! trim($raw_refs))
 							$raw_refs = ((property_exists($meta,'in_reply_to')) ? str_replace("\t",'',$meta->in_reply_to) : '');
 						$raw_refs = trim($raw_refs);  // Don't allow a blank reference in $refs_arr
 
-						if($raw_refs) {
+						if ($raw_refs) {
 							$refs_arr = explode(' ', $raw_refs);
-							if(count($refs_arr)) {
+							if (count($refs_arr)) {
 								for($x = 0; $x < count($refs_arr); $x ++)
 									$refs_arr[$x] = "'" . msgid2iri(str_replace(array('<','>',' '),array('','',''),dbesc($refs_arr[$x]))) . "'";
 							}
@@ -476,7 +476,7 @@ function onepoll_run(&$argv, &$argc){
 						$datarray['title'] = RemoveReply($datarray['title']);
 
 						// If it seems to be a reply but a header couldn't be found take the last message with matching subject
-						if(!x($datarray,'parent-uri') and $reply) {
+						if (!x($datarray,'parent-uri') and $reply) {
 							$r = q("SELECT `uri` , `parent-uri` FROM `item` WHERE `title` = \"%s\" AND `uid` = %d AND `network` = '%s' ORDER BY `created` DESC LIMIT 1",
 								dbesc(protect_sprintf($datarray['title'])),
 								intval($importer_uid),
@@ -485,12 +485,12 @@ function onepoll_run(&$argv, &$argc){
 								$datarray['parent-uri'] = $r[0]['parent-uri'];
 						}
 
-						if(! x($datarray,'parent-uri'))
+						if (! x($datarray,'parent-uri'))
 							$datarray['parent-uri'] = $datarray['uri'];
 
 
 						$r = email_get_msg($mbox,$msg_uid, $reply);
-						if(! $r) {
+						if (! $r) {
 							logger("Mail: can't fetch msg ".$msg_uid." for ".$mailconf[0]['user']);
 							continue;
 						}
@@ -502,7 +502,7 @@ function onepoll_run(&$argv, &$argc){
 						// some mailing lists have the original author as 'from' - add this sender info to msg body.
 						/// @TODO Adding a gravatar for the original author would be cool
 
-						if(! stristr($meta->from,$contact['addr'])) {
+						if (! stristr($meta->from,$contact['addr'])) {
 							$from = imap_mime_header_decode($meta->from);
 							$fromdecoded = "";
 							foreach($from as $frompart)
@@ -538,9 +538,9 @@ function onepoll_run(&$argv, &$argc){
 
 						$datarray['uid'] = $importer_uid;
 						$datarray['contact-id'] = $contact['id'];
-						if($datarray['parent-uri'] === $datarray['uri'])
+						if ($datarray['parent-uri'] === $datarray['uri'])
 							$datarray['private'] = 1;
-						if(($contact['network'] === NETWORK_MAIL) && (! get_pconfig($importer_uid,'system','allow_public_email_replies'))) {
+						if (($contact['network'] === NETWORK_MAIL) && (! get_pconfig($importer_uid,'system','allow_public_email_replies'))) {
 							$datarray['private'] = 1;
 							$datarray['allow_cid'] = '<' . $contact['id'] . '>';
 						}
@@ -581,17 +581,17 @@ function onepoll_run(&$argv, &$argc){
 			imap_close($mbox);
 		}
 	}
-	elseif($contact['network'] === NETWORK_FACEBOOK) {
+	elseif ($contact['network'] === NETWORK_FACEBOOK) {
 		// This is picked up by the Facebook plugin on a cron hook.
 		// Ignored here.
-	} elseif($contact['network'] === NETWORK_PUMPIO) {
+	} elseif ($contact['network'] === NETWORK_PUMPIO) {
 		// This is picked up by the pump.io plugin on a cron hook.
 		// Ignored here.
 	}
 
-	if($xml) {
+	if ($xml) {
 		logger('poller: received xml : ' . $xml, LOGGER_DATA);
-		if(! strstr($xml,'<')) {
+		if (! strstr($xml,'<')) {
 			logger('poller: post_handshake: response from ' . $url . ' did not contain XML.');
 			$r = q("UPDATE `contact` SET `last-update` = '%s',  `failure_update` = '%s' WHERE `id` = %d",
 				dbesc(datetime_convert()),
@@ -611,10 +611,10 @@ function onepoll_run(&$argv, &$argc){
 		consume_feed($xml,$importer,$contact,$hub,1,2);
 
 		$hubmode = 'subscribe';
-		if($contact['network'] === NETWORK_DFRN || $contact['blocked'] || $contact['readonly'])
+		if ($contact['network'] === NETWORK_DFRN || $contact['blocked'] || $contact['readonly'])
 			$hubmode = 'unsubscribe';
 
-		if(($contact['network'] === NETWORK_OSTATUS ||  $contact['network'] == NETWORK_FEED) && (! $contact['hub-verify']))
+		if (($contact['network'] === NETWORK_OSTATUS ||  $contact['network'] == NETWORK_FEED) && (! $contact['hub-verify']))
 			$hub_update = true;
 
 		if ($force)
@@ -622,13 +622,13 @@ function onepoll_run(&$argv, &$argc){
 
 		logger("Contact ".$contact['id']." returned hub: ".$hub." Network: ".$contact['network']." Relation: ".$contact['rel']." Update: ".$hub_update);
 
-		if((strlen($hub)) && ($hub_update) && (($contact['rel'] != CONTACT_IS_FOLLOWER) || $contact['network'] == NETWORK_FEED) ) {
+		if ((strlen($hub)) && ($hub_update) && (($contact['rel'] != CONTACT_IS_FOLLOWER) || $contact['network'] == NETWORK_FEED) ) {
 			logger('poller: hub ' . $hubmode . ' : ' . $hub . ' contact name : ' . $contact['name'] . ' local user : ' . $importer['name']);
 			$hubs = explode(',', $hub);
-			if(count($hubs)) {
+			if (count($hubs)) {
 				foreach($hubs as $h) {
 					$h = trim($h);
-					if(! strlen($h))
+					if (! strlen($h))
 						continue;
 					subscribe_to_hub($h,$importer,$contact,$hubmode);
 				}
