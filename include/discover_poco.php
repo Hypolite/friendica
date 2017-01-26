@@ -167,7 +167,8 @@ function discover_directory($search) {
 					logger("Friendica server ".$server_url." doesn't answer.", LOGGER_DEBUG);
 					continue;
 				}
-					logger("Friendica server ".$server_url." seems to be okay.", LOGGER_DEBUG);
+
+				logger("Friendica server ".$server_url." seems to be okay.", LOGGER_DEBUG);
 
 			logger("Check if profile ".$jj->url." is reachable (".$search.")", LOGGER_DEBUG);
 			$data = probe_url($jj->url);
