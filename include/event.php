@@ -229,7 +229,7 @@ function bbtoevent($s) {
 	return $ev;
 }
 
-
+/// @TODO Maybe array is the right type-hint?
 function sort_by_date($a) {
 
 	usort($a,'ev_compare');
@@ -863,7 +863,7 @@ function event_export($uid, $format = 'ical') {
 	$events = events_by_uid($uid);
 
 	// We have the events that are available for the requestor
-	// now format the output according to the requested format
+	// now format the output according to the requested format.
 	if (count($events)) {
 		$res = event_format_export($events, $format, $timezone);
 	}

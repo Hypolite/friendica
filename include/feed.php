@@ -267,6 +267,7 @@ function feed_import($xml,$importer,&$contact, &$hub, $simulate = false) {
 		if ($creator != "") {
 			$item["author-name"] = $creator;
 		}
+
 		/// @TODO ?
 		// <category>Ausland</category>
 		// <media:thumbnail width="152" height="76" url="http://www.taz.de/picture/667875/192/14388767.jpg"/>

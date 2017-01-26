@@ -1273,8 +1273,9 @@ function prepare_body(&$item,$attach = false, $preview = false) {
 	$update = (!local_user() and !remote_user() and ($item["uid"] == 0));
 
 	// Or update it if the current viewer is the intented viewer
-	if (($item["uid"] == local_user()) AND ($item["uid"] != 0))
+	if (($item["uid"] == local_user()) AND ($item["uid"] != 0)) {
 		$update = true;
+	}
 
 	put_item_in_cache($item, $update);
 	$s = $item["rendered-html"];
@@ -1303,10 +1304,11 @@ function prepare_body(&$item,$attach = false, $preview = false) {
 				foreach($matches as $mtch) {
 					$mime = $mtch[3];
 
-					if((local_user() == $item['uid']) && ($item['contact-id'] != $a->contact['id']) && ($item['network'] == NETWORK_DFRN))
+					if ((local_user() == $item['uid']) && ($item['contact-id'] != $a->contact['id']) && ($item['network'] == NETWORK_DFRN)) {
 						$the_url = 'redir/' . $item['contact-id'] . '?f=1&url=' . $mtch[1];
-					else
+					} else {
 						$the_url = $mtch[1];
+					}
 
 					if(strpos($mime, 'video') !== false) {
 						if(!$vhead) {
@@ -1334,8 +1336,7 @@ function prepare_body(&$item,$attach = false, $preview = false) {
 					if($filetype) {
 						$filesubtype = strtolower(substr( $mime, strpos($mime,'/') + 1 ));
 						$filesubtype = str_replace('.', '-', $filesubtype);
-					}
-					else {
+					} else {
 						$filetype = 'unkn';
 						$filesubtype = 'unkn';
 					}
@@ -1719,11 +1720,12 @@ function bb_translate_video($s) {
 	$matches = null;
 	$r = preg_match_all("/\[video\](.*?)\[\/video\]/ism",$s,$matches,PREG_SET_ORDER);
 	if ($r) {
-		foreach($matches as $mtch) {
-			if((stristr($mtch[1],'youtube')) || (stristr($mtch[1],'youtu.be')))
+		foreach ($matches as $mtch) {
+			if ((stristr($mtch[1],'youtube')) || (stristr($mtch[1],'youtu.be'))) {
 				$s = str_replace($mtch[0],'[youtube]' . $mtch[1] . '[/youtube]',$s);
-			elseif(stristr($mtch[1],'vimeo'))
+			} elseif (stristr($mtch[1],'vimeo')) {
 				$s = str_replace($mtch[0],'[vimeo]' . $mtch[1] . '[/vimeo]',$s);
+			}
 		}
 	}
 	return $s;
@@ -1826,29 +1828,29 @@ function file_tag_decode($s) {
 
 function file_tag_file_query($table,$s,$type = 'file') {
 
-	if($type == 'file')
+	if ($type == 'file') {
 		$str = preg_quote( '[' . str_replace('%','%%',file_tag_encode($s)) . ']' );
-	else
+	} else {
 		$str = preg_quote( '<' . str_replace('%','%%',file_tag_encode($s)) . '>' );
+	}
 	return " AND " . (($table) ? dbesc($table) . '.' : '') . "file regexp '" . dbesc($str) . "' ";
 }
 
 // ex. given music,video return <music><video> or [music][video]
-function file_tag_list_to_file($list,$type = 'file') {
+function file_tag_list_to_file($list, $type = 'file') {
 	$tag_list = '';
 	if(strlen($list)) {
 		$list_array = explode(",",$list);
 		if($type == 'file') {
 			$lbracket = '[';
 			$rbracket = ']';
-		}
-		else {
+		} else {
 			$lbracket = '<';
 			$rbracket = '>';
 		}
 
-		foreach($list_array as $item) {
-		  if(strlen($item)) {
+		foreach ($list_array as $item) {
+			if (strlen($item)) {
 				$tag_list .= $lbracket . file_tag_encode(trim($item))  . $rbracket;
 			}
 		}
@@ -1857,19 +1859,19 @@ function file_tag_list_to_file($list,$type = 'file') {
 }
 
 // ex. given <music><video>[friends], return music,video or friends
-function file_tag_file_to_list($file,$type = 'file') {
+function file_tag_file_to_list($file, $type = 'file') {
 	$matches = false;
 	$list = '';
-	if($type == 'file') {
+	if ($type == 'file') {
 		$cnt = preg_match_all('/\[(.*?)\]/',$file,$matches,PREG_SET_ORDER);
-	}
-	else {
+	} else {
 		$cnt = preg_match_all('/<(.*?)>/',$file,$matches,PREG_SET_ORDER);
 	}
-	if($cnt) {
-		foreach($matches as $mtch) {
-			if(strlen($list))
+	if ($cnt) {
+		foreach ($matches as $mtch) {
+			if (strlen($list)) {
 				$list .= ',';
+			}
 			$list .= file_tag_decode($mtch[1]);
 		}
 	}
@@ -1881,11 +1883,13 @@ function file_tag_update_pconfig($uid,$file_old,$file_new,$type = 'file') {
 	// $file_old - categories previously associated with an item
 	// $file_new - new list of categories for an item
 
-	if(! intval($uid))
+	if (! intval($uid)) {
 		return false;
+	}
 
-	if($file_old == $file_new)
+	if ($file_old == $file_new) {
 		return true;
+	}
 
 	$saved = get_pconfig($uid,'system','filetags');
 	if(strlen($saved)) {
@@ -1893,8 +1897,7 @@ function file_tag_update_pconfig($uid,$file_old,$file_new,$type = 'file') {
 			$lbracket = '[';
 			$rbracket = ']';
 			$termtype = TERM_FILE;
-		}
-		else {
+		} else {
 			$lbracket = '<';
 			$rbracket = '>';
 			$termtype = TERM_CATEGORY;
@@ -1906,9 +1909,10 @@ function file_tag_update_pconfig($uid,$file_old,$file_new,$type = 'file') {
 		$new_tags = array();
 		$check_new_tags = explode(",",file_tag_file_to_list($file_new,$type));
 
-		foreach($check_new_tags as $tag) {
-			if(! stristr($saved,$lbracket . file_tag_encode($tag) . $rbracket))
+		foreach ($check_new_tags as $tag) {
+			if (! stristr($saved,$lbracket . file_tag_encode($tag) . $rbracket)) {
 				$new_tags[] = $tag;
+			}
 		}
 
 		$filetags_updated .= file_tag_list_to_file(implode(",",$new_tags),$type);
@@ -1917,9 +1921,10 @@ function file_tag_update_pconfig($uid,$file_old,$file_new,$type = 'file') {
 		$deleted_tags = array();
 		$check_deleted_tags = explode(",",file_tag_file_to_list($file_old,$type));
 
-		foreach($check_deleted_tags as $tag) {
-			if(! stristr($file_new,$lbracket . file_tag_encode($tag) . $rbracket))
+		foreach ($check_deleted_tags as $tag) {
+			if (! stristr($file_new,$lbracket . file_tag_encode($tag) . $rbracket)) {
 				$deleted_tags[] = $tag;
+			}
 		}
 
 		foreach($deleted_tags as $key => $tag) {
@@ -2038,8 +2043,8 @@ function normalise_openid($s) {
 function undo_post_tagging($s) {
 	$matches = null;
 	$cnt = preg_match_all('/([!#@])\[url=(.*?)\](.*?)\[\/url\]/ism',$s,$matches,PREG_SET_ORDER);
-	if($cnt) {
-		foreach($matches as $mtch) {
+	if ($cnt) {
+		foreach ($matches as $mtch) {
 			$s = str_replace($mtch[0], $mtch[1] . $mtch[3],$s);
 		}
 	}
@@ -2053,12 +2058,13 @@ function protect_sprintf($s) {
 
 function is_a_date_arg($s) {
 	$i = intval($s);
-	if($i > 1900) {
+	if ($i > 1900) {
 		$y = date('Y');
-		if($i <= $y+1 && strpos($s,'-') == 4) {
+		if ($i <= $y+1 && strpos($s,'-') == 4) {
 			$m = intval(substr($s,5));
-			if($m > 0 && $m <= 12)
+			if ($m > 0 && $m <= 12) {
 				return true;
+			}
 		}
 	}
 	return false;
@@ -2078,7 +2084,8 @@ function deindent($text, $chr = "[\t ]", $count = NULL) {
 		preg_match("|^" . $chr . "*|", $lines[$k], $m);
 		$count = strlen($m[0]);
 	}
-	for ($k=0; $k < count($lines); $k++) {
+
+	for ($k = 0; $k < count($lines); $k++) {
 		$lines[$k] = preg_replace("|^" . $chr . "{" . $count . "}|", "", $lines[$k]);
 	}
 
@@ -2109,10 +2116,11 @@ function formatBytes($bytes, $precision = 2) {
 function format_network_name($network, $url = 0) {
 	if ($network != "") {
 		require_once('include/contact_selectors.php');
-		if ($url != "")
+		if ($url != "") {
 			$network_name = '<a href="'.$url.'">'.network_to_name($network, $url)."</a>";
-		else
+		} else {
 			$network_name = network_to_name($network);
+		}
 
 		return $network_name;
 	}
@@ -2126,10 +2134,11 @@ function format_network_name($network, $url = 0) {
  * @return string Formated html
  */
 function text_highlight($s,$lang) {
-	if($lang === 'js')
+	if ($lang === 'js') {
 		$lang = 'javascript';
+	}
 
-	if(! strpos('Text_Highlighter',get_include_path())) {
+	if (! strpos('Text_Highlighter',get_include_path())) {
 		set_include_path(get_include_path() . PATH_SEPARATOR . 'library/Text_Highlighter');
 	}
 
@@ -2138,7 +2147,7 @@ function text_highlight($s,$lang) {
 	$options = array(
 		'numbers' => HL_NUMBERS_LI,
 		'tabsize' => 4,
-		);
+	);
 
 	$tag_added = false;
 	$s = trim(html_entity_decode($s,ENT_COMPAT));
@@ -2148,8 +2157,8 @@ function text_highlight($s,$lang) {
 	// it isn't present, nothing is highlighted. So we're going to see if it's present.
 	// If not, we'll add it, and then quietly remove it after we get the processed output back.
 
-	if($lang === 'php') {
-		if(strpos('<?php',$s) !== 0) {
+	if ($lang === 'php') {
+		if (strpos('<?php',$s) !== 0) {
 			$s = '<?php' . "\n" . $s;
 			$tag_added = true;
 		}
@@ -2161,7 +2170,7 @@ function text_highlight($s,$lang) {
 	$o = $hl->highlight($s);
 	$o = str_replace(["    ","\n"],["&nbsp;&nbsp;&nbsp;&nbsp;",''],$o);
 
-	if($tag_added) {
+	if ($tag_added) {
 		$b = substr($o,0,strpos($o,'<li>'));
 		$e = substr($o,strpos($o,'</li>'));
 		$o = $b . $e;

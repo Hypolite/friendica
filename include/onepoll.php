@@ -170,7 +170,7 @@ function onepoll_run(&$argv, &$argc){
 		// But this may be our first communication, so set the writable flag if it isn't set already.
 
 		if (! intval($contact['writable'])) {
-			q("update contact set writable = 1 where id = %d", intval($contact['id']));
+			q("UPDATE `contact` SET `writable` = 1 WHERE `id` = %d", intval($contact['id']));
 		}
 
 		$url = $contact['poll'] . '?dfrn_id=' . $idtosend

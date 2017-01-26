@@ -614,8 +614,9 @@ function conversation(App $a, $items, $mode, $update, $preview = false) {
 							break;
 						}
 					}
-					if($blocked)
+					if ($blocked) {
 						continue;
+					}
 				}
 
 
@@ -1335,17 +1336,19 @@ function sort_item_children($items) {
 }
 
 function add_children_to_list($children, &$arr) {
-	foreach($children as $y) {
+	foreach ($children as $y) {
 		$arr[] = $y;
-		if(count($y['children']))
+		i f(count($y['children'])) {
 			add_children_to_list($y['children'], $arr);
+		}
 	}
 }
 
 function conv_sort($arr,$order) {
 
-	if((!(is_array($arr) && count($arr))))
+	if ((!(is_array($arr) && count($arr)))) {
 		return array();
+	}
 
 	$parents = array();
 	$children = array();
@@ -1353,24 +1356,31 @@ function conv_sort($arr,$order) {
 
 	// This is a preparation for having two different items with the same uri in one thread
 	// This will otherwise lead to an endless loop.
-	foreach($arr as $x)
-		if (!isset($newarr[$x['uri']]))
+	foreach ($arr as $x) {
+		if (!isset($newarr[$x['uri']])) {
 			$newarr[$x['uri']] = $x;
+		}
+	}
 
 	$arr = $newarr;
 
-	foreach($arr as $x)
-		if($x['id'] == $x['parent'])
-				$parents[] = $x;
+	foreach ($arr as $x) {
+		if ($x['id'] == $x['parent']) {
+			$parents[] = $x;
+		}
+	}
 
-	if(stristr($order,'created'))
+	if (stristr($order,'created')) {
 		usort($parents,'sort_thr_created');
-	elseif(stristr($order,'commented'))
+	} elseif(stristr($order,'commented')) {
 		usort($parents,'sort_thr_commented');
+	}
 
-	if(count($parents))
-		foreach($parents as $i=>$_x)
+	if (count($parents)) {
+		foreach($parents as $i => $_x) {
 			$parents[$i]['children'] = get_item_children($arr, $_x);
+		}
+	}
 
 	/*foreach($arr as $x) {
 		if($x['id'] != $x['parent']) {
@@ -1394,10 +1404,11 @@ function conv_sort($arr,$order) {
 	if(count($parents)) {
 		foreach($parents as $x) {
 			$ret[] = $x;
-			if(count($x['children']))
+			if (count($x['children'])) {
 				add_children_to_list($x['children'], $ret);
 				/*foreach($x['children'] as $y)
 					$ret[] = $y;*/
+			}
 		}
 	}
 
