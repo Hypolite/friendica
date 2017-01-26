@@ -225,8 +225,9 @@ function call_hooks($name, &$data = null) {
  */
 function call_single_hook($a, $name, $hook, &$data = null) {
 	// Don't run a theme's hook if the user isn't using the theme
-	if (strpos($hook[0], 'view/theme/') !== false && strpos($hook[0], 'view/theme/'.current_theme()) === false)
+	if (strpos($hook[0], 'view/theme/') !== false && strpos($hook[0], 'view/theme/'.current_theme()) === false) {
 		return;
+	}
 
 	@include_once($hook[0]);
 	if (function_exists($hook[1])) {
@@ -288,7 +289,9 @@ function get_plugin_info($plugin){
 		'status' => ""
 	);
 
-	if (!is_file("addon/$plugin/$plugin.php")) return $info;
+	if (!is_file("addon/$plugin/$plugin.php")) {
+		return $info;
+	}
 
 	$stamp1 = microtime(true);
 	$f = file_get_contents("addon/$plugin/$plugin.php");
@@ -296,7 +299,7 @@ function get_plugin_info($plugin){
 
 	$r = preg_match("|/\*.*\*/|msU", $f, $m);
 
-	if ($r){
+	if ($r) {
 		$ll = explode("\n", $m[0]);
 		foreach ( $ll as $l ) {
 			$l = trim($l,"\t\n\r */");

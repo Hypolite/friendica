@@ -1404,10 +1404,11 @@ function conv_sort($arr,$order) {
 	if (count($parents)) {
 		foreach ($parents as $x) {
 			$ret[] = $x;
-			if (count($x['children']))
+			if (count($x['children'])) {
 				add_children_to_list($x['children'], $ret);
 				/*foreach ($x['children'] as $y)
 					$ret[] = $y;*/
+			}
 		}
 	}
 
