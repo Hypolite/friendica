@@ -24,7 +24,7 @@ require_once('include/Probe.php');
 
 function dfrn_confirm_post(App $a, $handsfree = null) {
 
-	if(is_array($handsfree)) {
+	if (is_array($handsfree)) {
 
 		/*
 		 * We were called directly from dfrn_request due to automatic friend acceptance.
@@ -37,7 +37,7 @@ function dfrn_confirm_post(App $a, $handsfree = null) {
 
 	}
 	else {
-		if($a->argc > 1)
+		if ($a->argc > 1)
 			$node = $a->argv[1];
 	}
 
@@ -53,11 +53,11 @@ function dfrn_confirm_post(App $a, $handsfree = null) {
 		 *
 		 */
 
-	if(! x($_POST,'source_url')) {
+	if (! x($_POST,'source_url')) {
 
 		$uid = ((is_array($handsfree)) ? $handsfree['uid'] : local_user());
 
-		if(! $uid) {
+		if (! $uid) {
 			notice( t('Permission denied.') . EOL );
 			return;
 		}
@@ -66,7 +66,7 @@ function dfrn_confirm_post(App $a, $handsfree = null) {
 			intval($uid)
 		);
 
-		if(! $user) {
+		if (! $user) {
 			notice( t('Profile not found.') . EOL );
 			return;
 		}
@@ -74,7 +74,7 @@ function dfrn_confirm_post(App $a, $handsfree = null) {
 
 		// These data elements may come from either the friend request notification form or $handsfree array.
 
-		if(is_array($handsfree)) {
+		if (is_array($handsfree)) {
 			logger('Confirm in handsfree mode');
 			$dfrn_id   = $handsfree['dfrn_id'];
 			$intro_id  = $handsfree['intro_id'];
@@ -99,11 +99,11 @@ function dfrn_confirm_post(App $a, $handsfree = null) {
 		 *
 		 */
 
-		if(strlen($dfrn_id))
+		if (strlen($dfrn_id))
 			$cid = 0;
 
 		logger('Confirming request for dfrn_id (issued) ' . $dfrn_id);
-		if($cid)
+		if ($cid)
 			logger('Confirming follower with contact_id: ' . $cid);
 
 
@@ -138,10 +138,10 @@ function dfrn_confirm_post(App $a, $handsfree = null) {
 
 		$network = ((strlen($contact['issued-id'])) ? NETWORK_DFRN : NETWORK_OSTATUS);
 
-		if($contact['network'])
+		if ($contact['network'])
 			$network = $contact['network'];
 
-		if($network === NETWORK_DFRN) {
+		if ($network === NETWORK_DFRN) {
 
 			/*
 			 *
@@ -199,19 +199,19 @@ function dfrn_confirm_post(App $a, $handsfree = null) {
 			openssl_public_encrypt($my_url, $params['source_url'], $site_pubkey);
 			$params['source_url'] = bin2hex($params['source_url']);
 
-			if($aes_allow && function_exists('openssl_encrypt')) {
+			if ($aes_allow && function_exists('openssl_encrypt')) {
 				openssl_public_encrypt($src_aes_key, $params['aes_key'], $site_pubkey);
 				$params['aes_key'] = bin2hex($params['aes_key']);
 				$params['public_key'] = bin2hex(openssl_encrypt($public_key,'AES-256-CBC',$src_aes_key));
 			}
 
 			$params['dfrn_version'] = DFRN_PROTOCOL_VERSION ;
-			if($duplex == 1)
+			if ($duplex == 1)
 				$params['duplex'] = 1;
 
-			if($user[0]['page-flags'] == PAGE_COMMUNITY)
+			if ($user[0]['page-flags'] == PAGE_COMMUNITY)
 				$params['page'] = 1;
-			if($user[0]['page-flags'] == PAGE_PRVGROUP)
+			if ($user[0]['page-flags'] == PAGE_PRVGROUP)
 				$params['page'] = 2;
 
 			logger('Confirm: posting data to ' . $dfrn_confirm . ': ' . print_r($params,true), LOGGER_DATA);
@@ -236,7 +236,7 @@ function dfrn_confirm_post(App $a, $handsfree = null) {
 			$leading_junk = substr($res,0,strpos($res,'<?xml'));
 
 			$res = substr($res,strpos($res,'<?xml'));
-			if(! strlen($res)) {
+			if (! strlen($res)) {
 
 					// No XML at all, this exchange is messed up really bad.
 					// We shouldn't proceed, because the xml parser might choke,
@@ -247,7 +247,7 @@ function dfrn_confirm_post(App $a, $handsfree = null) {
 				return;
 			}
 
-			if(strlen($leading_junk) && get_config('system','debugging')) {
+			if (strlen($leading_junk) && get_config('system','debugging')) {
 
 					// This might be more common. Mixed error text and some XML.
 					// If we're configured for debugging, show the text. Proceed in either case.
@@ -255,7 +255,7 @@ function dfrn_confirm_post(App $a, $handsfree = null) {
 				notice( t('Unexpected response from remote site: ') . EOL . $leading_junk . EOL );
 			}
 
-			if(stristr($res, "<status")===false) {
+			if (stristr($res, "<status")===false) {
 				// wrong xml! stop here!
 				notice( t('Unexpected response from remote site: ') . EOL . htmlspecialchars($res) . EOL );
 				return;
@@ -267,7 +267,7 @@ function dfrn_confirm_post(App $a, $handsfree = null) {
 			switch($status) {
 				case 0:
 					info( t("Confirmation completed successfully.") . EOL);
-					if(strlen($message))
+					if (strlen($message))
 						notice( t('Remote site reported: ') . $message . EOL);
 					break;
 				case 1:
@@ -281,19 +281,19 @@ function dfrn_confirm_post(App $a, $handsfree = null) {
 
 				case 2:
 					notice( t("Temporary failure. Please wait and try again.") . EOL);
-					if(strlen($message))
+					if (strlen($message))
 						notice( t('Remote site reported: ') . $message . EOL);
 					break;
 
 
 				case 3:
 					notice( t("Introduction failed or was revoked.") . EOL);
-					if(strlen($message))
+					if (strlen($message))
 						notice( t('Remote site reported: ') . $message . EOL);
 					break;
 				}
 
-			if(($status == 0) && ($intro_id)) {
+			if (($status == 0) && ($intro_id)) {
 
 				// Success. Delete the notification.
 
@@ -304,7 +304,7 @@ function dfrn_confirm_post(App $a, $handsfree = null) {
 
 			}
 
-			if($status != 0)
+			if ($status != 0)
 				return;
 		}
 
@@ -325,13 +325,13 @@ function dfrn_confirm_post(App $a, $handsfree = null) {
 
 		logger('dfrn_confirm: confirm - imported photos');
 
-		if($network === NETWORK_DFRN) {
+		if ($network === NETWORK_DFRN) {
 
 			$new_relation = CONTACT_IS_FOLLOWER;
-			if(($relation == CONTACT_IS_SHARING) || ($duplex))
+			if (($relation == CONTACT_IS_SHARING) || ($duplex))
 				$new_relation = CONTACT_IS_FRIEND;
 
-			if(($relation == CONTACT_IS_SHARING) && ($duplex))
+			if (($relation == CONTACT_IS_SHARING) && ($duplex))
 				$duplex = 0;
 
 			$r = q("UPDATE `contact` SET `rel` = %d,
@@ -351,8 +351,7 @@ function dfrn_confirm_post(App $a, $handsfree = null) {
 				dbesc(NETWORK_DFRN),
 				intval($contact_id)
 			);
-		}
-		else {
+		} else {
 
 			// $network !== NETWORK_DFRN
 
@@ -360,13 +359,13 @@ function dfrn_confirm_post(App $a, $handsfree = null) {
 			$notify = (($contact['notify']) ? $contact['notify'] : '');
 			$poll   = (($contact['poll']) ? $contact['poll'] : '');
 
-			if((! $contact['notify']) || (! $contact['poll'])) {
+			if ((! $contact['notify']) || (! $contact['poll'])) {
 				$arr = Probe::lrdd($contact['url']);
-				if(count($arr)) {
-					foreach($arr as $link) {
-						if($link['@attributes']['rel'] === 'salmon')
+				if (count($arr)) {
+					foreach ($arr as $link) {
+						if ($link['@attributes']['rel'] === 'salmon')
 							$notify = $link['@attributes']['href'];
-						if($link['@attributes']['rel'] === NAMESPACE_FEED)
+						if ($link['@attributes']['rel'] === NAMESPACE_FEED)
 							$poll = $link['@attributes']['href'];
 					}
 				}
@@ -375,13 +374,13 @@ function dfrn_confirm_post(App $a, $handsfree = null) {
 			$new_relation = $contact['rel'];
 			$writable = $contact['writable'];
 
-			if($network === NETWORK_DIASPORA) {
-				if($duplex)
+			if ($network === NETWORK_DIASPORA) {
+				if ($duplex)
 					$new_relation = CONTACT_IS_FRIEND;
 				else
 					$new_relation = CONTACT_IS_FOLLOWER;
 
-				if($new_relation != CONTACT_IS_FOLLOWER)
+				if ($new_relation != CONTACT_IS_FOLLOWER)
 					$writable = 1;
 			}
 
@@ -446,7 +445,7 @@ function dfrn_confirm_post(App $a, $handsfree = null) {
 				intval($uid)
 			);
 
-			if((dbm::is_result($r)) && ($r[0]['hide-friends'] == 0) && ($activity) && (! $hidden)) {
+			if ((dbm::is_result($r)) && ($r[0]['hide-friends'] == 0) && ($activity) && (! $hidden)) {
 
 				require_once('include/items.php');
 
@@ -454,7 +453,7 @@ function dfrn_confirm_post(App $a, $handsfree = null) {
 					intval($uid)
 				);
 
-				if(count($self)) {
+				if (count($self)) {
 
 					$arr = array();
 					$arr['guid'] = get_guid(32);
@@ -493,14 +492,14 @@ function dfrn_confirm_post(App $a, $handsfree = null) {
 					$arr['deny_gid']  = $user[0]['deny_gid'];
 
 					$i = item_store($arr);
-					if($i)
+					if ($i)
 						proc_run(PRIORITY_HIGH, "include/notifier.php", "activity", $i);
 				}
 			}
 		}
 
 		$def_gid = get_default_group($uid, $contact["network"]);
-		if($contact && intval($def_gid))
+		if ($contact && intval($def_gid))
 			group_add_member($uid, '', $contact['id'], $def_gid);
 
 		// Let's send our user to the contact editor in case they want to
@@ -567,7 +566,7 @@ function dfrn_confirm_post(App $a, $handsfree = null) {
 		$local_uid = $r[0]['uid'];
 
 
-		if(! strstr($my_prvkey,'PRIVATE KEY')) {
+		if (! strstr($my_prvkey,'PRIVATE KEY')) {
 			$message = t('Our site encryption key is apparently messed up.');
 			xml_status(3,$message);
 		}
@@ -578,7 +577,7 @@ function dfrn_confirm_post(App $a, $handsfree = null) {
 		openssl_private_decrypt($source_url,$decrypted_source_url,$my_prvkey);
 
 
-		if(! strlen($decrypted_source_url)) {
+		if (! strlen($decrypted_source_url)) {
 			$message = t('Empty site URL was provided or URL could not be decrypted by us.');
 			xml_status(3,$message);
 			// NOTREACHED
@@ -653,7 +652,7 @@ function dfrn_confirm_post(App $a, $handsfree = null) {
 		// It's possible that the other person also requested friendship.
 		// If it is a duplex relationship, ditch the issued-id if one exists.
 
-		if($duplex) {
+		if ($duplex) {
 			$r = q("UPDATE `contact` SET `issued-id` = '' WHERE `id` = %d",
 				intval($dfrn_record)
 			);
@@ -725,7 +724,7 @@ function dfrn_confirm_post(App $a, $handsfree = null) {
 		if (dbm::is_result($r))
 			$combined = $r[0];
 
-		if((dbm::is_result($r)) && ($r[0]['notify-flags'] & NOTIFY_CONFIRM)) {
+		if ((dbm::is_result($r)) && ($r[0]['notify-flags'] & NOTIFY_CONFIRM)) {
 			$mutual = ($new_relation == CONTACT_IS_FRIEND);
 			notification(array(
 				'type'         => NOTIFY_CONFIRM,
@@ -745,12 +744,12 @@ function dfrn_confirm_post(App $a, $handsfree = null) {
 
 		// Send a new friend post if we are allowed to...
 
-		if($page && intval(get_pconfig($local_uid,'system','post_joingroup'))) {
+		if ($page && intval(get_pconfig($local_uid,'system','post_joingroup'))) {
 			$r = q("SELECT `hide-friends` FROM `profile` WHERE `uid` = %d AND `is-default` = 1 LIMIT 1",
 				intval($local_uid)
 			);
 
-			if((dbm::is_result($r)) && ($r[0]['hide-friends'] == 0)) {
+			if ((dbm::is_result($r)) && ($r[0]['hide-friends'] == 0)) {
 
 				require_once('include/items.php');
 
@@ -758,7 +757,7 @@ function dfrn_confirm_post(App $a, $handsfree = null) {
 					intval($local_uid)
 				);
 
-				if(count($self)) {
+				if (dbm::is_result($self)) {
 
 					$arr = array();
 					$arr['uri'] = $arr['parent-uri'] = item_new_uri($a->get_hostname(), $local_uid);
@@ -795,8 +794,9 @@ function dfrn_confirm_post(App $a, $handsfree = null) {
 					$arr['deny_gid']  = $user[0]['deny_gid'];
 
 					$i = item_store($arr);
-					if($i)
+					if ($i) {
 						proc_run(PRIORITY_HIGH, "include/notifier.php", "activity", $i);
+					}
 
 				}
 			}

@@ -1339,11 +1339,11 @@ function photos_content(App $a) {
 		$prevlink = '';
 		$nextlink = '';
 
-		if ($_GET['order'] === 'posted')
+		if ($_GET['order'] === 'posted') {
 			$order = 'ASC';
-		else
+		} else {
 			$order = 'DESC';
-
+		}
 
 		$prvnxt = qu("SELECT `resource-id` FROM `photo` WHERE `album` = '%s' AND `uid` = %d AND `scale` = 0
 			$sql_extra ORDER BY `created` $order ",
@@ -1352,25 +1352,27 @@ function photos_content(App $a) {
 		);
 
 		if (count($prvnxt)) {
-			for($z = 0; $z < count($prvnxt); $z++) {
+			for ($z = 0; $z < count($prvnxt); $z++) {
 				if ($prvnxt[$z]['resource-id'] == $ph[0]['resource-id']) {
 					$prv = $z - 1;
 					$nxt = $z + 1;
-					if ($prv < 0)
+					if ($prv < 0) {
 						$prv = count($prvnxt) - 1;
-					if ($nxt >= count($prvnxt))
+					}
+					if ($nxt >= count($prvnxt)) {
 						$nxt = 0;
+					}
 					break;
 				}
 			}
 			$edit_suffix = ((($cmd === 'edit') && ($can_post)) ? '/edit' : '');
 			$prevlink = 'photos/' . $a->data['user']['nickname'] . '/image/' . $prvnxt[$prv]['resource-id'] . $edit_suffix . (($_GET['order'] === 'posted') ? '?f=&order=posted' : '');
 			$nextlink = 'photos/' . $a->data['user']['nickname'] . '/image/' . $prvnxt[$nxt]['resource-id'] . $edit_suffix . (($_GET['order'] === 'posted') ? '?f=&order=posted' : '');
- 		}
+		}
 
-
-		if (count($ph) == 1)
+		if (count($ph) == 1) {
 			$hires = $lores = $ph[0];
+		}
 		if (count($ph) > 1) {
 			if ($ph[1]['scale'] == 2) {
 				// original is 640 or less, we can display it directly

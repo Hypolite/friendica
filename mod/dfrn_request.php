@@ -19,7 +19,7 @@ require_once('include/group.php');
 
 function dfrn_request_init(App $a) {
 
-	if($a->argc > 1)
+	if ($a->argc > 1)
 		$which = $a->argv[1];
 
 	profile_load($a,$which);
@@ -44,13 +44,13 @@ function dfrn_request_init(App $a) {
  */
 function dfrn_request_post(App $a) {
 
-	if(($a->argc != 2) || (! count($a->profile))) {
+	if (($a->argc != 2) || (! count($a->profile))) {
 		logger('Wrong count of argc or profiles: argc=' . $a->argc . ',profile()=' . count($a->profile));
 		return;
 	}
 
 
-	if(x($_POST, 'cancel')) {
+	if (x($_POST, 'cancel')) {
 		goaway(z_root());
 	}
 
@@ -63,13 +63,13 @@ function dfrn_request_post(App $a) {
 	 *
 	 */
 
-	if((x($_POST,'localconfirm')) && ($_POST['localconfirm'] == 1)) {
+	if ((x($_POST,'localconfirm')) && ($_POST['localconfirm'] == 1)) {
 
 		/*
 		 * Ensure this is a valid request
 		 */
 
-		if(local_user() && ($a->user['nickname'] == $a->argv[1]) && (x($_POST,'dfrn_url'))) {
+		if (local_user() && ($a->user['nickname'] == $a->argv[1]) && (x($_POST,'dfrn_url'))) {
 
 
 			$dfrn_url    = notags(trim($_POST['dfrn_url']));
@@ -80,7 +80,7 @@ function dfrn_request_post(App $a) {
 			$blocked = 1;
 			$pending = 1;
 
-			if(x($dfrn_url)) {
+			if (x($dfrn_url)) {
 
 				/*
 				 * Lookup the contact based on their URL (which is the only unique thing we have at the moment)
@@ -92,7 +92,7 @@ function dfrn_request_post(App $a) {
 				);
 
 				if (dbm::is_result($r)) {
-					if(strlen($r[0]['dfrn-id'])) {
+					if (strlen($r[0]['dfrn-id'])) {
 
 						/*
 						 * We don't need to be here. It has already happened.
@@ -105,7 +105,7 @@ function dfrn_request_post(App $a) {
 						$contact_record = $r[0];
 				}
 
-				if(is_array($contact_record)) {
+				if (is_array($contact_record)) {
 					$r = q("UPDATE `contact` SET `ret-aes` = %d, hidden = %d WHERE `id` = %d",
 						intval($aes_allow),
 						intval($hidden),
@@ -189,7 +189,7 @@ function dfrn_request_post(App $a) {
 				);
 				if (dbm::is_result($r)) {
 					$def_gid = get_default_group(local_user(), $r[0]["network"]);
-					if(intval($def_gid))
+					if (intval($def_gid))
 						group_add_member(local_user(), '', $r[0]['id'], $def_gid);
 
 					if (isset($photo))
@@ -251,7 +251,7 @@ function dfrn_request_post(App $a) {
 	 *
 	 */
 
-	if(! (is_array($a->profile) && count($a->profile))) {
+	if (! (is_array($a->profile) && count($a->profile))) {
 		notice( t('Profile unavailable.') . EOL);
 		return;
 	}
@@ -267,13 +267,13 @@ function dfrn_request_post(App $a) {
 	$pending = 1;
 
 
-	if( x($_POST,'dfrn_url')) {
+	if ( x($_POST,'dfrn_url')) {
 
 		/*
 		 * Block friend request spam
 		 */
 
-		if($maxreq) {
+		if ($maxreq) {
 			$r = q("SELECT * FROM `intro` WHERE `datetime` > '%s' AND `uid` = %d",
 				dbesc(datetime_convert('UTC','UTC','now - 24 hours')),
 				intval($uid)
@@ -302,7 +302,7 @@ function dfrn_request_post(App $a) {
 		);
 		if (dbm::is_result($r)) {
 			foreach ($r as $rr) {
-				if(! $rr['rel']) {
+				if (! $rr['rel']) {
 					q("DELETE FROM `contact` WHERE `id` = %d",
 						intval($rr['cid'])
 					);
@@ -327,7 +327,7 @@ function dfrn_request_post(App $a) {
 		);
 		if (dbm::is_result($r)) {
 			foreach ($r as $rr) {
-				if(! $rr['rel']) {
+				if (! $rr['rel']) {
 					q("DELETE FROM `contact` WHERE `id` = %d",
 						intval($rr['cid'])
 					);
@@ -342,16 +342,16 @@ function dfrn_request_post(App $a) {
 		$real_name = (x($_POST,'realname') ? notags(trim($_POST['realname'])) : '');
 
 		$url = trim($_POST['dfrn_url']);
-		if(! strlen($url)) {
+		if (! strlen($url)) {
 			notice( t("Invalid locator") . EOL );
 			return;
 		}
 
 		$hcard = '';
 
-		if($email_follow) {
+		if ($email_follow) {
 
-			if(! validate_email($url)) {
+			if (! validate_email($url)) {
 				notice( t('Invalid email address.') . EOL);
 				return;
 			}
@@ -367,10 +367,10 @@ function dfrn_request_post(App $a) {
 			$rel     = CONTACT_IS_FOLLOWER;
 
 			$mail_disabled = ((function_exists('imap_open') && (! get_config('system','imap_disabled'))) ? 0 : 1);
-			if(get_config('system','dfrn_only'))
+			if (get_config('system','dfrn_only'))
 				$mail_disabled = 1;
 
-			if(! $mail_disabled) {
+			if (! $mail_disabled) {
 				$failed = false;
 				$r = q("SELECT * FROM `mailacct` WHERE `uid` = %d LIMIT 1",
 					intval($uid)
@@ -472,18 +472,18 @@ function dfrn_request_post(App $a) {
 
 		logger('dfrn_request: url: ' . $url . ',network=' . $network, LOGGER_DEBUG);
 
-		if($network === NETWORK_DFRN) {
+		if ($network === NETWORK_DFRN) {
 			$ret = q("SELECT * FROM `contact` WHERE `uid` = %d AND `url` = '%s' AND `self` = 0 LIMIT 1",
 				intval($uid),
 				dbesc($url)
 			);
 
 			if (dbm::is_result($ret)) {
-				if(strlen($ret[0]['issued-id'])) {
+				if (strlen($ret[0]['issued-id'])) {
 					notice( t('You have already introduced yourself here.') . EOL );
 					return;
 				}
-				elseif($ret[0]['rel'] == CONTACT_IS_FRIEND) {
+				elseif ($ret[0]['rel'] == CONTACT_IS_FRIEND) {
 					notice( sprintf( t('Apparently you are already friends with %s.'), $a->profile['name']) . EOL);
 					return;
 				}
@@ -495,7 +495,7 @@ function dfrn_request_post(App $a) {
 
 			$issued_id = random_string();
 
-			if(is_array($contact_record)) {
+			if (is_array($contact_record)) {
 				// There is a contact record but no issued-id, so this
 				// is a reciprocal introduction from a known contact
 				$r = q("UPDATE `contact` SET `issued-id` = '%s' WHERE `id` = %d",
@@ -720,7 +720,7 @@ function dfrn_request_content(App $a) {
 		return $o;
 
 	}
-	elseif((x($_GET,'confirm_key')) && strlen($_GET['confirm_key'])) {
+	elseif ((x($_GET,'confirm_key')) && strlen($_GET['confirm_key'])) {
 
 		// we are the requestee and it is now safe to send our user their introduction,
 		// We could just unblock it, but first we have to jump through a few hoops to
@@ -740,10 +740,10 @@ function dfrn_request_content(App $a) {
 			$auto_confirm = false;
 
 			if (dbm::is_result($r)) {
-				if(($r[0]['page-flags'] != PAGE_NORMAL) && ($r[0]['page-flags'] != PAGE_PRVGROUP))
+				if (($r[0]['page-flags'] != PAGE_NORMAL) && ($r[0]['page-flags'] != PAGE_PRVGROUP))
 					$auto_confirm = true;
 
-				if(! $auto_confirm) {
+				if (! $auto_confirm) {
 
 					notification(array(
 						'type'         => NOTIFY_INTRO,
@@ -761,7 +761,7 @@ function dfrn_request_content(App $a) {
 					));
 				}
 
-				if($auto_confirm) {
+				if ($auto_confirm) {
 					require_once('mod/dfrn_confirm.php');
 					$handsfree = array(
 						'uid'      => $r[0]['uid'],
@@ -776,7 +776,7 @@ function dfrn_request_content(App $a) {
 
 			}
 
-			if(! $auto_confirm) {
+			if (! $auto_confirm) {
 
 				// If we are auto_confirming, this record will have already been nuked
 				// in dfrn_confirm_post()
@@ -796,8 +796,8 @@ function dfrn_request_content(App $a) {
 		 * Normal web request. Display our user's introduction form.
 		 */
 
-		if((get_config('system','block_public')) && (! local_user()) && (! remote_user())) {
-			if(! get_config('system','local_block')) {
+		if ((get_config('system','block_public')) && (! local_user()) && (! remote_user())) {
+			if (! get_config('system','local_block')) {
 				notice( t('Public access denied.') . EOL);
 				return;
 			}

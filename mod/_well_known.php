@@ -28,10 +28,11 @@ function wk_social_relay(App $a) {
 
 	$subscribe = (bool)get_config('system', 'relay_subscribe');
 
-	if ($subscribe)
+	if ($subscribe) {
 		$scope = get_config('system', 'relay_scope');
-	else
+	} else {
 		$scope = "";
+	}
 
 	$tags = array();
 
@@ -40,13 +41,14 @@ function wk_social_relay(App $a) {
 		$server_tags = get_config('system', 'relay_server_tags');
 		$tagitems = explode(",", $server_tags);
 
-		foreach($tagitems AS $tag)
+		foreach ($tagitems AS $tag) {
 			$tags[trim($tag, "# ")] = trim($tag, "# ");
+		}
 
 		if (get_config('system', 'relay_user_tags')) {
 			$terms = q("SELECT DISTINCT(`term`) FROM `search`");
 
-			foreach($terms AS $term) {
+			foreach ($terms AS $term) {
 				$tag = trim($term["term"], "#");
 				$tags[$tag] = $tag;
 			}
@@ -54,8 +56,9 @@ function wk_social_relay(App $a) {
 	}
 
 	$taglist = array();
-	foreach($tags AS $tag)
+	foreach ($tags AS $tag) {
 		$taglist[] = $tag;
+	}
 
 	$relay = array("subscribe" => $subscribe,
 			"scope" => $scope,
