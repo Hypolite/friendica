@@ -1331,10 +1331,11 @@ function photos_content(App $a) {
 				intval($owner_uid),
 				dbesc($datum)
 			);
-			if (count($ph))
+			if (count($ph)) {
 				notice( t('Permission denied. Access to this item may be restricted.'));
-			else
+			} else {
 				notice( t('Photo not available') . EOL );
+			}
 			return;
 		}
 
