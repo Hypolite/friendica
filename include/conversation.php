@@ -343,10 +343,11 @@ function localize_item(&$item){
 function count_descendants($item) {
 	$total = count($item['children']);
 
-	if($total > 0) {
-		foreach($item['children'] as $child) {
-			if(! visible_activity($child))
+	if ($total > 0) {
+		foreach ($item['children'] as $child) {
+			if (! visible_activity($child)) {
 				$total --;
+			}
 			$total += count_descendants($child);
 		}
 	}
@@ -360,14 +361,14 @@ function visible_activity($item) {
 	// in which case we handle them specially
 
 	$hidden_activities = array(ACTIVITY_LIKE, ACTIVITY_DISLIKE, ACTIVITY_ATTEND, ACTIVITY_ATTENDNO, ACTIVITY_ATTENDMAYBE);
-	foreach($hidden_activities as $act) {
-		if(activity_match($item['verb'],$act)) {
+	foreach ($hidden_activities as $act) {
+		if (activity_match($item['verb'],$act)) {
 			return false;
 		}
 	}
 
-	if(activity_match($item['verb'],ACTIVITY_FOLLOW) && $item['object-type'] === ACTIVITY_OBJ_NOTE) {
-		if(! (($item['self']) && ($item['uid'] == local_user()))) {
+	if (activity_match($item['verb'],ACTIVITY_FOLLOW) && $item['object-type'] === ACTIVITY_OBJ_NOTE) {
+		if (!(($item['self']) && ($item['uid'] == local_user()))) {
 			return false;
 		}
 	}

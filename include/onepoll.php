@@ -459,6 +459,7 @@ function onepoll_run(&$argv, &$argc){
 								$datarray['title'] .= $subpart->text;
 							}
 						}
+
 						$datarray['title'] = notags(trim($datarray['title']));
 
 						//$datarray['title'] = notags(trim($meta->subject));
@@ -478,8 +479,9 @@ function onepoll_run(&$argv, &$argc){
 								dbesc(protect_sprintf($datarray['title'])),
 								intval($importer_uid),
 								dbesc(NETWORK_MAIL));
-							if (dbm::is_result($r))
+							if (dbm::is_result($r)) {
 								$datarray['parent-uri'] = $r[0]['parent-uri'];
+							}
 						}
 
 						if (! x($datarray,'parent-uri'))
