@@ -174,8 +174,9 @@ function email_get_part($mbox,$uid,$p,$partno, $subtype) {
 		if (strtolower($p->subtype)==$subtype) {
 			$data = iconv($params['charset'], 'UTF-8//IGNORE', $data);
 			return (trim($data) ."\n\n");
-		} else
+		} else {
 			$data = '';
+		}
 
  //           $htmlmsg .= $data ."<br><br>";
 		$charset = $params['charset'];  // assume all parts are same charset
@@ -215,8 +216,9 @@ function email_header_encode($in_str, $charset) {
 		}
 	}
 
-	if (! $need_to_convert)
+	if (! $need_to_convert) {
 		return $in_str;
+	}
 
     if ($out_str && $charset) {
 

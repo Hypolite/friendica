@@ -301,15 +301,18 @@ function paginate_data(App $a, $count=null) {
 
 	if (!is_null($count)){
 		// alt pager
-		if ($a->pager['page']>1)
+		if ($a->pager['page']>1) {
 			_l($data,  "prev", $url.'&page='.($a->pager['page'] - 1), t('newer'));
-		if ($count>0)
+		}
+		if ($count>0) {
 			_l($data,  "next", $url.'&page='.($a->pager['page'] + 1), t('older'));
+		}
 	} else {
 		// full pager
 		if ($a->pager['total'] > $a->pager['itemspage']) {
-			if ($a->pager['page'] != 1)
+			if ($a->pager['page'] != 1) {
 				_l($data,  "prev", $url.'&page='.($a->pager['page'] - 1), t('prev'));
+			}
 
 			_l($data, "first", $url."&page=1",  t('first'));
 
@@ -1832,10 +1835,11 @@ function file_tag_decode($s) {
 
 function file_tag_file_query($table,$s,$type = 'file') {
 
-	if ($type == 'file')
+	if ($type == 'file') {
 		$str = preg_quote( '[' . str_replace('%','%%',file_tag_encode($s)) . ']' );
-	else
+	} else {
 		$str = preg_quote( '<' . str_replace('%','%%',file_tag_encode($s)) . '>' );
+	}
 	return " AND " . (($table) ? dbesc($table) . '.' : '') . "file regexp '" . dbesc($str) . "' ";
 }
 
@@ -1847,8 +1851,7 @@ function file_tag_list_to_file($list,$type = 'file') {
 		if ($type == 'file') {
 			$lbracket = '[';
 			$rbracket = ']';
-		}
-		else {
+		} else {
 			$lbracket = '<';
 			$rbracket = '>';
 		}
@@ -1889,9 +1892,7 @@ function file_tag_update_pconfig($uid,$file_old,$file_new,$type = 'file') {
 
 	if (! intval($uid)) {
 		return false;
-	}
-
-	if ($file_old == $file_new) {
+	} elseif ($file_old == $file_new) {
 		return true;
 	}
 

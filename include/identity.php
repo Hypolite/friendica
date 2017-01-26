@@ -202,15 +202,17 @@ function profile_sidebar($profile, $block = 0) {
 	$address = false;
 //		$pdesc = true;
 
-	if ((! is_array($profile)) && (! count($profile)))
+	if ((! is_array($profile)) && (! count($profile))) {
 		return $o;
+	}
 
 	$profile['picdate'] = urlencode($profile['picdate']);
 
 	if (($profile['network'] != "") AND ($profile['network'] != NETWORK_DFRN)) {
 		$profile['network_name'] = format_network_name($profile['network'],$profile['url']);
-	} else
+	} else {
 		$profile['network_name'] = "";
+	}
 
 	call_hooks('profile_sidebar_enter', $profile);
 
@@ -479,10 +481,12 @@ function get_birthdays() {
 
 		$istoday = false;
 		foreach ($r as $rr) {
-			if (strlen($rr['name']))
+			if (strlen($rr['name'])) {
 				$total ++;
-			if ((strtotime($rr['start'] . ' +00:00') < $now) && (strtotime($rr['finish'] . ' +00:00') > $now))
+			}
+			if ((strtotime($rr['start'] . ' +00:00') < $now) && (strtotime($rr['finish'] . ' +00:00') > $now)) {
 				$istoday = true;
+			}
 		}
 		$classtoday = $istoday ? ' birthday-today ' : '';
 		if ($total) {
@@ -536,9 +540,9 @@ function get_events() {
 
 	$a = get_app();
 
-	if (! local_user() || $a->is_mobile || $a->is_tablet)
+	if (! local_user() || $a->is_mobile || $a->is_tablet) {
 		return $o;
-
+	}
 
 //		$mobile_detect = new Mobile_Detect();
 //		$is_mobile = $mobile_detect->isMobile() || $mobile_detect->isTablet();
@@ -561,12 +565,14 @@ function get_events() {
 		$now = strtotime('now');
 		$istoday = false;
 		foreach ($r as $rr) {
-			if (strlen($rr['name']))
+			if (strlen($rr['name'])) {
 				$total ++;
+			}
 
 			$strt = datetime_convert('UTC',$rr['convert'] ? $a->timezone : 'UTC',$rr['start'],'Y-m-d');
-			if ($strt === datetime_convert('UTC',$a->timezone,'now','Y-m-d'))
+			if ($strt === datetime_convert('UTC',$a->timezone,'now','Y-m-d')) {
 				$istoday = true;
+			}
 		}
 		$classtoday = (($istoday) ? 'event-today' : '');
 
@@ -575,12 +581,14 @@ function get_events() {
 		foreach ($r as &$rr) {
 			$title = strip_tags(html_entity_decode(bbcode($rr['summary']),ENT_QUOTES,'UTF-8'));
 
-			if (strlen($title) > 35)
+			if (strlen($title) > 35) {
 				$title = substr($title,0,32) . '... ';
+			}
 
 			$description = substr(strip_tags(bbcode($rr['desc'])),0,32) . '... ';
-			if (! $description)
+			if (! $description) {
 				$description = t('[No description]');
+			}
 
 			$strt = datetime_convert('UTC',$rr['convert'] ? $a->timezone : 'UTC',$rr['start']);
 
@@ -627,8 +635,9 @@ function advanced_profile(App $a) {
 
 		$profile['fullname'] = array( t('Full Name:'), $a->profile['name'] ) ;
 
-		if ($a->profile['gender']) $profile['gender'] = array( t('Gender:'),  $a->profile['gender'] );
-
+		if ($a->profile['gender']) {
+			$profile['gender'] = array( t('Gender:'),  $a->profile['gender'] );
+		}
 
 		if (($a->profile['dob']) && ($a->profile['dob'] != '0000-00-00')) {
 
@@ -644,10 +653,13 @@ function advanced_profile(App $a) {
 
 		}
 
-		if ($age = age($a->profile['dob'],$a->profile['timezone'],''))  $profile['age'] = array( t('Age:'), $age );
+		if ($age = age($a->profile['dob'],$a->profile['timezone'],'')) {
+			$profile['age'] = array( t('Age:'), $age );
+		}
 
-
-		if ($a->profile['marital']) $profile['marital'] = array( t('Status:'), $a->profile['marital']);
+		if ($a->profile['marital']) {
+			$profile['marital'] = array( t('Status:'), $a->profile['marital']);
+		}
 
 		/// @TODO Maybe use x() here, plus below?
 		if ($a->profile['with']) {
@@ -821,7 +833,7 @@ function profile_tabs($a, $is_owner=False, $nickname=Null){
 			);
 	}
 
-	if ($is_owner){
+	if ($is_owner) {
 		$tabs[] = array(
 			'label' => t('Personal Notes'),
 			'url'	=> App::get_baseurl() . '/notes',
@@ -852,13 +864,15 @@ function profile_tabs($a, $is_owner=False, $nickname=Null){
 }
 
 function get_my_url() {
-	if (x($_SESSION,'my_url'))
+	if (x($_SESSION,'my_url')) {
 		return $_SESSION['my_url'];
+	}
 	return false;
 }
 
 function zrl_init(App $a) {
 	$tmp_str = get_my_url();
+
 	if (validate_url($tmp_str)) {
 
 		// Is it a DDoS attempt?

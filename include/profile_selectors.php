@@ -16,7 +16,7 @@ function gender_selector($current="",$suffix="") {
 	}
 	$o .= '</select>';
 	return $o;
-}	
+}
 
 function sexpref_selector($current="",$suffix="") {
 	$o = '';
@@ -34,7 +34,7 @@ function sexpref_selector($current="",$suffix="") {
 	}
 	$o .= '</select>';
 	return $o;
-}	
+}
 
 
 function marital_selector($current="",$suffix="") {
@@ -52,4 +52,4 @@ function marital_selector($current="",$suffix="") {
 	}
 	$o .= '</select>';
 	return $o;
-}	
+}

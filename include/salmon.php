@@ -49,8 +49,7 @@ function get_salmon_key($uri,$keyhash) {
 		// have one key we'll be right.
 
 		return $ret[0];
-	}
-	else {
+	} else {
 		foreach ($ret as $a) {
 			$hash = base64url_encode(hash('sha256',$a));
 			if ($hash == $keyhash) {

@@ -579,14 +579,14 @@ function onepoll_run(&$argv, &$argc){
 						}
 					}
 				}
-			} else
+			} else {
 				logger("Mail: no mails for ".$mailconf[0]['user']);
+			}
 
 			logger("Mail: closing connection for ".$mailconf[0]['user']);
 			imap_close($mbox);
 		}
-	}
-	elseif ($contact['network'] === NETWORK_FACEBOOK) {
+	} elseif ($contact['network'] === NETWORK_FACEBOOK) {
 		// This is picked up by the Facebook plugin on a cron hook.
 		// Ignored here.
 	} elseif ($contact['network'] === NETWORK_PUMPIO) {
@@ -616,14 +616,17 @@ function onepoll_run(&$argv, &$argc){
 		consume_feed($xml,$importer,$contact,$hub,1,2);
 
 		$hubmode = 'subscribe';
-		if ($contact['network'] === NETWORK_DFRN || $contact['blocked'] || $contact['readonly'])
+		if ($contact['network'] === NETWORK_DFRN || $contact['blocked'] || $contact['readonly']) {
 			$hubmode = 'unsubscribe';
+		}
 
-		if (($contact['network'] === NETWORK_OSTATUS ||  $contact['network'] == NETWORK_FEED) && (! $contact['hub-verify']))
+		if (($contact['network'] === NETWORK_OSTATUS ||  $contact['network'] == NETWORK_FEED) && (! $contact['hub-verify'])) {
 			$hub_update = true;
+		}
 
-		if ($force)
+		if ($force) {
 			$hub_update = true;
+		}
 
 		logger("Contact ".$contact['id']." returned hub: ".$hub." Network: ".$contact['network']." Relation: ".$contact['rel']." Update: ".$hub_update);
 
