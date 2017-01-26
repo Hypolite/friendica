@@ -645,7 +645,7 @@ class dfrn {
 			if (trim($profile["pub_keywords"]) != "") {
 				$keywords = explode(",", $profile["pub_keywords"]);
 
-				foreach ($keywords AS $keyword) {
+				foreach ($keywords as $keyword) {
 					xml::add_element($doc, $author, "poco:tags", trim($keyword));
 				}
 
@@ -768,9 +768,9 @@ class dfrn {
 					// XML does need a single element as root element so we add a dummy element here
 					$data = parse_xml_string("<dummy>" . $r->link . "</dummy>", false);
 					if (is_object($data)) {
-						foreach ($data->link AS $link) {
+						foreach ($data->link as $link) {
 							$attributes = array();
-							foreach ($link->attributes() AS $parameter => $value) {
+							foreach ($link->attributes() as $parameter => $value) {
 								$attributes[$parameter] = $value;
 							}
 							xml::add_element($doc, $entry, "link", "", $attributes);
@@ -1004,7 +1004,7 @@ class dfrn {
 			}
 		}
 
-		foreach ($mentioned AS $mention) {
+		foreach ($mentioned as $mention) {
 			$r = q("SELECT `forum`, `prv` FROM `contact` WHERE `uid` = %d AND `nurl` = '%s'",
 				intval($owner["uid"]),
 				dbesc(normalise_link($mention)));
@@ -1377,11 +1377,11 @@ class dfrn {
 		$avatarlist = array();
 		/// @todo check if "avatar" or "photo" would be the best field in the specification
 		$avatars = $xpath->query($element."/atom:link[@rel='avatar']", $context);
-		foreach ($avatars AS $avatar) {
+		foreach ($avatars as $avatar) {
 			$href = "";
 			$width = 0;
 			foreach ($avatar->attributes as $attributes) {
-				/// @TODO Rewrite these similar if () to one switch
+				/// @TODO Rewrite these similar if() to one switch
 				if ($attributes->name == "href") {
 					$href = $attributes->textContent;
 				}
@@ -1474,7 +1474,7 @@ class dfrn {
 			// Save the keywords into the contact table
 			$tags = array();
 			$tagelements = $xpath->evaluate($element . "/poco:tags/text()", $context);
-			foreach ($tagelements AS $tag) {
+			foreach ($tagelements as $tag) {
 				$tags[$tag->nodeValue] = $tag->nodeValue;
 			}
 
@@ -1516,7 +1516,7 @@ class dfrn {
 
 			// Get all field names
 			$fields = array();
-			foreach ($r[0] AS $field => $data) {
+			foreach ($r[0] as $field => $data) {
 				$fields[$field] = $data;
 			}
 
@@ -1529,14 +1529,14 @@ class dfrn {
 
 			// Update check for this field has to be done differently
 			$datefields = array("name-date", "uri-date");
-			foreach ($datefields AS $field) {
+			foreach ($datefields as $field) {
 				if (strtotime($contact[$field]) > strtotime($r[0][$field])) {
 					logger("Difference for contact " . $contact["id"] . " in field '" . $field . "'. New value: '" . $contact[$field] . "', old value '" . $r[0][$field] . "'", LOGGER_DEBUG);
 					$update = true;
 				}
 			}
 
-			foreach ($fields AS $field => $data) {
+			foreach ($fields as $field => $data) {
 				if ($contact[$field] != $r[0][$field]) {
 					logger("Difference for contact " . $contact["id"] . " in field '" . $field . "'. New value: '" . $contact[$field] . "', old value '" . $r[0][$field] . "'", LOGGER_DEBUG);
 					$update = true;
@@ -1614,7 +1614,7 @@ class dfrn {
 
 		$links = $xpath->query("atom:link", $activity);
 		if (is_object($links)) {
-			foreach ($links AS $link) {
+			foreach ($links as $link) {
 				$obj_element->appendChild($obj_doc->importNode($link, true));
 			}
 		}
@@ -2256,9 +2256,9 @@ class dfrn {
 		$type = "";
 		$length = "0";
 		$title = "";
-		foreach ($links AS $link) {
-			foreach ($link->attributes AS $attributes) {
-				/// @TODO Rewrite these repeated (same) if () statements to a switch()
+		foreach ($links as $link) {
+			foreach ($link->attributes as $attributes) {
+				/// @TODO Rewrite these repeated (same) if() statements to a switch()
 				if ($attributes->name == "href") {
 					$href = $attributes->textContent;
 				}
@@ -2398,7 +2398,7 @@ class dfrn {
 
 		$notice_info = $xpath->query("statusnet:notice_info", $entry);
 		if ($notice_info && ($notice_info->length > 0)) {
-			foreach ($notice_info->item(0)->attributes AS $attributes) {
+			foreach ($notice_info->item(0)->attributes as $attributes) {
 				if ($attributes->name == "source") {
 					$item["app"] = strip_tags($attributes->textContent);
 				}
@@ -2434,10 +2434,10 @@ class dfrn {
 
 		$categories = $xpath->query("atom:category", $entry);
 		if ($categories) {
-			foreach ($categories AS $category) {
+			foreach ($categories as $category) {
 				$term = "";
 				$scheme = "";
-				foreach ($category->attributes AS $attributes) {
+				foreach ($category->attributes as $attributes) {
 					if ($attributes->name == "term") {
 						$term = $attributes->textContent;
 					}
@@ -2474,7 +2474,7 @@ class dfrn {
 
 		$conv = $xpath->query('ostatus:conversation', $entry);
 		if (is_object($conv->item(0))) {
-			foreach ($conv->item(0)->attributes AS $attributes) {
+			foreach ($conv->item(0)->attributes as $attributes) {
 				if ($attributes->name == "ref") {
 					$item['conversation-uri'] = $attributes->textContent;
 				}
@@ -2489,7 +2489,7 @@ class dfrn {
 
 		$inreplyto = $xpath->query("thr:in-reply-to", $entry);
 		if (is_object($inreplyto->item(0))) {
-			foreach ($inreplyto->item(0)->attributes AS $attributes) {
+			foreach ($inreplyto->item(0)->attributes as $attributes) {
 				if ($attributes->name == "ref") {
 					$item["parent-uri"] = $attributes->textContent;
 				}
@@ -2668,7 +2668,7 @@ class dfrn {
 
 		logger("Processing deletions");
 
-		foreach ($deletion->attributes AS $attributes) {
+		foreach ($deletion->attributes as $attributes) {
 			if ($attributes->name == "ref") {
 				$uri = $attributes->textContent;
 			}
@@ -2890,34 +2890,34 @@ class dfrn {
 		}
 
 		$mails = $xpath->query("/atom:feed/dfrn:mail");
-		foreach ($mails AS $mail) {
+		foreach ($mails as $mail) {
 			self::process_mail($xpath, $mail, $importer);
 		}
 
 		$suggestions = $xpath->query("/atom:feed/dfrn:suggest");
-		foreach ($suggestions AS $suggestion) {
+		foreach ($suggestions as $suggestion) {
 			self::process_suggestion($xpath, $suggestion, $importer);
 		}
 
 		$relocations = $xpath->query("/atom:feed/dfrn:relocate");
-		foreach ($relocations AS $relocation) {
+		foreach ($relocations as $relocation) {
 			self::process_relocation($xpath, $relocation, $importer);
 		}
 
 		$deletions = $xpath->query("/atom:feed/at:deleted-entry");
-		foreach ($deletions AS $deletion) {
+		foreach ($deletions as $deletion) {
 			self::process_deletion($xpath, $deletion, $importer);
 		}
 
 		if (!$sort_by_date) {
 			$entries = $xpath->query("/atom:feed/atom:entry");
-			foreach ($entries AS $entry) {
+			foreach ($entries as $entry) {
 				self::process_entry($header, $xpath, $entry, $importer, $xml);
 			}
 		} else {
 			$newentries = array();
 			$entries = $xpath->query("/atom:feed/atom:entry");
-			foreach ($entries AS $entry) {
+			foreach ($entries as $entry) {
 				$created = $xpath->query("atom:published/text()", $entry)->item(0)->nodeValue;
 				$newentries[strtotime($created)] = $entry;
 			}
@@ -2925,7 +2925,7 @@ class dfrn {
 			// Now sort after the publishing date
 			ksort($newentries);
 
-			foreach ($newentries AS $entry) {
+			foreach ($newentries as $entry) {
 				self::process_entry($header, $xpath, $entry, $importer, $xml);
 			}
 		}
