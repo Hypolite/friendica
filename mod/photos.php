@@ -1331,23 +1331,27 @@ function photos_content(App $a) {
 				intval($owner_uid),
 				dbesc($datum)
 			);
-			if (count($ph))
+			if (count($ph)) {
 				notice( t('Permission denied. Access to this item may be restricted.'));
-			else
+			} else {
 				notice( t('Photo not available') . EOL );
+			}
 			return;
 		}
 
 		$prevlink = '';
 		$nextlink = '';
 
-		if ($_GET['order'] === 'posted') {
-			$order = 'ASC';
-		} else {
-			$order = 'DESC';
-		}
+		/// @todo This query is totally bad, the whole functionality has to be changed
+		// The query leads to a really intense used index.
+		// By now we hide it if someone wants to.
+		if (!Config::get('system', 'no_count', false)) {
+			if ($_GET['order'] === 'posted') {
+				$order = 'ASC';
+			} else {
+				$order = 'DESC';
+			}
 
-		/// @TODO wrong indending!
 			$prvnxt = qu("SELECT `resource-id` FROM `photo` WHERE `album` = '%s' AND `uid` = %d AND `scale` = 0
 				$sql_extra ORDER BY `created` $order ",
 				dbesc($ph[0]['album']),
