@@ -1372,10 +1372,11 @@ function photos_content(App $a) {
 		// The query leads to a really intense used index.
 		// By now we hide it if someone wants to.
 		if (!Config::get('system', 'no_count', false)) {
-			if ($_GET['order'] === 'posted')
+			if ($_GET['order'] === 'posted') {
 				$order = 'ASC';
-			else
+			} else {
 				$order = 'DESC';
+			}
 
 			$prvnxt = qu("SELECT `resource-id` FROM `photo` WHERE `album` = '%s' AND `uid` = %d AND `scale` = 0
 				$sql_extra ORDER BY `created` $order ",
@@ -1400,11 +1401,12 @@ function photos_content(App $a) {
 				$edit_suffix = ((($cmd === 'edit') && ($can_post)) ? '/edit' : '');
 				$prevlink = 'photos/' . $a->data['user']['nickname'] . '/image/' . $prvnxt[$prv]['resource-id'] . $edit_suffix . (($_GET['order'] === 'posted') ? '?f=&order=posted' : '');
 				$nextlink = 'photos/' . $a->data['user']['nickname'] . '/image/' . $prvnxt[$nxt]['resource-id'] . $edit_suffix . (($_GET['order'] === 'posted') ? '?f=&order=posted' : '');
- 			}
+			}
 		}
 
-		if (count($ph) == 1)
+		if (count($ph) == 1) {
 			$hires = $lores = $ph[0];
+		}
 		if (count($ph) > 1) {
 			if ($ph[1]['scale'] == 2) {
 				// original is 640 or less, we can display it directly
@@ -1442,8 +1444,9 @@ function photos_content(App $a) {
 			));
 		}
 
-		if ($prevlink)
+		if ($prevlink) {
 			$prevlink = array($prevlink, '<div class="icon prev"></div>') ;
+		}
 
 		$photo = array(
 			'href' => 'photo/' . $hires['resource-id'] . '-' . $hires['scale'] . '.' . $phototypes[$hires['type']],
