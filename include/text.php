@@ -1937,6 +1937,7 @@ function file_tag_update_pconfig($uid,$file_old,$file_new,$type = 'file') {
 				intval($termtype),
 				intval($uid));
 
+			/// @TODO remove all these old-lost artifacts
 			//$r = q("select file from item where uid = %d " . file_tag_file_query('item',$tag,$type),
 			//	intval($uid)
 			//);
