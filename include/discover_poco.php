@@ -7,11 +7,11 @@ require_once("include/socgraph.php");
 function discover_poco_run(&$argv, &$argc){
 	global $a, $db;
 
-	if(is_null($a)) {
+	if (is_null($a)) {
 		$a = new App;
 	}
 
-	if(is_null($db)) {
+	if (is_null($db)) {
 	    @include(".htconfig.php");
 	require_once("include/dba.php");
 	    $db = new dba($db_host, $db_user, $db_pass, $db_data);
@@ -29,12 +29,12 @@ function discover_poco_run(&$argv, &$argc){
 		if ($a->maxload_reached())
 			return;
 
-	if(($argc > 2) && ($argv[1] == "dirsearch")) {
+	if (($argc > 2) && ($argv[1] == "dirsearch")) {
 		$search = urldecode($argv[2]);
 		$mode = 1;
-	} elseif(($argc == 2) && ($argv[1] == "checkcontact")) {
+	} elseif (($argc == 2) && ($argv[1] == "checkcontact")) {
 		$mode = 2;
-	} elseif(($argc == 2) && ($argv[1] == "suggestions")) {
+	} elseif (($argc == 2) && ($argv[1] == "suggestions")) {
 		$mode = 3;
 	} elseif ($argc == 1) {
 		$search = "";
@@ -142,7 +142,7 @@ function discover_directory($search) {
 	$x = fetch_url(get_server()."/lsearch?p=1&n=500&search=".urlencode($search));
 	$j = json_decode($x);
 
-	if(count($j->results))
+	if (count($j->results))
 		foreach($j->results as $jj) {
 			// Check if the contact already exists
 			$exists = q("SELECT `id`, `last_contact`, `last_failure`, `updated` FROM `gcontact` WHERE `nurl` = '%s'", normalise_link($jj->url));

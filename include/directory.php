@@ -4,11 +4,11 @@ require_once("boot.php");
 function directory_run(&$argv, &$argc){
 	global $a, $db;
 
-	if(is_null($a)) {
+	if (is_null($a)) {
 		$a = new App;
 	}
 
-	if(is_null($db)) {
+	if (is_null($db)) {
 		@include(".htconfig.php");
 		require_once("include/dba.php");
 		$db = new dba($db_host, $db_user, $db_pass, $db_data);
@@ -19,7 +19,7 @@ function directory_run(&$argv, &$argc){
 	load_config('system');
 
 
-	if($argc != 2)
+	if ($argc != 2)
 		return;
 
 	load_config('system');
@@ -31,7 +31,7 @@ function directory_run(&$argv, &$argc){
 
 	$dir = get_config('system','directory');
 
-	if(! strlen($dir))
+	if (! strlen($dir))
 		return;
 
 	$dir .= "/submit";
@@ -41,7 +41,7 @@ function directory_run(&$argv, &$argc){
 	call_hooks('globaldir_update', $arr);
 
 	logger('Updating directory: ' . $arr['url'], LOGGER_DEBUG);
-	if(strlen($arr['url']))
+	if (strlen($arr['url']))
 		fetch_url($dir . '?url=' . bin2hex($arr['url']));
 
 	return;

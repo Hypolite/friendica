@@ -248,13 +248,13 @@ class dba {
 		$r = array();
 		if ($this->mysqli) {
 			if ($result->num_rows) {
-				while($x = $result->fetch_array(MYSQLI_ASSOC))
+				while ($x = $result->fetch_array(MYSQLI_ASSOC))
 					$r[] = $x;
 				$result->free_result();
 			}
 		} else {
 			if (mysql_num_rows($result)) {
-				while($x = mysql_fetch_array($result, MYSQL_ASSOC))
+				while ($x = mysql_fetch_array($result, MYSQL_ASSOC))
 					$r[] = $x;
 				mysql_free_result($result);
 			}

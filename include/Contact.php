@@ -6,7 +6,7 @@
 // authorisation to do this.
 
 function user_remove($uid) {
-	if(! $uid)
+	if (! $uid)
 		return;
 	logger('Removing user: ' . $uid);
 
@@ -50,7 +50,7 @@ function user_remove($uid) {
 	// Send an update to the directory
 	proc_run(PRIORITY_LOW, "include/directory.php", $r[0]['url']);
 
-	if($uid == local_user()) {
+	if ($uid == local_user()) {
 		unset($_SESSION['authenticated']);
 		unset($_SESSION['uid']);
 		goaway(App::get_baseurl());
@@ -63,11 +63,11 @@ function contact_remove($id) {
 	$r = q("select uid from contact where id = %d limit 1",
 		intval($id)
 	);
-	if((! dbm::is_result($r)) || (! intval($r[0]['uid'])))
+	if ((! dbm::is_result($r)) || (! intval($r[0]['uid'])))
 		return;
 
 	$archive = get_pconfig($r[0]['uid'], 'system','archive_removed_contacts');
-	if($archive) {
+	if ($archive) {
 		q("update contact set `archive` = 1, `network` = 'none', `writable` = 0 where id = %d",
 			intval($id)
 		);
@@ -123,10 +123,10 @@ function terminate_friendship($user,$self,$contact) {
 
 function mark_for_death($contact) {
 
-	if($contact['archive'])
+	if ($contact['archive'])
 		return;
 
-	if($contact['term-date'] == '0000-00-00 00:00:00') {
+	if ($contact['term-date'] == '0000-00-00 00:00:00') {
 		q("UPDATE `contact` SET `term-date` = '%s' WHERE `id` = %d",
 				dbesc(datetime_convert()),
 				intval($contact['id'])
@@ -150,7 +150,7 @@ function mark_for_death($contact) {
 		/// Check for contact vitality via probing
 
 		$expiry = $contact['term-date'] . ' + 32 days ';
-		if(datetime_convert() > datetime_convert('UTC','UTC',$expiry)) {
+		if (datetime_convert() > datetime_convert('UTC','UTC',$expiry)) {
 
 			// relationship is really truly dead.
 			// archive them rather than delete
@@ -433,7 +433,7 @@ function random_profile() {
 
 function contacts_not_grouped($uid,$start = 0,$count = 0) {
 
-	if(! $count) {
+	if (! $count) {
 		$r = q("select count(*) as total from contact where uid = %d and self = 0 and id not in (select distinct(`contact-id`) from group_member where uid = %d) ",
 			intval($uid),
 			intval($uid)
@@ -624,7 +624,7 @@ function posts_from_gcontact(App $a, $gcontact_id) {
 	else
 		$sql = "`item`.`uid` = %d";
 
-	if(get_config('system', 'old_pager')) {
+	if (get_config('system', 'old_pager')) {
 		$r = q("SELECT COUNT(*) AS `total` FROM `item`
 			WHERE `gcontact-id` = %d and $sql",
 			intval($gcontact_id),
@@ -648,7 +648,7 @@ function posts_from_gcontact(App $a, $gcontact_id) {
 
 	$o = conversation($a,$r,'community',false);
 
-	if(!get_config('system', 'old_pager')) {
+	if (!get_config('system', 'old_pager')) {
 		$o .= alt_pager($a,count($r));
 	} else {
 		$o .= paginate($a);
@@ -719,18 +719,18 @@ function posts_from_contact_url(App $a, $contact_url) {
 function formatted_location($profile) {
 	$location = '';
 
-	if($profile['locality'])
+	if ($profile['locality'])
 		$location .= $profile['locality'];
 
-	if($profile['region'] AND ($profile['locality'] != $profile['region'])) {
-		if($location)
+	if ($profile['region'] AND ($profile['locality'] != $profile['region'])) {
+		if ($location)
 			$location .= ', ';
 
 		$location .= $profile['region'];
 	}
 
-	if($profile['country-name']) {
-		if($location)
+	if ($profile['country-name']) {
+		if ($location)
 			$location .= ', ';
 
 		$location .= $profile['country-name'];
@@ -752,7 +752,7 @@ function account_type($contact) {
 	// "page-flags" is a field in the user table,
 	// "forum" and "prv" are used in the contact table. They stand for PAGE_COMMUNITY and PAGE_PRVGROUP.
 	// "community" is used in the gcontact table and is true if the contact is PAGE_COMMUNITY or PAGE_PRVGROUP.
-	if((isset($contact['page-flags']) && (intval($contact['page-flags']) == PAGE_COMMUNITY))
+	if ((isset($contact['page-flags']) && (intval($contact['page-flags']) == PAGE_COMMUNITY))
 		|| (isset($contact['page-flags']) && (intval($contact['page-flags']) == PAGE_PRVGROUP))
 		|| (isset($contact['forum']) && intval($contact['forum']))
 		|| (isset($contact['prv']) && intval($contact['prv']))

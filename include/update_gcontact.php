@@ -5,11 +5,11 @@ require_once("boot.php");
 function update_gcontact_run(&$argv, &$argc){
 	global $a, $db;
 
-	if(is_null($a)) {
+	if (is_null($a)) {
 		$a = new App;
 	}
 
-	if(is_null($db)) {
+	if (is_null($db)) {
 		@include(".htconfig.php");
 		require_once("include/dba.php");
 		$db = new dba($db_host, $db_user, $db_pass, $db_data);
@@ -28,10 +28,10 @@ function update_gcontact_run(&$argv, &$argc){
 
 	logger('update_gcontact: start');
 
-	if(($argc > 1) && (intval($argv[1])))
+	if (($argc > 1) && (intval($argv[1])))
 		$contact_id = intval($argv[1]);
 
-	if(!$contact_id) {
+	if (!$contact_id) {
 		logger('update_gcontact: no contact');
 		return;
 	}
