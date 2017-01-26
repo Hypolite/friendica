@@ -55,7 +55,7 @@ function feed_import($xml,$importer,&$contact, &$hub, $simulate = false) {
 	if ($xpath->query('/atom:feed')->length > 0) {
 		$alternate = $xpath->query("atom:link[@rel='alternate']")->item(0)->attributes;
 		if (is_object($alternate))
-			foreach($alternate AS $attributes)
+			foreach ($alternate AS $attributes)
 				if ($attributes->name == "href")
 					$author["author-link"] = $attributes->textContent;
 
@@ -65,7 +65,7 @@ function feed_import($xml,$importer,&$contact, &$hub, $simulate = false) {
 		if ($author["author-link"] == "") {
 			$self = $xpath->query("atom:link[@rel='self']")->item(0)->attributes;
 			if (is_object($self))
-				foreach($self AS $attributes)
+				foreach ($self AS $attributes)
 					if ($attributes->name == "href")
 						$author["author-link"] = $attributes->textContent;
 		}
@@ -190,7 +190,7 @@ function feed_import($xml,$importer,&$contact, &$hub, $simulate = false) {
 			$alternate = $xpath->query("atom:link", $entry)->item(0)->attributes;
 
 		if (is_object($alternate))
-			foreach($alternate AS $attributes)
+			foreach ($alternate AS $attributes)
 				if ($attributes->name == "href")
 					$item["plink"] = $attributes->textContent;
 
@@ -274,7 +274,7 @@ function feed_import($xml,$importer,&$contact, &$hub, $simulate = false) {
 			$type = "";
 			$title = "";
 
-			foreach($enclosure->attributes AS $attributes) {
+			foreach ($enclosure->attributes AS $attributes) {
 				if ($attributes->name == "url") {
 					$href = $attributes->textContent;
 				} elseif ($attributes->name == "length") {
