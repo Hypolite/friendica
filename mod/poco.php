@@ -27,15 +27,7 @@ function poco_init(App $a) {
 	$justme = false;
 	$global = false;
 
-	if ($a->argc > 1 && $a->argv[1] === '@server') {
-		// List of all servers that this server knows
-		$ret = poco_serverlist();
-		header('Content-type: application/json');
-		echo json_encode($ret);
-		killme();
-	}
 	if ($a->argc > 1 && $a->argv[1] === '@global') {
-		// List of all profiles that this server recently had data from
 		$global = true;
 		$update_limit = date("Y-m-d H:i:s", time() - 30 * 86400);
 	}
