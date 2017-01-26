@@ -1184,4 +1184,6 @@ class Probe {
 		return $data;
 	}
 }
+
+/// @TODO Usage of ?> is discouraged
 ?>

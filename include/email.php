@@ -65,8 +65,7 @@ function email_msg_headers($mbox,$uid) {
 
 			$last_entry = strtolower($key);
 			$ret[$last_entry] = trim($value);
-		}
-		else {
+		} else {
 			$ret[$last_entry] .= ' ' . trim($line);
     	}
 	}
@@ -79,19 +78,20 @@ function email_get_msg($mbox,$uid, $reply) {
 
 	$struc = (($mbox && $uid) ? @imap_fetchstructure($mbox,$uid,FT_UID) : null);
 
-	if(! $struc)
+	if (! $struc) {
 		return $ret;
+	}
 
 	if(! $struc->parts) {
 		$ret['body'] = email_get_part($mbox,$uid,$struc,0, 'html');
 		$html = $ret['body'];
 
-		if (trim($ret['body']) == '')
+		if (trim($ret['body']) == '') {
 			$ret['body'] = email_get_part($mbox,$uid,$struc,0, 'plain');
-		else
+		} else {
 			$ret['body'] = html2bbcode($ret['body']);
-	}
-	else {
+		}
+	} else {
 		$text = '';
 		$html = '';
 		foreach($struc->parts as $ptop => $p) {
@@ -141,20 +141,25 @@ function email_get_part($mbox,$uid,$p,$partno, $subtype) {
 	: @imap_body($mbox,$uid,FT_UID|FT_PEEK);
 
 	// Any part may be encoded, even plain text messages, so check everything.
-	if ($p->encoding==4)
+	if ($p->encoding == 4) {
 		$data = quoted_printable_decode($data);
-	elseif ($p->encoding==3)
+	} elseif ($p->encoding == 3) {
 		$data = base64_decode($data);
+	}
 
 	// PARAMETERS
 	// get all parameters, like charset, filenames of attachments, etc.
 	$params = array();
-	if ($p->parameters)
-		foreach ($p->parameters as $x)
+	if ($p->parameters) {
+		foreach ($p->parameters as $x) {
 			$params[strtolower($x->attribute)] = $x->value;
-	if (isset($p->dparameters) and $p->dparameters)
-		foreach ($p->dparameters as $x)
+		}
+	}
+	if (isset($p->dparameters) and $p->dparameters) {
+		foreach ($p->dparameters as $x) {
 			$params[strtolower($x->attribute)] = $x->value;
+		}
+	}
 
 	// ATTACHMENT
 	// Any part with a filename is an attachment,
