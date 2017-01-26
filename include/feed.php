@@ -157,7 +157,7 @@ function feed_import($xml,$importer,&$contact, &$hub, $simulate = false) {
 
 	$header["contact-id"] = $contact["id"];
 
-	if(!strlen($contact["notify"])) {
+	if (!strlen($contact["notify"])) {
 		// one way feed - no remote comment ability
 		$header["last-child"] = 0;
 	}
@@ -239,11 +239,13 @@ function feed_import($xml,$importer,&$contact, &$hub, $simulate = false) {
 		if ($creator == "")
 			$creator = $xpath->query('dc:creator/text()', $entry)->item(0)->nodeValue;
 
-		if ($creator != "")
+		if ($creator != "") {
 			$item["author-name"] = $creator;
+		}
 
-		if ($pubDate != "")
+		if ($pubDate != "") {
 			$item["edited"] = $item["created"] = $pubDate;
+		}
 
 		$creator = $xpath->query('dc:creator/text()', $entry)->item(0)->nodeValue;
 
@@ -253,7 +255,7 @@ function feed_import($xml,$importer,&$contact, &$hub, $simulate = false) {
 		if (!$simulate) {
 			$r = q("SELECT `id` FROM `item` WHERE `uid` = %d AND `uri` = '%s' AND `network` IN ('%s', '%s')",
 				intval($importer["uid"]), dbesc($item["uri"]), dbesc(NETWORK_FEED), dbesc(NETWORK_DFRN));
-			if ($r) {
+			if (dbm::is_result($r)) {
 				logger("Item with uri ".$item["uri"]." for user ".$importer["uid"]." already existed under id ".$r[0]["id"], LOGGER_DEBUG);
 				continue;
 			}
@@ -273,15 +275,17 @@ function feed_import($xml,$importer,&$contact, &$hub, $simulate = false) {
 			$title = "";
 
 			foreach($enclosure->attributes AS $attributes) {
-				if ($attributes->name == "url")
+				if ($attributes->name == "url") {
 					$href = $attributes->textContent;
-				elseif ($attributes->name == "length")
+				} elseif ($attributes->name == "length") {
 					$length = $attributes->textContent;
-				elseif ($attributes->name == "type")
+				} elseif ($attributes->name == "type") {
 					$type = $attributes->textContent;
+				}
 			}
-			if(strlen($item["attach"]))
+			if (strlen($item["attach"])) {
 				$item["attach"] .= ',';
+			}
 
 			$attachments[] = array("link" => $href, "type" => $type, "length" => $length);
 

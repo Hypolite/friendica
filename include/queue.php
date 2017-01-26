@@ -9,11 +9,11 @@ require_once('include/dfrn.php');
 function queue_run(&$argv, &$argc){
 	global $a, $db;
 
-	if(is_null($a)){
+	if (is_null($a)){
 		$a = new App;
 	}
 
-	if(is_null($db)){
+	if (is_null($db)){
 		@include(".htconfig.php");
 		require_once("include/dba.php");
 		$db = new dba($db_host, $db_user, $db_pass, $db_data);
@@ -37,7 +37,7 @@ function queue_run(&$argv, &$argc){
 
 	load_hooks();
 
-	if($argc > 1)
+	if ($argc > 1)
 		$queue_id = intval($argv[1]);
 	else
 		$queue_id = 0;
@@ -64,7 +64,7 @@ function queue_run(&$argv, &$argc){
 			foreach ($r as $rr) {
 				logger('queue: deliverq');
 				proc_run(PRIORITY_HIGH,'include/delivery.php',$rr['cmd'],$rr['item'],$rr['contact']);
-				if($interval) {
+				if ($interval) {
 					time_sleep_until(microtime(true) + (float) $interval);
 				}
 			}
@@ -111,7 +111,7 @@ function queue_run(&$argv, &$argc){
 		// queue_predeliver hooks may have changed the queue db details,
 		// so check again if this entry still needs processing
 
-		if($queue_id)
+		if ($queue_id)
 			$qi = q("SELECT * FROM `queue` WHERE `id` = %d LIMIT 1",
 				intval($queue_id));
 		elseif (get_config("system", "worker")) {
@@ -122,7 +122,7 @@ function queue_run(&$argv, &$argc){
 			$qi = q("SELECT * FROM `queue` WHERE `id` = %d AND `last` < UTC_TIMESTAMP() - INTERVAL 15 MINUTE ",
 				intval($q_item['id']));
 
-		if(! count($qi))
+		if (! count($qi))
 			continue;
 
 
@@ -133,7 +133,7 @@ function queue_run(&$argv, &$argc){
 			remove_queue_item($q_item['id']);
 			continue;
 		}
-		if(in_array($c[0]['notify'],$deadguys)) {
+		if (in_array($c[0]['notify'],$deadguys)) {
 			logger('queue: skipping known dead url: ' . $c[0]['notify']);
 			update_queue_time($q_item['id']);
 			continue;
@@ -176,7 +176,7 @@ function queue_run(&$argv, &$argc){
 				logger('queue: dfrndelivery: item '.$q_item['id'].' for '.$contact['name'].' <'.$contact['url'].'>');
 				$deliver_status = dfrn::deliver($owner,$contact,$data);
 
-				if($deliver_status == (-1)) {
+				if ($deliver_status == (-1)) {
 					update_queue_time($q_item['id']);
 					$deadguys[] = $contact['notify'];
 				} else
@@ -184,11 +184,11 @@ function queue_run(&$argv, &$argc){
 
 				break;
 			case NETWORK_OSTATUS:
-				if($contact['notify']) {
+				if ($contact['notify']) {
 					logger('queue: slapdelivery: item '.$q_item['id'].' for '.$contact['name'].' <'.$contact['url'].'>');
 					$deliver_status = slapper($owner,$contact['notify'],$data);
 
-					if($deliver_status == (-1)) {
+					if ($deliver_status == (-1)) {
 						update_queue_time($q_item['id']);
 						$deadguys[] = $contact['notify'];
 					} else
@@ -196,11 +196,11 @@ function queue_run(&$argv, &$argc){
 				}
 				break;
 			case NETWORK_DIASPORA:
-				if($contact['notify']) {
+				if ($contact['notify']) {
 					logger('queue: diaspora_delivery: item '.$q_item['id'].' for '.$contact['name'].' <'.$contact['url'].'>');
 					$deliver_status = Diaspora::transmit($owner,$contact,$data,$public,true);
 
-					if($deliver_status == (-1)) {
+					if ($deliver_status == (-1)) {
 						update_queue_time($q_item['id']);
 						$deadguys[] = $contact['notify'];
 					} else
@@ -213,7 +213,7 @@ function queue_run(&$argv, &$argc){
 				$params = array('owner' => $owner, 'contact' => $contact, 'queue' => $q_item, 'result' => false);
 				call_hooks('queue_deliver', $a, $params);
 
-				if($params['result'])
+				if ($params['result'])
 					remove_queue_item($q_item['id']);
 				else
 					update_queue_time($q_item['id']);

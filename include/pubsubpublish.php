@@ -59,11 +59,11 @@ function handle_pubsubhubbub($id) {
 function pubsubpublish_run(&$argv, &$argc){
 	global $a, $db;
 
-	if(is_null($a)){
+	if (is_null($a)){
 		$a = new App;
 	}
 
-	if(is_null($db)){
+	if (is_null($db)){
 		@include(".htconfig.php");
 		require_once("include/dba.php");
 		$db = new dba($db_host, $db_user, $db_pass, $db_data);
@@ -87,8 +87,7 @@ function pubsubpublish_run(&$argv, &$argc){
 
 	if ($argc > 1) {
 		$pubsubpublish_id = intval($argv[1]);
-	}
-	else {
+	} else {
 		// We'll push to each subscriber that has push > 0,
 		// i.e. there has been an update (set in notifier.php).
 		$r = q("SELECT `id`, `callback_url` FROM `push_subscriber` WHERE `push` > 0");
@@ -105,8 +104,9 @@ function pubsubpublish_run(&$argv, &$argc){
 			logger("Publish feed to ".$rr["callback_url"], LOGGER_DEBUG);
 			proc_run(PRIORITY_HIGH, 'include/pubsubpublish.php', $rr["id"]);
 
-			if($interval)
+			if ($interval) {
 				@time_sleep_until(microtime(true) + (float) $interval);
+			}
 		}
 	}
 

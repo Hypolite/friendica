@@ -18,7 +18,7 @@ require_once("include/diaspora.php");
 function do_like($item_id, $verb) {
 	$a = get_app();
 
-	if(! local_user() && ! remote_user()) {
+	if (! local_user() && ! remote_user()) {
 		return false;
 	}
 
@@ -55,7 +55,7 @@ function do_like($item_id, $verb) {
 		dbesc($item_id)
 	);
 
-	if(! $item_id || (! dbm::is_result($r))) {
+	if (! $item_id || (! dbm::is_result($r))) {
 		logger('like: no item ' . $item_id);
 		return false;
 	}
@@ -70,7 +70,7 @@ function do_like($item_id, $verb) {
 
 	$remote_owner = null;
 
-	if(! $item['wall']) {
+	if (! $item['wall']) {
 		// The top level post may have been written by somebody on another system
 		$r = q("SELECT * FROM `contact` WHERE `id` = %d AND `uid` = %d LIMIT 1",
 			intval($item['contact-id']),
