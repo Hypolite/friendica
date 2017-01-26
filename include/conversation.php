@@ -1384,15 +1384,15 @@ function conv_sort($arr,$order) {
 	}
 
 	/*foreach($arr as $x) {
-		if($x['id'] != $x['parent']) {
+		if ($x['id'] != $x['parent']) {
 			$p = find_thread_parent_index($parents,$x);
 			if($p !== false)
 				$parents[$p]['children'][] = $x;
 		}
 	}*/
-	if(count($parents)) {
-		foreach($parents as $k => $v) {
-			if(count($parents[$k]['children'])) {
+	if (count($parents)) {
+		foreach ($parents as $k => $v) {
+			if (count($parents[$k]['children'])) {
 				$parents[$k]['children'] = sort_item_children($parents[$k]['children']);
 				/*$y = $parents[$k]['children'];
 				usort($y,'sort_thr_created_rev');
@@ -1402,8 +1402,8 @@ function conv_sort($arr,$order) {
 	}
 
 	$ret = array();
-	if(count($parents)) {
-		foreach($parents as $x) {
+	if (count($parents)) {
+		foreach ($parents as $x) {
 			$ret[] = $x;
 			if (count($x['children'])) {
 				add_children_to_list($x['children'], $ret);
