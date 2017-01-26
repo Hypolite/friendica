@@ -106,7 +106,7 @@ function queue_run(&$argv, &$argc){
 	require_once('include/salmon.php');
 	require_once('include/diaspora.php');
 
-	foreach($r as $q_item) {
+	foreach ($r as $q_item) {
 
 		// queue_predeliver hooks may have changed the queue db details,
 		// so check again if this entry still needs processing

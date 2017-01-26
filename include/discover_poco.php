@@ -143,7 +143,7 @@ function discover_directory($search) {
 	$j = json_decode($x);
 
 	if (count($j->results))
-		foreach($j->results as $jj) {
+		foreach ($j->results as $jj) {
 			// Check if the contact already exists
 			$exists = q("SELECT `id`, `last_contact`, `last_failure`, `updated` FROM `gcontact` WHERE `nurl` = '%s'", normalise_link($jj->url));
 			if ($exists) {
@@ -191,15 +191,17 @@ function gs_search_user($search) {
 	$url = "http://gstools.org/api/users_search/".urlencode($search);
 
 	$result = z_fetch_url($url);
-	if (!$result["success"])
+	if (!$result["success"]) {
 		return false;
+	}
 
 	$contacts = json_decode($result["body"]);
 
-	if ($contacts->status == 'ERROR')
+	if ($contacts->status == 'ERROR') {
 		return false;
+	}
 
-	foreach($contacts->data AS $user) {
+	foreach ($contacts->data AS $user) {
 		$contact = probe_url($user->site_address."/".$user->name);
 		if ($contact["network"] != NETWORK_PHANTOM) {
 			$contact["about"] = $user->description;

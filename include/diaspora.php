@@ -43,7 +43,7 @@ class Diaspora {
 
 		$servers = explode(",", $serverdata);
 
-		foreach($servers AS $server) {
+		foreach ($servers AS $server) {
 			$server = trim($server);
 			$addr = "relay@".str_replace("http://", "", normalise_link($server));
 			$batch = $server."/receive/public";
@@ -1500,7 +1500,7 @@ class Diaspora {
 			return;
 		}
 
-		foreach($messages as $mesg)
+		foreach ($messages as $mesg)
 			self::receive_conversation_message($importer, $contact, $data, $msg, $mesg, $conversation);
 
 		return true;
@@ -3087,7 +3087,7 @@ class Diaspora {
 				$cnt = preg_match_all('/href=\"(.*?)\"(.*?)title=\"(.*?)\"/ism', $item["attach"], $matches, PREG_SET_ORDER);
 				if (cnt) {
 					$body .= "\n".t("Attachments:")."\n";
-					foreach($matches as $mtch)
+					foreach ($matches as $mtch)
 						$body .= "[".$mtch[3]."](".$mtch[1].")\n";
 				}
 			}
@@ -3580,7 +3580,7 @@ class Diaspora {
 				$kw = str_replace('  ',' ',$kw);
 				$arr = explode(' ',$profile['pub_keywords']);
 				if (count($arr)) {
-					for($x = 0; $x < 5; $x ++) {
+					for ($x = 0; $x < 5; $x ++) {
 						if (trim($arr[$x]))
 							$tags .= '#'. trim($arr[$x]) .' ';
 					}
@@ -3602,7 +3602,7 @@ class Diaspora {
 				"searchable" => $searchable,
 				"tag_string" => $tags);
 
-		foreach($recips as $recip) {
+		foreach ($recips as $recip) {
 			logger("Send updated profile data for user ".$uid." to contact ".$recip["id"], LOGGER_DEBUG);
 			self::build_and_transmit($profile, $recip, "profile", $message, false, "", true);
 		}

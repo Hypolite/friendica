@@ -1094,7 +1094,7 @@ function item_body_set_hashtags(&$item) {
 			"&num;$2", $item["body"]);
 
 
-	foreach($tags as $tag) {
+	foreach ($tags as $tag) {
 		if (strpos($tag,'#') !== 0)
 			continue;
 
@@ -1165,7 +1165,7 @@ function get_item_id($guid, $uid = 0) {
 function get_item_contact($item,$contacts) {
 	if (! count($contacts) || (! is_array($item)))
 		return false;
-	foreach($contacts as $contact) {
+	foreach ($contacts as $contact) {
 		if ($contact['id'] == $item['contact-id']) {
 			return $contact;
 			break; // NOTREACHED
@@ -1219,7 +1219,7 @@ function tag_deliver($uid,$item_id) {
 
 	$cnt = preg_match_all('/[\@\!]\[url\=(.*?)\](.*?)\[\/url\]/ism',$item['body'],$matches,PREG_SET_ORDER);
 	if ($cnt) {
-		foreach($matches as $mtch) {
+		foreach ($matches as $mtch) {
 			if (link_compare($link,$mtch[1]) || link_compare($dlink,$mtch[1])) {
 				$mention = true;
 				logger('tag_deliver: mention found: ' . $mtch[2]);
@@ -1805,7 +1805,7 @@ function item_getfeedtags($item) {
 	$matches = false;
 	$cnt = preg_match_all('|\#\[url\=(.*?)\](.*?)\[\/url\]|',$item['tag'],$matches);
 	if ($cnt) {
-		for($x = 0; $x < $cnt; $x ++) {
+		for ($x = 0; $x < $cnt; $x ++) {
 			if ($matches[1][$x])
 				$ret[$matches[2][$x]] = array('#',$matches[1][$x], $matches[2][$x]);
 		}
@@ -1813,7 +1813,7 @@ function item_getfeedtags($item) {
 	$matches = false;
 	$cnt = preg_match_all('|\@\[url\=(.*?)\](.*?)\[\/url\]|',$item['tag'],$matches);
 	if ($cnt) {
-		for($x = 0; $x < $cnt; $x ++) {
+		for ($x = 0; $x < $cnt; $x ++) {
 			if ($matches[1][$x])
 				$ret[] = array('@',$matches[1][$x], $matches[2][$x]);
 		}
@@ -1871,7 +1871,7 @@ function item_expire($uid, $days, $network = "", $force = false) {
 
 	logger('expire: # items=' . count($r). "; expire items: $expire_items, expire notes: $expire_notes, expire starred: $expire_starred, expire photos: $expire_photos");
 
-	foreach($r as $item) {
+	foreach ($r as $item) {
 
 		// don't expire filed items
 
@@ -1904,7 +1904,7 @@ function drop_items($items) {
 		return;
 
 	if (count($items)) {
-		foreach($items as $item) {
+		foreach ($items as $item) {
 			$owner = drop_item($item,false);
 			if ($owner && ! $uid)
 				$uid = $owner;
@@ -1944,7 +1944,7 @@ function drop_item($id,$interactive = true) {
 	// check if logged in user is either the author or owner of this item
 
 	if (is_array($_SESSION['remote'])) {
-		foreach($_SESSION['remote'] as $visitor) {
+		foreach ($_SESSION['remote'] as $visitor) {
 			if ($visitor['uid'] == $item['uid'] && $visitor['cid'] == $item['contact-id']) {
 				$contact_id = $visitor['cid'];
 				break;
@@ -1961,7 +1961,7 @@ function drop_item($id,$interactive = true) {
 			// so add any arguments as hidden inputs
 			$query = explode_querystring($a->query_string);
 			$inputs = array();
-			foreach($query['args'] as $arg) {
+			foreach ($query['args'] as $arg) {
 				if (strpos($arg, 'confirm=') === false) {
 					$arg_parts = explode('=', $arg);
 					$inputs[] = array('name' => $arg_parts[0], 'value' => $arg_parts[1]);
@@ -2000,7 +2000,7 @@ function drop_item($id,$interactive = true) {
 		$matches = false;
 		$cnt = preg_match_all('/<(.*?)>/',$item['file'],$matches,PREG_SET_ORDER);
 		if ($cnt) {
-			foreach($matches as $mtch) {
+			foreach ($matches as $mtch) {
 				file_tag_unsave_file($item['uid'],$item['id'],$mtch[1],true);
 			}
 		}
@@ -2009,7 +2009,7 @@ function drop_item($id,$interactive = true) {
 
 		$cnt = preg_match_all('/\[(.*?)\]/',$item['file'],$matches,PREG_SET_ORDER);
 		if ($cnt) {
-			foreach($matches as $mtch) {
+			foreach ($matches as $mtch) {
 				file_tag_unsave_file($item['uid'],$item['id'],$mtch[1],false);
 			}
 		}
@@ -2039,7 +2039,7 @@ function drop_item($id,$interactive = true) {
 
 		// If item has attachments, drop them
 
-		foreach(explode(",",$item['attach']) as $attach){
+		foreach (explode(",",$item['attach']) as $attach){
 			preg_match("|attach/(\d+)|", $attach, $matches);
 			q("DELETE FROM `attach` WHERE `id` = %d AND `uid` = %d",
 				intval($matches[1]),
