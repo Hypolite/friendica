@@ -1798,10 +1798,12 @@ function poco_discover($complete = false) {
 	}
 }
 
+/// @TODO Find type-hint for $data, seems to be an object
 function poco_discover_server_users($data, $server) {
 
-	if (!isset($data->entry))
+	if (!isset($data->entry)) {
 		return;
+	}
 
 	foreach ($data->entry AS $entry) {
 		$username = "";

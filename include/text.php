@@ -1942,8 +1942,7 @@ function file_tag_update_pconfig($uid,$file_old,$file_new,$type = 'file') {
 
 			if (dbm::is_result($r)) {
 				unset($deleted_tags[$key]);
-			}
-			else {
+			} else {
 				$filetags_updated = str_replace($lbracket . file_tag_encode($tag) . $rbracket,'',$filetags_updated);
 			}
 		}
@@ -1952,20 +1951,21 @@ function file_tag_update_pconfig($uid,$file_old,$file_new,$type = 'file') {
 			set_pconfig($uid,'system','filetags', $filetags_updated);
 		}
 		return true;
-	}
-	else
-		if(strlen($file_new)) {
+	} else {
+		if (strlen($file_new)) {
 			set_pconfig($uid,'system','filetags', $file_new);
 		}
 		return true;
+	}
 }
 
 function file_tag_save_file($uid,$item,$file) {
 	require_once("include/files.php");
 
-	$result = false;
-	if(! intval($uid))
+	if (! intval($uid)) {
 		return false;
+	}
+
 	$r = q("SELECT `file` FROM `item` WHERE `id` = %d AND `uid` = %d LIMIT 1",
 		intval($item),
 		intval($uid)
@@ -1981,8 +1981,9 @@ function file_tag_save_file($uid,$item,$file) {
 		create_files_from_item($item);
 
 		$saved = get_pconfig($uid,'system','filetags');
-		if((! strlen($saved)) || (! stristr($saved,'[' . file_tag_encode($file) . ']')))
+		if ((! strlen($saved)) || (! stristr($saved,'[' . file_tag_encode($file) . ']'))) {
 			set_pconfig($uid,'system','filetags',$saved . '[' . file_tag_encode($file) . ']');
+		}
 		info( t('Item filed') );
 	}
 	return true;
@@ -1992,8 +1993,9 @@ function file_tag_unsave_file($uid,$item,$file,$cat = false) {
 	require_once("include/files.php");
 
 	$result = false;
-	if(! intval($uid))
+	if (! intval($uid)) {
 		return false;
+	}
 
 	if($cat == true) {
 		$pattern = '<' . file_tag_encode($file) . '>' ;
@@ -2135,7 +2137,7 @@ function format_network_name($network, $url = 0) {
  * @param string $lang Programming language
  * @return string Formated html
  */
-function text_highlight($s,$lang) {
+function text_highlight($s, $lang) {
 	if ($lang === 'js') {
 		$lang = 'javascript';
 	}
