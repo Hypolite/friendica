@@ -1842,14 +1842,13 @@ function file_tag_list_to_file($list,$type = 'file') {
 		if ($type == 'file') {
 			$lbracket = '[';
 			$rbracket = ']';
-		}
-		else {
+		} else {
 			$lbracket = '<';
 			$rbracket = '>';
 		}
 
 		foreach ($list_array as $item) {
-		  if (strlen($item)) {
+			if (strlen($item)) {
 				$tag_list .= $lbracket . file_tag_encode(trim($item))  . $rbracket;
 			}
 		}
@@ -1863,8 +1862,7 @@ function file_tag_file_to_list($file,$type = 'file') {
 	$list = '';
 	if ($type == 'file') {
 		$cnt = preg_match_all('/\[(.*?)\]/',$file,$matches,PREG_SET_ORDER);
-	}
-	else {
+	} else {
 		$cnt = preg_match_all('/<(.*?)>/',$file,$matches,PREG_SET_ORDER);
 	}
 	if ($cnt) {
@@ -1919,8 +1917,9 @@ function file_tag_update_pconfig($uid,$file_old,$file_new,$type = 'file') {
 		$check_deleted_tags = explode(",",file_tag_file_to_list($file_old,$type));
 
 		foreach ($check_deleted_tags as $tag) {
-			if (! stristr($file_new,$lbracket . file_tag_encode($tag) . $rbracket))
+			if (! stristr($file_new,$lbracket . file_tag_encode($tag) . $rbracket)) {
 				$deleted_tags[] = $tag;
+			}
 		}
 
 		foreach ($deleted_tags as $key => $tag) {

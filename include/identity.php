@@ -479,16 +479,19 @@ function get_birthdays() {
 
 		$istoday = false;
 		foreach ($r as $rr) {
-			if (strlen($rr['name']))
+			if (strlen($rr['name'])) {
 				$total ++;
-			if ((strtotime($rr['start'] . ' +00:00') < $now) && (strtotime($rr['finish'] . ' +00:00') > $now))
+			}
+			if ((strtotime($rr['start'] . ' +00:00') < $now) && (strtotime($rr['finish'] . ' +00:00') > $now)) {
 				$istoday = true;
+			}
 		}
 		$classtoday = $istoday ? ' birthday-today ' : '';
 		if ($total) {
 			foreach ($r as &$rr) {
-				if (! strlen($rr['name']))
+				if (! strlen($rr['name'])) {
 					continue;
+				}
 
 				// avoid duplicates
 

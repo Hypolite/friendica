@@ -211,9 +211,11 @@ function call_hooks($name, &$data = null) {
 
 	$a = get_app();
 
-	if (is_array($a->hooks) && array_key_exists($name, $a->hooks))
-		foreach ($a->hooks[$name] as $hook)
-			call_single_hook($a, $name, $hook, $data);
+	if (is_array($a->hooks) && array_key_exists($name, $a->hooks)) {
+		foreach ($a->hooks[$name] as $hook) {
+			call_single_hook($a, $name, $hook $data);
+		}
+	}
 }
 
 /**
@@ -225,8 +227,9 @@ function call_hooks($name, &$data = null) {
  */
 function call_single_hook($a, $name, $hook, &$data = null) {
 	// Don't run a theme's hook if the user isn't using the theme
-	if (strpos($hook[0], 'view/theme/') !== false && strpos($hook[0], 'view/theme/'.current_theme()) === false)
+	if (strpos($hook[0], 'view/theme/') !== false && strpos($hook[0], 'view/theme/'.current_theme()) === false) {
 		return;
+	}
 
 	@include_once($hook[0]);
 	if (function_exists($hook[1])) {
@@ -250,8 +253,9 @@ function plugin_is_app($name) {
 
 	if (is_array($a->hooks) && (array_key_exists('app_menu',$a->hooks))) {
 		foreach ($a->hooks['app_menu'] as $hook) {
-			if ($hook[0] == 'addon/'.$name.'/'.$name.'.php')
+			if ($hook[0] == 'addon/'.$name.'/'.$name.'.php') {
 				return true;
+			}
 		}
 	}
 

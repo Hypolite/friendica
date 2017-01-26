@@ -761,7 +761,7 @@ function poco_check_server($server_url, $network = "", $force = false) {
 			$failure = true;
 		else {
 			$lines = explode("\n",$serverret["header"]);
-			if (count($lines))
+			if (count($lines)) {
 				foreach ($lines as $line) {
 					$line = trim($line);
 					if (stristr($line,'X-Diaspora-Version:')) {
@@ -780,6 +780,7 @@ function poco_check_server($server_url, $network = "", $force = false) {
 						$version = "";
 					}
 				}
+			}
 		}
 	}
 

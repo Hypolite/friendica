@@ -124,8 +124,7 @@ function get_features($filtered = true) {
 				if (is_array($arr[$k][$y])) {
 					if ($arr[$k][$y][4] === false) {
 						$has_items = true;
-					}
-					else {
+					} else {
 						unset($arr[$k][$y]);
 					}
 				}

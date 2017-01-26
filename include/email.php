@@ -65,10 +65,9 @@ function email_msg_headers($mbox,$uid) {
 
 			$last_entry = strtolower($key);
 			$ret[$last_entry] = trim($value);
-		}
-		else {
+		} else {
 			$ret[$last_entry] .= ' ' . trim($line);
-    	}
+		}
 	}
 	return $ret;
 }
@@ -79,19 +78,20 @@ function email_get_msg($mbox,$uid, $reply) {
 
 	$struc = (($mbox && $uid) ? @imap_fetchstructure($mbox,$uid,FT_UID) : null);
 
-	if (! $struc)
+	if (! $struc) {
 		return $ret;
+	}
 
 	if (! $struc->parts) {
 		$ret['body'] = email_get_part($mbox,$uid,$struc,0, 'html');
 		$html = $ret['body'];
 
-		if (trim($ret['body']) == '')
+		if (trim($ret['body']) == '') {
 			$ret['body'] = email_get_part($mbox,$uid,$struc,0, 'plain');
-		else
+		} else {
 			$ret['body'] = html2bbcode($ret['body']);
-	}
-	else {
+		}
+	} else {
 		$text = '';
 		$html = '';
 		foreach ($struc->parts as $ptop => $p) {
