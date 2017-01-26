@@ -250,8 +250,9 @@ function plugin_is_app($name) {
 
 	if (is_array($a->hooks) && (array_key_exists('app_menu',$a->hooks))) {
 		foreach ($a->hooks['app_menu'] as $hook) {
-			if ($hook[0] == 'addon/'.$name.'/'.$name.'.php')
+			if ($hook[0] == 'addon/'.$name.'/'.$name.'.php') {
 				return true;
+			}
 		}
 	}
 

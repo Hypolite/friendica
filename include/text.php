@@ -1854,7 +1854,7 @@ function file_tag_list_to_file($list,$type = 'file') {
 		}
 
 		foreach ($list_array as $item) {
-		  if (strlen($item)) {
+			if (strlen($item)) {
 				$tag_list .= $lbracket . file_tag_encode(trim($item))  . $rbracket;
 			}
 		}

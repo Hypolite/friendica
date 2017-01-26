@@ -384,20 +384,22 @@ function construct_acl_data(App $a, $user) {
 		foreach ($acl_data['groups'] as $key=>$group) {
 			// Add a "selected" flag to groups that are posted to by default
 			if ($user_defaults['allow_gid'] &&
-			   in_array($group['id'], $user_defaults['allow_gid']) && !in_array($group['id'], $user_defaults['deny_gid']) )
+				in_array($group['id'], $user_defaults['allow_gid']) && !in_array($group['id'], $user_defaults['deny_gid']) ) {
 				$acl_data['groups'][$key]['selected'] = 1;
-			else
+			} else {
 				$acl_data['groups'][$key]['selected'] = 0;
+			}
 		}
 	}
 	if ($acl_data['contacts']) {
 		foreach ($acl_data['contacts'] as $key=>$contact) {
 			// Add a "selected" flag to groups that are posted to by default
 			if ($user_defaults['allow_cid'] &&
-			   in_array($contact['id'], $user_defaults['allow_cid']) && !in_array($contact['id'], $user_defaults['deny_cid']) )
+				in_array($contact['id'], $user_defaults['allow_cid']) && !in_array($contact['id'], $user_defaults['deny_cid']) ) {
 				$acl_data['contacts'][$key]['selected'] = 1;
-			else
+			} else {
 				$acl_data['contacts'][$key]['selected'] = 0;
+			}
 		}
 	}
 
