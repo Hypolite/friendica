@@ -108,19 +108,19 @@ class colors {
 			$r = $c;
 			$g = $x;
 			$b = 0;
-		} else if ( $h < 120 ) {
+		} elseif ( $h < 120 ) {
 			$r = $x;
 			$g = $c;
 			$b = 0;
-		} else if ( $h < 180 ) {
+		} elseif ( $h < 180 ) {
 			$r = 0;
 			$g = $c;
 			$b = $x;
-		} else if ( $h < 240 ) {
+		} elseif ( $h < 240 ) {
 			$r = 0;
 			$g = $x;
 			$b = $c;
-		} else if ( $h < 300 ) {
+		} elseif ( $h < 300 ) {
 			$r = $x;
 			$g = 0;
 			$b = $c;
