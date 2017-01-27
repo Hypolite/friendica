@@ -45,7 +45,7 @@ class Config {
 					$a->config[$family][$k] = $rr['v'];
 				}
 			}
-		} else if ($family != 'config') {
+		} elseif ($family != 'config') {
 			// Negative caching
 			$a->config[$family] = "!<unset>!";
 		}
