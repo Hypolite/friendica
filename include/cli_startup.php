@@ -1,5 +1,7 @@
 <?php /** @file */
 
+use \Friendica\Core\Config;
+
 require_once('boot.php');
 
 // Everything we need to boot standalone 'background' processes
@@ -21,8 +23,7 @@ function cli_startup() {
 
 	require_once('include/session.php');
 
-	load_config('config');
-	load_config('system');
+	Config::load();
 
 	$a->set_baseurl(get_config('system','url'));
 

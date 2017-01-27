@@ -1,5 +1,7 @@
 <?php
 
+use \Friendica\Core\Config;
+
 require_once("boot.php");
 
 $a = new App;
@@ -12,8 +14,7 @@ require_once("include/dba.php");
 $db = new dba($db_host, $db_user, $db_pass, $db_data, false);
 unset($db_host, $db_user, $db_pass, $db_data);
 
-load_config('config');
-load_config('system');
+Config::load();
 
 $maint_mode = 1;
 if ($argc > 1) {
