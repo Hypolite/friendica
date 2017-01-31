@@ -1699,10 +1699,13 @@ function admin_page_themes(App $a) {
 	$allowed_themes_str = get_config('system','allowed_themes');
 	$allowed_themes_raw = explode(',',$allowed_themes_str);
 	$allowed_themes = array();
-	if (count($allowed_themes_raw))
-		foreach ($allowed_themes_raw as $x)
-			if (strlen(trim($x)))
+	if (count($allowed_themes_raw)) {
+		foreach ($allowed_themes_raw as $x) {
+			if (strlen(trim($x))) {
 				$allowed_themes[] = trim($x);
+			}
+		}
+	}
 
 	$themes = array();
 	$files = glob('view/theme/*');
@@ -1718,12 +1721,13 @@ function admin_page_themes(App $a) {
 				continue;
 			}
 
-			$is_experimental = intval(file_exists($file.'/experimental'));
-			$is_supported = 1-(intval(file_exists($file.'/unsupported')));
-			$is_allowed = intval(in_array($f,$allowed_themes));
+			$is_experimental = file_exists($file.'/experimental');
+			$is_supported = (!file_exists($file.'/unsupported'));
+			$is_allowed = in_array($f,$allowed_themes);
 
-			if ($is_allowed OR $is_supported OR get_config("system", "show_unsupported_themes"))
+			if ($is_allowed OR $is_supported OR get_config("system", "show_unsupported_themes")) {
 				$themes[] = array('name' => $f, 'experimental' => $is_experimental, 'supported' => $is_supported, 'allowed' => $is_allowed);
+			}
 		}
 	}
 
@@ -1753,8 +1757,7 @@ function admin_page_themes(App $a) {
 			if ($result) {
 				install_theme($theme);
 				info(sprintf('Theme %s enabled.',$theme));
-			}
-			else {
+			} else {
 				uninstall_theme($theme);
 				info(sprintf('Theme %s disabled.',$theme));
 			}
