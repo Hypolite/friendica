@@ -1407,7 +1407,7 @@ class App {
 			if (get_config("system", "worker")) {
 				$cachekey = "app:proc_run:started";
 				$result = Cache::get($cachekey);
-				if (!is_null($result)) && ((time() - $result) < 10) {
+				if (!is_null($result) && (time() - $result) < 10) {
 					return;
 				}
 
