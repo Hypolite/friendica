@@ -1926,6 +1926,3 @@ function gs_discover() {
 		q("UPDATE `gserver` SET `last_poco_query` = '%s' WHERE `nurl` = '%s'", dbesc(datetime_convert()), dbesc($server["nurl"]));
 	}
 }
-
-/// @TODO Usage of ?> is discouraged
-?>
