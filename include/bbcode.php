@@ -259,8 +259,9 @@ function get_bb_tag_pos($s, $name, $occurance = 1) {
 	$start_equal = strpos($s, '=', $start_open);
 	$start_close = strpos($s, ']', $start_open);
 
-	if ( $start_close === false)
+	if ( $start_close === false) {
 		return false;
+	}
 
 	$start_close++;
 
@@ -268,11 +269,16 @@ function get_bb_tag_pos($s, $name, $occurance = 1) {
 
 	if ( $end_open === false)
 		return false;
+	}
 
-	$res = array( 'start' => array('open' => $start_open, 'close' => $start_close),
-		      'end' => array('open' => $end_open, 'close' => $end_open + strlen('[/' . $name . ']')) );
-	if ( $start_equal !== false)
+	$res = array(
+		'start' => array('open' => $start_open, 'close' => $start_close),
+		'end'   => array('open' => $end_open, 'close' => $end_open + strlen('[/' . $name . ']'))
+	);
+
+	if ( $start_equal !== false) {
 		$res['start']['equal'] = $start_equal + 1;
+	}
 
 	return $res;
 }
@@ -288,8 +294,9 @@ function bb_tag_preg_replace($pattern, $replace, $name, $s) {
 		$start = substr($string, 0, $pos['start']['open']);
 		$subject = substr($string, $pos['start']['open'], $pos['end']['close'] - $pos['start']['open']);
 		$end = substr($string, $pos['end']['close']);
-		if ($end === false)
+		if ($end === false) {
 			$end = '';
+		}
 
 		$subject = preg_replace($pattern, $replace, $subject);
 		$string = $start . $subject . $end;
