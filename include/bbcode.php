@@ -257,7 +257,7 @@ function get_bb_tag_pos($s, $name, $occurance = 1) {
 	$start_equal = strpos($s, '=', $start_open);
 	$start_close = strpos($s, ']', $start_open);
 
-	if ($start_close === false) {
+	if ( $start_close === false) {
 		return false;
 	}
 
@@ -269,9 +269,12 @@ function get_bb_tag_pos($s, $name, $occurance = 1) {
 		return false;
 	}
 
-	$res = array( 'start' => array('open' => $start_open, 'close' => $start_close),
-		      'end' => array('open' => $end_open, 'close' => $end_open + strlen('[/' . $name . ']')) );
-	if ($start_equal !== false) {
+	$res = array(
+		'start' => array('open' => $start_open, 'close' => $start_close),
+		'end'   => array('open' => $end_open, 'close' => $end_open + strlen('[/' . $name . ']'))
+	);
+
+	if ( $start_equal !== false) {
 		$res['start']['equal'] = $start_equal + 1;
 	}
 
