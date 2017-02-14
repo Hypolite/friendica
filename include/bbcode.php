@@ -271,7 +271,7 @@ function get_bb_tag_pos($s, $name, $occurance = 1) {
 
 	$res = array(
 		'start' => array('open' => $start_open, 'close' => $start_close),
-		'end'   => array('open' => $end_open, 'close' => $end_open + strlen('[/' . $name . ']'))
+		'end'   => array('open' => $end_open, 'close' => $end_open + strlen('[/' . $name . ']')),
 	);
 
 	if ( $start_equal !== false) {
