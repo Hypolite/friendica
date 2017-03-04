@@ -605,11 +605,14 @@ function admin_page_queue(App $a) {
  */
 function admin_page_summary(App $a) {
 	global $db;
+
+	$showwarning = false;
+	$warningtext = array();
+
 	// are there MyISAM tables in the DB? If so, trigger a warning message
 	$r = q("SELECT `engine` FROM `information_schema`.`tables` WHERE `engine` = 'myisam' AND `table_schema` = '%s' LIMIT 1",
 		dbesc($db->database_name()));
-	$showwarning = false;
-	$warningtext = array();
+
 	if (dbm::is_result($r)) {
 		$showwarning = true;
 		$warningtext[] = sprintf(t('Your DB still runs with MyISAM tables. You should change the engine type to InnoDB. As Friendica will use InnoDB only features in the future, you should change this! See <a href="%s">here</a> for a guide that may be helpful converting the table engines. You may also use the command <tt>php include/dbstructure.php toinnodb</tt> of your Friendica installation for an automatic conversion.<br />'), 'https://dev.mysql.com/doc/refman/5.7/en/converting-tables-to-innodb.html');
@@ -624,7 +627,22 @@ function admin_page_summary(App $a) {
 		$warningtext[] = t('The database update failed. Please run "php include/dbstructure.php update" from the command line and have a look at the errors that might appear.');
 	}
 
+	/**
+	 * Why has this been dropped?
+	// MySQL >= 5.7.4 doesn't support the IGNORE keyword in ALTER TABLE statements
+	if ((version_compare($db->server_info(), '5.7.4') >= 0) &&
+		!(strpos($db->server_info(), 'MariaDB') !== false)) {
+		$warningtext[] = t('You are using a MySQL version which does not support all features that Friendica uses. You should consider switching to MariaDB.');
+	}
+	*/
+
 	$r = q("SELECT `page-flags`, COUNT(`uid`) AS `count` FROM `user` GROUP BY `page-flags`");
+
+	if (!dbm::is_result($r)) {
+		notice("Failed selecting from user: ".$db->error);
+		killme();
+	}
+
 	$accounts = array(
 		array(t('Normal Account'), 0),
 		array(t('Automatic Follower Account'), 0),
@@ -643,10 +661,16 @@ function admin_page_summary(App $a) {
 	logger('accounts: '.print_r($accounts,true),LOGGER_DATA);
 
 	$r = qu("SELECT COUNT(`id`) AS `count` FROM `register`");
+
+	if (!dbm::is_result($r)) {
+		notice("Failed selecting from register: ".$db->error);
+		killme();
+	}
+
 	$pending = $r[0]['count'];
 
 	$r = qu("SELECT COUNT(*) AS `total` FROM `queue` WHERE 1");
-	$queue = (($r) ? $r[0]['total'] : 0);
+	$queue = ((dbm::is_result($r)) ? $r[0]['total'] : 0);
 
 	$r = qu("SELECT COUNT(*) AS `total` FROM `workerqueue` WHERE NOT `done`");
 	$workerqueue = (($r) ? $r[0]['total'] : 0);
@@ -726,7 +750,7 @@ function admin_page_site_post(App $a) {
 
 			$q = sprintf("UPDATE %s SET %s;", $table_name, $upds);
 			$r = q($q);
-			if (!$r) {
+			if (!dbm::is_result(r)) {
 				notice("Failed updating '$table_name': ".$db->error);
 				goaway('admin/site');
 			}
