@@ -612,6 +612,7 @@ function db_definition($charset) {
 	$database["contact"] = array(
 			"fields" => array(
 					"id" => array("type" => "int(11)", "not null" => "1", "extra" => "auto_increment", "primary" => "1"),
+					"pcontact-id" => array("type" => "int(11)", "not null" => "1", "default" => "0"),
 					"uid" => array("type" => "int(11)", "not null" => "1", "default" => "0"),
 					"created" => array("type" => "datetime", "not null" => "1", "default" => "0000-00-00 00:00:00"),
 					"self" => array("type" => "tinyint(1)", "not null" => "1", "default" => "0"),
@@ -1524,8 +1525,10 @@ function db_definition($charset) {
 					"uid_network_created" => array("uid","network","created"),
 					"uid_contactid_commented" => array("uid","contact-id","commented"),
 					"uid_contactid_created" => array("uid","contact-id","created"),
-					"uid_created" => array("uid","created"),
+					"uid_ownerid_commented" => array("uid","owner-id","commented"),
+					"uid_ownerid_created" => array("uid","owner-id","created"),
 					"uid_commented" => array("uid","commented"),
+					"uid_created" => array("uid","created"),
 					"uid_wall_created" => array("uid","wall","created"),
 					)
 			);
