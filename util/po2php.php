@@ -55,26 +55,38 @@ function po2php_run(&$argv, &$argc) {
 		}
 
 
-
-
-		if ($k!="" && substr($l,0,7)=="msgstr "){
-			if ($ink) { $ink = False; $out .= '$a->strings["'.$k.'"] = '; }
-			if ($inv) { $inv = False; $out .= '"'.$v.'"'; }
+		if ($k!="" && substr($l,0,7)=="msgstr ") {
+			if ($ink) {
+				/// @TODO false or FALSE, but not False ! And same with TRUE/true choice
+				$ink = false;
+				$out .= '$a->strings["'.$k.'"] = ';
+			}
+			if ($inv) {
+				$inv = false;
+				$out .= '"'.$v.'"';
+			}
 
 			$v = substr($l,8,$len-10);
 			$v = preg_replace_callback($escape_s_exp,'escape_s',$v);
-			$inv = True;
+			$inv = true;
 			//$out .= $v;
 		}
 		if ($k!="" && substr($l,0,7)=="msgstr["){
-			if ($ink) { $ink = False; $out .= '$a->strings["'.$k.'"] = '; }
-			if ($inv) {	$inv = False; $out .= '"'.$v.'"'; }
+			if ($ink) {
+				$ink = false;
+				$out .= '$a->strings["'.$k.'"] = ';
+			}
+			if ($inv) {
+				$inv = false;
+				$out .= '"'.$v.'"';
+			}
 
 			if (!$arr) {
-				$arr=True;
+				$arr = true;
 				$out .= "array(\n";
 			}
-			$match=Array();
+			/// @TODOD No Array (object), but array (keyword) for those
+			$match=array();
 			preg_match("|\[([0-9]*)\] (.*)|", $l, $match);
 			$out .= "\t".
 				preg_replace_callback($escape_s_exp,'escape_s',$match[1])
@@ -82,7 +94,10 @@ function po2php_run(&$argv, &$argc) {
 				.preg_replace_callback($escape_s_exp,'escape_s',$match[2]) .",\n";
 		}
 
-		if (substr($l,0,6)=="msgid_") { $ink = False; $out .= '$a->strings["'.$k.'"] = '; };
+		if (substr($l,0,6)=="msgid_") {
+			$ink = false;
+			$out .= '$a->strings["'.$k.'"] = ';
+		}
 
 
 		if ($ink) {
@@ -91,10 +106,15 @@ function po2php_run(&$argv, &$argc) {
 			//$out .= '$a->strings['.$k.'] = ';
 		}
 
-		if (substr($l,0,6)=="msgid "){
-			if ($inv) {	$inv = False; $out .= '"'.$v.'"'; }
-			if ($k!="") $out .= $arr?");\n":";\n";
-			$arr=False;
+		if (substr($l,0,6)=="msgid ") {
+			if ($inv) {
+				$inv = false;
+				$out .= '"'.$v.'"';
+			}
+			if ($k != "") {
+				$out .= $arr?");\n":";\n";
+			}
+			$arr = false;
 			$k = str_replace("msgid ","",$l);
 			if ($k != '""' ) {
 				$k = trim($k,"\"\r\n");
@@ -103,7 +123,7 @@ function po2php_run(&$argv, &$argc) {
 			}
 
 			$k = preg_replace_callback($escape_s_exp,'escape_s',$k);
-			$ink = True;
+			$ink = true;
 		}
 
 		if ($inv && substr($l,0,6)!="msgstr") {
@@ -115,8 +135,13 @@ function po2php_run(&$argv, &$argc) {
 
 	}
 
-	if ($inv) {	$inv = False; $out .= '"'.$v.'"'; }
-	if ($k!="") $out .= $arr?");\n":";\n";
+	if ($inv) {
+		$inv = false;
+		$out .= '"'.$v.'"';
+	}
+	if ($k!="") {
+		$out .= $arr?");\n":";\n";
+	}
 
 	$out = str_replace(DQ_ESCAPE, '\"', $out);
 	file_put_contents($outfile, $out);
@@ -124,5 +149,5 @@ function po2php_run(&$argv, &$argc) {
 }
 
 if (array_search(__file__,get_included_files())===0){
-  po2php_run($_SERVER["argv"],$_SERVER["argc"]);
+	po2php_run($_SERVER["argv"],$_SERVER["argc"]);
 }
