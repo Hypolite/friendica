@@ -65,6 +65,16 @@ function po2php_run(&$argv, &$argc) {
 				$out .= '"' . $v . '"';
 			}
 
+		if ($k != "" && substr($l, 0, 7) == "msgstr ") {
+			if ($ink) {
+				$ink = false;
+				$out .= '$a->strings["' . $k . '"] = ';
+			}
+			if ($inv) {
+				$inv = false;
+				$out .= '"' . $v . '"';
+			}
+
 			$v = substr($l, 8, $len - 10);
 			$v = preg_replace_callback($escape_s_exp, 'escape_s', $v);
 			$inv = true;
@@ -81,7 +91,7 @@ function po2php_run(&$argv, &$argc) {
 			}
 
 			if (!$arr) {
-				$arr=True;
+				$arr = true;
 				$out .= "array(\n";
 			}
 			$match = array();
