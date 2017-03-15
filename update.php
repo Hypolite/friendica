@@ -184,7 +184,7 @@ function update_1017() {
 `pw` VARCHAR( 20 ) NOT NULL ,
 `redirect_uri` VARCHAR( 200 ) NOT NULL ,
 PRIMARY KEY ( `client_id` )
-) ENGINE = MYISAM DEFAULT CHARSET=utf8 ");
+) DEFAULT CHARSET=utf8 ");
 
 	q(" CREATE TABLE IF NOT EXISTS `tokens` (
 `id` VARCHAR( 40 ) NOT NULL ,
@@ -192,7 +192,7 @@ PRIMARY KEY ( `client_id` )
 `expires` INT NOT NULL ,
 `scope` VARCHAR( 200 ) NOT NULL ,
 PRIMARY KEY ( `id` )
-) ENGINE = MYISAM DEFAULT CHARSET=utf8 ");
+) DEFAULT CHARSET=utf8 ");
 
 	q("CREATE TABLE IF NOT EXISTS `auth_codes` (
 `id` VARCHAR( 40 ) NOT NULL ,
@@ -201,7 +201,7 @@ PRIMARY KEY ( `id` )
 `expires` INT NOT NULL ,
 `scope` VARCHAR( 250 ) NOT NULL ,
 PRIMARY KEY ( `id` )
-) ENGINE = MYISAM DEFAULT CHARSET=utf8 ");
+) DEFAULT CHARSET=utf8 ");
 
 }
 
@@ -212,7 +212,7 @@ function update_1018() {
 `created` DATETIME NOT NULL ,
 `last` DATETIME NOT NULL ,
 `content` MEDIUMTEXT NOT NULL
-) ENGINE = MYISAM DEFAULT CHARSET=utf8 ");
+) DEFAULT CHARSET=utf8 ");
 }
 
 function update_1019() {
@@ -238,7 +238,7 @@ function update_1022() {
 		`cat` CHAR( 255 ) NOT NULL ,
 		`k` CHAR( 255 ) NOT NULL ,
 		`v` MEDIUMTEXT NOT NULL
-		) ENGINE = MYISAM CHARACTER SET utf8 COLLATE utf8_general_ci ");
+		) CHARACTER SET utf8 COLLATE utf8_general_ci ");
 }
 
 function update_1023() {
@@ -260,7 +260,7 @@ function update_1026() {
 	`hook` CHAR( 255 ) NOT NULL ,
 	`file` CHAR( 255 ) NOT NULL ,
 	`function` CHAR( 255 ) NOT NULL
-	) ENGINE = MYISAM DEFAULT CHARSET=utf8 ");
+	) DEFAULT CHARSET=utf8 ");
 }
 
 
@@ -270,7 +270,7 @@ function update_1027() {
 	`name` CHAR( 255 ) NOT NULL ,
 	`version` CHAR( 255 ) NOT NULL ,
 	`installed` TINYINT( 1 ) NOT NULL DEFAULT '0'
-	) ENGINE = MYISAM DEFAULT CHARSET=utf8 ");
+	) DEFAULT CHARSET=utf8 ");
 }
 
 function update_1028() {
@@ -300,7 +300,7 @@ function update_1030() {
 	`allow_gid` MEDIUMTEXT NOT NULL ,
 	`deny_cid` MEDIUMTEXT NOT NULL ,
 	`deny_gid` MEDIUMTEXT NOT NULL
-	) ENGINE = MYISAM DEFAULT CHARSET=utf8 ");
+	) DEFAULT CHARSET=utf8 ");
 
 
 }
@@ -326,9 +326,9 @@ function update_1032() {
 
 function update_1033() {
 	q("CREATE TABLE IF NOT EXISTS `cache` (
-		`k` CHAR( 255 ) NOT NULL PRIMARY KEY ,
-		`v` TEXT NOT NULL,
-		`updated` DATETIME NOT NULL
+ 		`k` CHAR( 255 ) NOT NULL PRIMARY KEY ,
+ 		`v` TEXT NOT NULL,
+ 		`updated` DATETIME NOT NULL
 		) DEFAULT CHARSET=utf8 ");
 }
 
@@ -390,14 +390,14 @@ function update_1040() {
 	`url` CHAR( 255 ) NOT NULL ,
 	`name` CHAR( 255 ) NOT NULL ,
 	`photo` CHAR( 255 ) NOT NULL
-	) ENGINE = MYISAM DEFAULT CHARSET=utf8 ");
+	) DEFAULT CHARSET=utf8 ");
 
 	q("CREATE TABLE IF NOT EXISTS `ffinder` (
 	`id` INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY ,
 	`uid` INT UNSIGNED NOT NULL ,
 	`cid` INT UNSIGNED NOT NULL ,
 	`fid` INT UNSIGNED NOT NULL
-	) ENGINE = MYISAM DEFAULT CHARSET=utf8 ");
+	) DEFAULT CHARSET=utf8 ");
 
 }
 
@@ -445,7 +445,7 @@ function update_1049() {
 	`pass` CHAR( 255 ) NOT NULL ,
 	`reply_to` CHAR( 255 ) NOT NULL ,
 	`last_check` DATETIME NOT NULL DEFAULT '0001-01-01 00:00:00'
-	) ENGINE = MYISAM ");
+	) ");
 }
 
 function update_1050() {
@@ -461,7 +461,7 @@ function update_1050() {
 	`allow_gid` MEDIUMTEXT NOT NULL ,
 	`deny_cid` MEDIUMTEXT NOT NULL ,
 	`deny_gid` MEDIUMTEXT NOT NULL
-	) ENGINE = MYISAM ");
+	) ");
 
 }
 
@@ -559,7 +559,7 @@ function update_1068() {
 	`photo` CHAR( 255 ) NOT NULL ,
 	`note` TEXT NOT NULL ,
 	`created` DATETIME NOT NULL
-	) ENGINE = MYISAM DEFAULT CHARSET=utf8");
+	) DEFAULT CHARSET=utf8");
 
 }
 
@@ -629,7 +629,7 @@ function update_1075() {
 
 function update_1076() {
 	q("CREATE TABLE `guid` ( `id` INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY ,
-		`guid` CHAR( 16 ) NOT NULL , INDEX ( `guid` ) ) ENGINE = MYISAM ");
+		`guid` CHAR( 16 ) NOT NULL , INDEX ( `guid` ) ) ");
 
 }
 
@@ -640,7 +640,7 @@ function update_1076() {
 
 function update_1077() {
 	q("CREATE TABLE IF NOT EXISTS `guid` ( `id` INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY ,
-		`guid` CHAR( 16 ) NOT NULL , INDEX ( `guid` ) ) ENGINE = MYISAM ");
+		`guid` CHAR( 16 ) NOT NULL , INDEX ( `guid` ) ) ");
 
 	q("ALTER TABLE `guid` CHANGE `guid` `guid` CHAR( 64 ) NOT NULL");
 }
@@ -657,7 +657,7 @@ function update_1079() {
 	`signature` TEXT NOT NULL ,
 	`signer` CHAR( 255 ) NOT NULL ,
 	INDEX ( `iid` )
-	) ENGINE = MYISAM ");
+	) ");
 
 	q("ALTER TABLE `fcontact` ADD `nick` CHAR( 255 ) NOT NULL ,
 	ADD `addr` CHAR( 255 ) NOT NULL ,
@@ -706,7 +706,7 @@ function update_1083() {
 	`cmd` CHAR( 32 ) NOT NULL ,
 	`item` INT NOT NULL ,
 	`contact` INT NOT NULL
-	) ENGINE = MYISAM ");
+	) ");
 
 }
 
@@ -721,7 +721,7 @@ function update_1085() {
 	`term` CHAR( 255 ) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL,
 	INDEX ( `uid` ),
 	INDEX ( `term` )
-	) ENGINE = MYISAM ");
+	) ");
 }
 
 function update_1086() {
@@ -784,7 +784,7 @@ function update_1093() {
 	`posturl` CHAR( 255 ) NOT NULL ,
 	`key` TEXT NOT NULL,
 	INDEX ( `server` )
-	) ENGINE = MYISAM ");
+	) ");
 
 	q("ALTER TABLE `group` ADD `visible` TINYINT( 1 ) NOT NULL DEFAULT '0' AFTER `uid` ");
 
@@ -831,7 +831,7 @@ function update_1099() {
 	`url` CHAR( 255 ) NOT NULL ,
 	`nurl` CHAR( 255 ) NOT NULL ,
 	`photo` CHAR( 255 ) NOT NULL
-	) ENGINE = MYISAM ");
+	) ");
 
 	q("CREATE TABLE IF NOT EXISTS `glink` (
 	`id` INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY ,
@@ -839,7 +839,7 @@ function update_1099() {
 	`uid` INT NOT NULL ,
 	`gcid` INT NOT NULL,
 	`updated` DATETIME NOT NULL
-	) ENGINE = MYISAM ");
+	) ");
 
 	q("ALTER TABLE `gcontact` ADD INDEX (`nurl`) ");
 	q("ALTER TABLE `glink` ADD INDEX (`cid`), ADD INDEX (`uid`), ADD INDEX (`gcid`), ADD INDEX (`updated`) ");
@@ -871,7 +871,7 @@ function update_1101() {
 	`id` INT NOT NULL AUTO_INCREMENT PRIMARY KEY ,
 	`uid` INT NOT NULL ,
 	`gcid` INT NOT NULL
-	) ENGINE = MYISAM ");
+	) ");
 
 	q("ALTER TABLE `gcign` ADD INDEX (`uid`), ADD INDEX (`gcid`) ");
 }
@@ -911,7 +911,7 @@ function update_1105() {
 	`guid` CHAR( 64 ) NOT NULL ,
 	`recips` MEDIUMTEXT NOT NULL ,
 	`uid` INT NOT NULL
-	) ENGINE = MYISAM ");
+	) ");
 }
 
 
@@ -964,7 +964,7 @@ function update_1112() {
 `uid` INT NOT NULL ,
 `link` CHAR( 255 ) NOT NULL ,
 `seen` TINYINT( 1 ) NOT NULL DEFAULT '0'
-) ENGINE = MYISAM ");
+) ");
 
 	q("ALTER TABLE `notify` ADD INDEX ( `type` ), ADD INDEX ( `uid`), ADD INDEX (`seen`), ADD INDEX (`date`) ");
 
@@ -989,7 +989,7 @@ INDEX ( `face` ),
 INDEX ( `dspr` ),
 INDEX ( `twit` ),
 INDEX ( `stat` )
-) ENGINE = MYISAM ");
+) ");
 
 }
 
@@ -1010,7 +1010,7 @@ q("create table if not exists `manage` (
 `mid` INT NOT NULL,
 INDEX ( `uid` ),
 INDEX ( `mid` )
-) ENGINE = MYISAM ");
+) ");
 
 }
 
@@ -1047,7 +1047,7 @@ function update_1121() {
 	`choice` INT NOT NULL ,
 	INDEX ( `poll_id` ),
 	INDEX ( `choice` )
-	) ENGINE = MYISAM ");
+	) ");
 
 	q("CREATE TABLE IF NOT EXISTS `poll` (
 	`id` INT NOT NULL AUTO_INCREMENT PRIMARY KEY ,
@@ -1063,7 +1063,7 @@ function update_1121() {
 	`q8` MEDIUMTEXT NOT NULL ,
 	`q9` MEDIUMTEXT NOT NULL ,
 	INDEX ( `uid` )
-	) ENGINE = MYISAM ");
+	) ");
 
 }
 
