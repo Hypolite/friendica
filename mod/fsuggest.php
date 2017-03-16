@@ -95,18 +95,16 @@ function fsuggest_content(App $a) {
 	}
 	$contact = $r[0];
 
-	$o = '<h3>' . t('Suggest Friends') . '</h3>';
-
-	$o .= '<div id="fsuggest-desc" >' . sprintf( t('Suggest a friend for %s'), $contact['name']) . '</div>';
-
-	$o .= '<form id="fsuggest-form" action="fsuggest/' . $contact_id . '" method="post" >';
-
-	$o .= contact_selector('suggest','suggest-select', false,
-		array('size' => 4, 'exclude' => $contact_id, 'networks' => 'DFRN_ONLY', 'single' => true));
-
-
-	$o .= '<div id="fsuggest-submit-wrapper"><input id="fsuggest-submit" type="submit" name="submit" value="' . t('Submit') . '" /></div>';
-	$o .= '</form>';
+	$t = get_markup_template("fsuggest.tpl");
+	$o = replace_macros($t, array(
+		'$title' => t('Suggest Friends'),
+		'$desc' => sprintf( t('Suggest a friend for %s'), $contact['name']),
+		'$contact_id' => $contact_id,
+		'$contact_selector' => contact_selector('suggest', 'suggest-select', false,
+			array('size' => 4, 'exclude' => $contact_id, 'networks' => 'DFRN_ONLY', 'single' => true)
+		),
+		'$submit' => t('Submit')
+	));
 
 	return $o;
 }
