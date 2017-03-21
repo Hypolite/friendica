@@ -1046,27 +1046,31 @@ function builtin_activity_puller($item, &$conv_responses) {
 			if((local_user()) && (local_user() == $item['uid']) && ($item['network'] === NETWORK_DFRN) && (! $item['self']) && (link_compare($item['author-link'],$item['url']))) {
 				$url = 'redir/' . $item['contact-id'];
 				$sparkle = ' class="sparkle" ';
-			}
-			else
+			} else {
 				$url = zrl($url);
+			}
 
 			$url = '<a href="'. $url . '"'. $sparkle .'>' . htmlentities($item['author-name']) . '</a>';
 
-			if(! $item['thr-parent'])
+			if (! $item['thr-parent']) {
 				$item['thr-parent'] = $item['parent-uri'];
+			}
 
-			if(! ((isset($conv_responses[$mode][$item['thr-parent'] . '-l']))
-				&& (is_array($conv_responses[$mode][$item['thr-parent'] . '-l']))))
+			if (! ((isset($conv_responses[$mode][$item['thr-parent'] . '-l']))
+				&& (is_array($conv_responses[$mode][$item['thr-parent'] . '-l'])))) {
 				$conv_responses[$mode][$item['thr-parent'] . '-l'] = array();
+			}
 
 			// only list each unique author once
-			if(in_array($url,$conv_responses[$mode][$item['thr-parent'] . '-l']))
+			if (in_array($url,$conv_responses[$mode][$item['thr-parent'] . '-l'])) {
 				continue;
+			}
 
-			if(! isset($conv_responses[$mode][$item['thr-parent']]))
+			if (! isset($conv_responses[$mode][$item['thr-parent']])) {
 				$conv_responses[$mode][$item['thr-parent']] = 1;
-			else
+			} else {
 				$conv_responses[$mode][$item['thr-parent']] ++;
+			}
 
 			if (public_contact() == $item['author-id']) {
 				$conv_responses[$mode][$item['thr-parent'] . '-self'] = 1;
@@ -1328,8 +1332,8 @@ function get_item_children($arr, $parent) {
 function sort_item_children($items) {
 	$result = $items;
 	usort($result,'sort_thr_created_rev');
-	foreach($result as $k => $i) {
-		if(count($result[$k]['children'])) {
+	foreach ($result as $k => $i) {
+		if (count($result[$k]['children'])) {
 			$result[$k]['children'] = sort_item_children($result[$k]['children']);
 		}
 	}
@@ -1339,7 +1343,7 @@ function sort_item_children($items) {
 function add_children_to_list($children, &$arr) {
 	foreach ($children as $y) {
 		$arr[] = $y;
-		i f(count($y['children'])) {
+		if (count($y['children'])) {
 			add_children_to_list($y['children'], $arr);
 		}
 	}
