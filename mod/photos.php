@@ -1701,14 +1701,14 @@ function photos_content(App $a) {
 					$template = $tpl;
 					$sparkle = '';
 
-					if (((activity_match($item['verb'],ACTIVITY_LIKE)) || (activity_match($item['verb'],ACTIVITY_DISLIKE))) && ($item['id'] != $item['parent']))
+					if (((activity_match($item['verb'],ACTIVITY_LIKE)) || (activity_match($item['verb'],ACTIVITY_DISLIKE))) && ($item['id'] != $item['parent'])) {
 						continue;
+					}
 
 					$redirect_url = 'redir/' . $item['cid'];
 
-
 					if (local_user() && ($item['contact-uid'] == local_user())
-						&& ($item['network'] == NETWORK_DFRN) && (! $item['self'] )) {
+							&& ($item['network'] == NETWORK_DFRN) && (! $item['self'] )) {
 						$profile_url = $redirect_url;
 						$sparkle = ' sparkle';
 					} else {
@@ -1862,13 +1862,15 @@ function photos_content(App $a) {
 		$twist = 'rotright';
 		foreach ($r as $rr) {
 			//hide profile photos to others
-			if ((! $is_owner) && (! remote_user()) && ($rr['album'] == t('Profile Photos')))
-					continue;
+			if ((! $is_owner) && (! remote_user()) && ($rr['album'] == t('Profile Photos'))) {
+				continue;
+			}
 
-			if ($twist == 'rotright')
+			if ($twist == 'rotright') {
 				$twist = 'rotleft';
-			else
+			} else {
 				$twist = 'rotright';
+			}
 
 			$ext = $phototypes[$rr['type']];
 

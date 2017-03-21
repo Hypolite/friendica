@@ -2651,8 +2651,9 @@ class dfrn {
 
 			logger("Item was stored with id ".$posted_id, LOGGER_DEBUG);
 
-			if (stristr($item["verb"],ACTIVITY_POKE))
+			if (stristr($item["verb"], ACTIVITY_POKE)) {
 				self::do_poke($item, $importer, $posted_id);
+			}
 		}
 	}
 
@@ -2715,8 +2716,8 @@ class dfrn {
 
 			if (($item["verb"] == ACTIVITY_TAG) && ($item["object-type"] == ACTIVITY_OBJ_TAGTERM)) {
 
-				$xo = parse_xml_string($item["object"],false);
-				$xt = parse_xml_string($item["target"],false);
+				$xo = parse_xml_string($item["object"], false);
+				$xt = parse_xml_string($item["target"], false);
 
 				if ($xt->type == ACTIVITY_OBJ_NOTE) {
 					$i = q("SELECT `id`, `contact-id`, `tag` FROM `item` WHERE `uri` = '%s' AND `uid` = %d LIMIT 1",
