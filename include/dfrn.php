@@ -2105,7 +2105,7 @@ class dfrn {
 				if ($attributes->name == "rel") {
 					$rel = $attributes->textContent;
 				}
-				if ($attributes->name == "type") [
+				if ($attributes->name == "type") {
 					$type = $attributes->textContent;
 				}
 				if ($attributes->name == "length") {
@@ -2376,8 +2376,9 @@ class dfrn {
 		if (dbm::is_result($current)) {
 			if (self::update_content($r[0], $item, $importer, $entrytype)) {
 				logger("Item ".$item["uri"]." was updated.", LOGGER_DEBUG);
-			else
+			} else {
 				logger("Item ".$item["uri"]." already existed.", LOGGER_DEBUG);
+			}
 			return;
 		}
 
@@ -2385,7 +2386,7 @@ class dfrn {
 			$posted_id = item_store($item);
 			$parent = 0;
 
-			if($posted_id) {
+			if ($posted_id) {
 
 				logger("Reply from contact ".$item["contact-id"]." was stored with id ".$posted_id, LOGGER_DEBUG);
 
@@ -2400,7 +2401,7 @@ class dfrn {
 					$parent_uri = $r[0]["parent-uri"];
 				}
 
-				if(!$is_like) {
+				if (!$is_like) {
 					$r1 = q("UPDATE `item` SET `last-child` = 0, `changed` = '%s' WHERE `uid` = %d AND `parent` = %d",
 						dbesc(datetime_convert()),
 						intval($importer["importer_uid"]),
@@ -2414,7 +2415,7 @@ class dfrn {
 					);
 				}
 
-				if($posted_id AND $parent AND ($entrytype == DFRN_REPLY_RC)) {
+				if ($posted_id AND $parent AND ($entrytype == DFRN_REPLY_RC)) {
 					logger("Notifying followers about comment ".$posted_id, LOGGER_DEBUG);
 					proc_run(PRIORITY_HIGH, "include/notifier.php", "comment-import", $posted_id);
 				}
@@ -2422,7 +2423,7 @@ class dfrn {
 				return true;
 			}
 		} else { // $entrytype == DFRN_TOP_LEVEL
-			if(!link_compare($item["owner-link"],$importer["url"])) {
+			if (!link_compare($item["owner-link"],$importer["url"])) {
 				// The item owner info is not our contact. It's OK and is to be expected if this is a tgroup delivery,
 				// but otherwise there's a possible data mixup on the sender's system.
 				// the tgroup delivery code called from item_store will correct it if it's a forum,
@@ -2433,7 +2434,7 @@ class dfrn {
 				$item["owner-avatar"] = $importer["thumb"];
 			}
 
-			if(($importer["rel"] == CONTACT_IS_FOLLOWER) && (!tgroup_check($importer["importer_uid"], $item))) {
+			if (($importer["rel"] == CONTACT_IS_FOLLOWER) && (!tgroup_check($importer["importer_uid"], $item))) {
 				logger("Contact ".$importer["id"]." is only follower and tgroup check was negative.", LOGGER_DEBUG);
 				return;
 			}
@@ -2446,8 +2447,9 @@ class dfrn {
 
 			logger("Item was stored with id ".$posted_id, LOGGER_DEBUG);
 
-			if(stristr($item["verb"],ACTIVITY_POKE))
+			if (stristr($item["verb"],ACTIVITY_POKE)) {
 				self::do_poke($item, $importer, $posted_id);
+			}
 		}
 	}
 
@@ -2463,18 +2465,22 @@ class dfrn {
 		logger("Processing deletions");
 
 		foreach($deletion->attributes AS $attributes) {
-			if ($attributes->name == "ref")
+			if ($attributes->name == "ref") {
 				$uri = $attributes->textContent;
-			if ($attributes->name == "when")
+			}
+			if ($attributes->name == "when") {
 				$when = $attributes->textContent;
+			}
 		}
-		if ($when)
+		if ($when) {
 			$when = datetime_convert("UTC", "UTC", $when, "Y-m-d H:i:s");
-		else
+		} else {
 			$when = datetime_convert("UTC", "UTC", "now", "Y-m-d H:i:s");
+		}
 
-		if (!$uri OR !$importer["id"])
+		if (!$uri OR !$importer["id"]) {
 			return false;
+		}
 
 		/// @todo Only select the used fields
 		$r = q("SELECT `item`.*, `contact`.`self` FROM `item` INNER JOIN `contact` on `item`.`contact-id` = `contact`.`id`
@@ -2492,20 +2498,21 @@ class dfrn {
 
 			$entrytype = self::get_entry_type($importer, $item);
 
-			if(!$item["deleted"])
+			if (!$item["deleted"]) {
 				logger('deleting item '.$item["id"].' uri='.$uri, LOGGER_DEBUG);
-			else
+			} else {
 				return;
+			}
 
-			if($item["object-type"] == ACTIVITY_OBJ_EVENT) {
+			if ($item["object-type"] == ACTIVITY_OBJ_EVENT) {
 				logger("Deleting event ".$item["event-id"], LOGGER_DEBUG);
 				event_delete($item["event-id"]);
 			}
 
-			if(($item["verb"] == ACTIVITY_TAG) && ($item["object-type"] == ACTIVITY_OBJ_TAGTERM)) {
+			if (($item["verb"] == ACTIVITY_TAG) && ($item["object-type"] == ACTIVITY_OBJ_TAGTERM)) {
 
-				$xo = parse_xml_string($item["object"],false);
-				$xt = parse_xml_string($item["target"],false);
+				$xo = parse_xml_string($item["object"], false);
+				$xt = parse_xml_string($item["target"], false);
 
 				if($xt->type == ACTIVITY_OBJ_NOTE) {
 					$i = q("SELECT `id`, `contact-id`, `tag` FROM `item` WHERE `uri` = '%s' AND `uid` = %d LIMIT 1",
@@ -2520,15 +2527,18 @@ class dfrn {
 						$author_remove = (($item["origin"] && $item["self"]) ? true : false);
 						$author_copy = (($item["origin"]) ? true : false);
 
-						if($owner_remove && $author_copy)
+						if ($owner_remove && $author_copy) {
 							return;
-						if($author_remove || $owner_remove) {
+						}
+						if ($author_remove || $owner_remove) {
 							$tags = explode(',',$i[0]["tag"]);
 							$newtags = array();
-							if(count($tags)) {
-								foreach($tags as $tag)
-									if(trim($tag) !== trim($xo->body))
+							if (count($tags)) {
+								foreach ($tags as $tag) {
+									if (trim($tag) !== trim($xo->body)) {
 										$newtags[] = trim($tag);
+									}
+								}
 							}
 							q("UPDATE `item` SET `tag` = '%s' WHERE `id` = %d",
 								dbesc(implode(',',$newtags)),
@@ -2540,7 +2550,7 @@ class dfrn {
 				}
 			}
 
-			if($entrytype == DFRN_TOP_LEVEL) {
+			if ($entrytype == DFRN_TOP_LEVEL) {
 				$r = q("UPDATE `item` SET `deleted` = 1, `edited` = '%s', `changed` = '%s',
 						`body` = '', `title` = ''
 					WHERE `parent-uri` = '%s' AND `uid` = %d",

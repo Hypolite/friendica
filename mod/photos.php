@@ -1673,14 +1673,14 @@ function photos_content(App $a) {
 					$template = $tpl;
 					$sparkle = '';
 
-					if (((activity_match($item['verb'],ACTIVITY_LIKE)) || (activity_match($item['verb'],ACTIVITY_DISLIKE))) && ($item['id'] != $item['parent']))
+					if (((activity_match($item['verb'],ACTIVITY_LIKE)) || (activity_match($item['verb'],ACTIVITY_DISLIKE))) && ($item['id'] != $item['parent'])) {
 						continue;
+					}
 
 					$redirect_url = 'redir/' . $item['cid'] ;
 
-
 					if (local_user() && ($item['contact-uid'] == local_user())
-						&& ($item['network'] == NETWORK_DFRN) && (! $item['self'] )) {
+							&& ($item['network'] == NETWORK_DFRN) && (! $item['self'] )) {
 						$profile_url = $redirect_url;
 						$sparkle = ' sparkle';
 					} else {
@@ -1731,7 +1731,6 @@ function photos_content(App $a) {
 					));
 
 					if ($can_post || can_write_wall($a,$owner_uid)) {
-
 						if ($item['last-child']) {
 							$comments .= replace_macros($cmnt_tpl,array(
 								'$return_path' => '',
@@ -1760,8 +1759,9 @@ function photos_content(App $a) {
 
 
 		$response_verbs = array('like');
-		if (feature_enabled($owner_uid,'dislike'))
+		if (feature_enabled($owner_uid,'dislike')) {
 			$response_verbs[] = 'dislike';
+		}
 		$responses = get_responses($conv_responses,$response_verbs,'',$link_item);
 
 		$photo_tpl = get_markup_template('photo_view.tpl');
@@ -1837,13 +1837,15 @@ function photos_content(App $a) {
 		$twist = 'rotright';
 		foreach ($r as $rr) {
 			//hide profile photos to others
-			if ((! $is_owner) && (! remote_user()) && ($rr['album'] == t('Profile Photos')))
-					continue;
+			if ((! $is_owner) && (! remote_user()) && ($rr['album'] == t('Profile Photos'))) {
+				continue;
+			}
 
-			if ($twist == 'rotright')
+			if ($twist == 'rotright') {
 				$twist = 'rotleft';
-			else
+			} else {
 				$twist = 'rotright';
+			}
 
 			$ext = $phototypes[$rr['type']];
 
