@@ -2137,7 +2137,7 @@ class dfrn {
 				}
 			}
 			if (($rel != "") AND ($href != "")) {
-				switch($rel) {
+				switch ($rel) {
 					case "alternate":
 						$item["plink"] = $href;
 						break;
@@ -2147,7 +2147,7 @@ class dfrn {
 							$item["attach"] .= ",";
 						}
 
-						$item["attach"] .= '[attach]href="'.$href.'" length="'.$length.'" type="'.$type.'" title="'.$title.'"[/attach]';
+						$item["attach"] .= '[attach]href="' . $href . '" length="' . $length . '" type="' . $type . '" title="' . $title . '"[/attach]';
 						break;
 				}
 			}
