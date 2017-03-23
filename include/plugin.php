@@ -521,7 +521,6 @@ function service_class_fetch($uid,$property) {
 			$service_class = $r[0]['service_class'];
 		}
 	}
-	/// @TODO Maybe miss-use of x() ?
 	if (! x($service_class)) {
 		return false; // everything is allowed
 	}

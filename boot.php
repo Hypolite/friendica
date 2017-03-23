@@ -602,7 +602,6 @@ function is_ajax() {
 }
 
 function check_db() {
-
 	$build = get_config('system', 'build');
 	if (!x($build)) {
 		set_config('system', 'build', DB_UPDATE_VERSION);
@@ -1256,16 +1255,16 @@ function feed_birthday($uid, $tz) {
 	);
 
 	if (dbm::is_result($p)) {
-		$tmp_dob = substr($p[0]['dob'], 5);
+		$tmp_dob = substr($p[0]['dob'],5);
 		if (intval($tmp_dob)) {
-			$y = datetime_convert($tz, $tz, 'now', 'Y');
+			$y = datetime_convert($tz,$tz,'now','Y');
 			$bd = $y . '-' . $tmp_dob . ' 00:00';
 			$t_dob = strtotime($bd);
-			$now = strtotime(datetime_convert($tz, $tz, 'now'));
+			$now = strtotime(datetime_convert($tz,$tz,'now'));
 			if ($t_dob < $now) {
 				$bd = $y + 1 . '-' . $tmp_dob . ' 00:00';
 			}
-			$birthday = datetime_convert($tz, 'UTC', $bd, ATOM_TIME);
+			$birthday = datetime_convert($tz,'UTC',$bd,ATOM_TIME);
 		}
 	}
 
@@ -1283,6 +1282,7 @@ function is_site_admin() {
 	$adminlist = explode(",", str_replace(" ", "", $a->config['admin_email']));
 
 	//if(local_user() && x($a->user,'email') && x($a->config,'admin_email') && ($a->user['email'] === $a->config['admin_email']))
+	/// @TODO This if() + 2 returns can be shrinked into one return
 	if (local_user() && x($a->user, 'email') && x($a->config, 'admin_email') && in_array($a->user['email'], $adminlist)) {
 		return true;
 	}
@@ -1376,7 +1376,7 @@ function curPageURL() {
 function random_digits($digits) {
 	$rn = '';
 	for ($i = 0; $i < $digits; $i++) {
-		/// @TODO rand() is different to mt_rand() and maybe lesser "random"
+		/// @TODO Avoid rand/mt_rand, when it comes to cryptography, they are generating predictable (seedable) numbers.
 		$rn .= rand(0, 9);
 	}
 	return $rn;
@@ -1386,10 +1386,10 @@ function get_server() {
 	$server = get_config("system", "directory");
 
 	if ($server == "") {
-		$server = "http://dir.friendica.social";
+		$server = "https://dir.friendica.social";
 	}
 
-	return($server);
+	return $server;
 }
 
 function get_temppath() {
@@ -1436,7 +1436,7 @@ function get_cachefile($file, $writemode = true) {
 	$cache = get_itemcachepath();
 
 	if ((!$cache) || (!is_dir($cache))) {
-		return("");
+		return "";
 	}
 
 	$subfolder = $cache . "/" . substr($file, 0, 2);
@@ -1450,7 +1450,6 @@ function get_cachefile($file, $writemode = true) {
 		}
 	}
 
-	/// @TODO no need to put braces here
 	return $cachepath;
 }
 
@@ -1554,6 +1553,43 @@ function get_spoolpath() {
 	return "";
 }
 
+function get_temppath() {
+	$a = get_app();
+
+	$temppath = get_config("system", "temppath");
+
+	if (($temppath != "") AND App::directory_usable($temppath)) {
+		// We have a temp path and it is usable
+		return $temppath;
+	}
+
+	// We don't have a working preconfigured temp path, so we take the system path.
+	$temppath = sys_get_temp_dir();
+
+	// Check if it is usable
+	if (($temppath != "") AND App::directory_usable($temppath)) {
+		// To avoid any interferences with other systems we create our own directory
+		$new_temppath .= "/".$a->get_hostname();
+		if (!is_dir($new_temppath)) {
+			/// @TODO There is a mkdir()+chmod() upwards, maybe generalize this (+ configurable) into a function/method?
+			mkdir($new_temppath);
+		}
+
+		if (App::directory_usable($new_temppath)) {
+			// The new path is usable, we are happy
+			set_config("system", "temppath", $new_temppath);
+			return $new_temppath;
+		} else {
+			// We can't create a subdirectory, strange.
+			// But the directory seems to work, so we use it but don't store it.
+			return $temppath;
+		}
+	}
+
+	// Reaching this point means that the operating system is configured badly.
+	return '';
+}
+
 /// @deprecated
 function set_template_engine(App $a, $engine = 'internal') {
 /// @note This function is no longer necessary, but keep it as a wrapper to the class method
@@ -1598,7 +1634,7 @@ function validate_include(&$file) {
 	}
 
 	// Simply return flag
-	return ($valid);
+	return $valid;
 }
 
 function current_load() {
