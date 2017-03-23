@@ -1711,11 +1711,13 @@ class dfrn {
 		$relocate["poll"] = $xpath->query("dfrn:poll/text()", $relocation)->item(0)->nodeValue;
 		$relocate["sitepubkey"] = $xpath->query("dfrn:sitepubkey/text()", $relocation)->item(0)->nodeValue;
 
-		if (($relocate["avatar"] == "") AND ($relocate["photo"] != ""))
+		if (($relocate["avatar"] == "") AND ($relocate["photo"] != "")) {
 			$relocate["avatar"] = $relocate["photo"];
+		}
 
-		if ($relocate["addr"] == "")
+		if ($relocate["addr"] == "") {
 			$relocate["addr"] = preg_replace("=(https?://)(.*)/profile/(.*)=ism", "$3@$2", $relocate["url"]);
+		}
 
 		// update contact
 		$r = q("SELECT `photo`, `url` FROM `contact` WHERE `id` = %d AND `uid` = %d;",
@@ -1723,8 +1725,12 @@ class dfrn {
 			intval($importer["importer_uid"]));
 
 		if (!dbm::is_result($r)) {
+			/*
+			 * @TODO maybe one day:
 			logger("Query failed to execute, no result returned in " . __FUNCTION__);
 			killme();
+			*/
+			return false;
 		}
 
 		$old = $r[0];
