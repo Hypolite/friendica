@@ -413,23 +413,7 @@ if(stristr( implode("",$_SESSION['sysmsg']), t('Permission denied'))) {
  *
  */
 
-/*if(x($_SESSION,'sysmsg')) {
-	$a->page['content'] = "<div id=\"sysmsg\" class=\"error-message\">{$_SESSION['sysmsg']}</div>\r\n"
-		. ((x($a->page,'content')) ? $a->page['content'] : '');
-	$_SESSION['sysmsg']="";
-	unset($_SESSION['sysmsg']);
-}
-if(x($_SESSION,'sysmsg_info')) {
-	$a->page['content'] = "<div id=\"sysmsg_info\" class=\"info-message\">{$_SESSION['sysmsg_info']}</div>\r\n"
-		. ((x($a->page,'content')) ? $a->page['content'] : '');
-	$_SESSION['sysmsg_info']="";
-	unset($_SESSION['sysmsg_info']);
-}*/
-
-
-
 call_hooks('page_end', $a->page['content']);
-
 
 /**
  *
@@ -437,7 +421,7 @@ call_hooks('page_end', $a->page['content']);
  *
  */
 
-if($a->module != 'install' && $a->module != 'maintenance') {
+if ($a->module != 'install' && $a->module != 'maintenance') {
 	nav($a);
 }
 
@@ -445,27 +429,27 @@ if($a->module != 'install' && $a->module != 'maintenance') {
  * Add a "toggle mobile" link if we're using a mobile device
  */
 
-if($a->is_mobile || $a->is_tablet) {
-	if(isset($_SESSION['show-mobile']) && !$_SESSION['show-mobile']) {
+if ($a->is_mobile || $a->is_tablet) {
+	if (isset($_SESSION['show-mobile']) && !$_SESSION['show-mobile']) {
 		$link = 'toggle_mobile?address=' . curPageURL();
-	}
-	else {
+	} else {
 		$link = 'toggle_mobile?off=1&address=' . curPageURL();
 	}
 	$a->page['footer'] = replace_macros(get_markup_template("toggle_mobile_footer.tpl"), array(
-				'$toggle_link' => $link,
-				'$toggle_text' => t('toggle mobile')
-			 ));
+		'$toggle_link' => $link,
+		'$toggle_text' => t('toggle mobile')
+	));
 }
 
 /**
  * Build the page - now that we have all the components
  */
 
-if(!$a->theme['stylesheet'])
+if (!$a->theme['stylesheet']) {
 	$stylesheet = current_theme_url();
-else
+} else {
 	$stylesheet = $a->theme['stylesheet'];
+}
 
 $a->page['htmlhead'] = str_replace('{{$stylesheet}}',$stylesheet,$a->page['htmlhead']);
 //$a->page['htmlhead'] = replace_macros($a->page['htmlhead'], array('$stylesheet' => $stylesheet));
@@ -485,7 +469,6 @@ if (isset($_GET["mode"]) AND (($_GET["mode"] == "raw") OR ($_GET["mode"] == "min
 	$list = $xpath->query("//*[contains(@id,'tread-wrapper-')]");  /* */
 
 	foreach ($list as $item) {
-
 		$item = $target->importNode($item, true);
 
 		// And then append it to the target
@@ -515,16 +498,17 @@ header("Content-type: text/html; charset=utf-8");
 // to load another page template than the default one
 // The page templates are located in /view/php/ or in the theme directory
 if (isset($_GET["mode"])) {
-		$template = theme_include($_GET["mode"].'.php');
+	$template = theme_include($_GET["mode"].'.php');
 }
 
 // If there is no page template use the default page template
-if(!$template) {
+if (!$template) {
 	$template = theme_include("default.php");
 }
 
 require_once($template);
 
-if (!$a->is_backend())
+if (!$a->is_backend()) {
 	session_write_close();
-exit;
+}
+exit();
