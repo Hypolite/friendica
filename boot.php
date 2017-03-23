@@ -662,25 +662,28 @@ class App {
 		   (x($_SERVER,'SERVER_PORT') && (intval($_SERVER['SERVER_PORT']) == 443)) // XXX: reasonable assumption, but isn't this hardcoding too much?
 		   ) {
 			$this->scheme = 'https';
-		   }
+		}
 
-		if(x($_SERVER,'SERVER_NAME')) {
+		if (x($_SERVER,'SERVER_NAME')) {
 			$this->hostname = $_SERVER['SERVER_NAME'];
 
-			if(x($_SERVER,'SERVER_PORT') && $_SERVER['SERVER_PORT'] != 80 && $_SERVER['SERVER_PORT'] != 443)
+			if (x($_SERVER,'SERVER_PORT') && $_SERVER['SERVER_PORT'] != 80 && $_SERVER['SERVER_PORT'] != 443) {
 				$this->hostname .= ':' . $_SERVER['SERVER_PORT'];
+			}
 			/*
 			 * Figure out if we are running at the top of a domain
 			 * or in a sub-directory and adjust accordingly
 			 */
 
 			$path = trim(dirname($_SERVER['SCRIPT_NAME']),'/\\');
-			if(isset($path) && strlen($path) && ($path != $this->path))
+			if (isset($path) && strlen($path) && ($path != $this->path)) {
 				$this->path = $path;
+			}
 		}
 
-		if ($hostname != "")
+		if ($hostname != "") {
 			$this->hostname = $hostname;
+		}
 
 		if (is_array($_SERVER["argv"]) && $_SERVER["argc"]>1 && substr(end($_SERVER["argv"]), 0, 4)=="http" ) {
 			$this->set_baseurl(array_pop($_SERVER["argv"]) );
@@ -742,11 +745,10 @@ class App {
 
 		$this->argv = explode('/',$this->cmd);
 		$this->argc = count($this->argv);
-		if((array_key_exists('0',$this->argv)) && strlen($this->argv[0])) {
+		if ((array_key_exists('0',$this->argv)) && strlen($this->argv[0])) {
 			$this->module = str_replace(".", "_", $this->argv[0]);
 			$this->module = str_replace("-", "_", $this->module);
-		}
-		else {
+		} else {
 			$this->argc = 1;
 			$this->argv = array('home');
 			$this->module = 'home';
@@ -793,14 +795,17 @@ class App {
 
 		$basepath = get_config("system", "basepath");
 
-		if ($basepath == "")
+		if ($basepath == "") {
 			$basepath = dirname(__FILE__);
+		}
 
-		if ($basepath == "")
+		if ($basepath == "") {
 			$basepath = $_SERVER["DOCUMENT_ROOT"];
+		}
 
-		if ($basepath == "")
+		if ($basepath == "") {
 			$basepath = $_SERVER["PWD"];
+		}
 
 		return($basepath);
 	}
@@ -864,7 +869,7 @@ class App {
 	function set_baseurl($url) {
 		$parsed = @parse_url($url);
 
-		if($parsed) {
+		if ($parsed) {
 			$this->scheme = $parsed['scheme'];
 
 			$hostname = $parsed['host'];
@@ -890,8 +895,9 @@ class App {
 	}
 
 	function get_hostname() {
-		if (get_config('config','hostname') != "")
+		if (get_config('config','hostname') != "") {
 			$this->hostname = get_config('config','hostname');
+		}
 
 		return $this->hostname;
 	}
@@ -926,16 +932,17 @@ class App {
 		$interval = ((local_user()) ? get_pconfig(local_user(),'system','update_interval') : 40000);
 
 		// If the update is "deactivated" set it to the highest integer number (~24 days)
-		if ($interval < 0)
+		if ($interval < 0) {
 			$interval = 2147483647;
+		}
 
-		if($interval < 10000)
+		if ($interval < 10000) {
 			$interval = 40000;
+		}
 
 		// compose the page title from the sitename and the
 		// current module called
-		if (!$this->module=='')
-		{
+		if (!$this->module == '') {
 		    $this->page['title'] = $this->config['sitename'].' ('.$this->module.')';
 		} else {
 		    $this->page['title'] = $this->config['sitename'];
@@ -945,25 +952,29 @@ class App {
 		 * since the code added by the modules frequently depends on it
 		 * being first
 		 */
-		if(!isset($this->page['htmlhead']))
+		if (!isset($this->page['htmlhead'])) {
 			$this->page['htmlhead'] = '';
+		}
 
 		// If we're using Smarty, then doing replace_macros() will replace
 		// any unrecognized variables with a blank string. Since we delay
 		// replacing $stylesheet until later, we need to replace it now
 		// with another variable name
-		if($this->theme['template_engine'] === 'smarty3')
+		if ($this->theme['template_engine'] === 'smarty3') {
 			$stylesheet = $this->get_template_ldelim('smarty3') . '$stylesheet' . $this->get_template_rdelim('smarty3');
-		else
+		} else {
 			$stylesheet = '$stylesheet';
+		}
 
 		$shortcut_icon = get_config("system", "shortcut_icon");
-		if ($shortcut_icon == "")
+		if ($shortcut_icon == "") {
 			$shortcut_icon = "images/friendica-32.png";
+		}
 
 		$touch_icon = get_config("system", "touch_icon");
-		if ($touch_icon == "")
+		if ($touch_icon == "") {
 			$touch_icon = "images/friendica-128.png";
+		}
 
 		// get data wich is needed for infinite scroll on the network page
 		$invinite_scroll = infinite_scroll_data($this->module);
@@ -985,8 +996,9 @@ class App {
 	}
 
 	function init_page_end() {
-		if(!isset($this->page['end']))
+		if (!isset($this->page['end'])) {
 			$this->page['end'] = '';
+		}
 		$tpl = get_markup_template('end.tpl');
 		$this->page['end'] = replace_macros($tpl,array(
 			'$baseurl' => $this->get_baseurl() // FIXME for z_path!!!!
@@ -1081,11 +1093,12 @@ class App {
 	 * @param string $name
 	 */
 	function register_template_engine($class, $name = '') {
-		if ($name===""){
+		/// @TODO Really === and not just == ?
+		if ($name === "") {
 			$v = get_class_vars( $class );
 			if(x($v,"name")) $name = $v['name'];
 		}
-		if ($name===""){
+		if ($name === "") {
 			echo "template engine <tt>$class</tt> cannot be registered without a name.\n";
 			killme();
 		}
@@ -1101,8 +1114,9 @@ class App {
 	 * @param strin $name Template engine name
 	 * @return object Template Engine instance
 	 */
-	function template_engine($name = ''){
-		if ($name!=="") {
+	function template_engine($name = '') {
+		/// @TODO really type-check included?
+		if ($name !== "") {
 			$template_engine = $name;
 		} else {
 			$template_engine = 'smarty3';
@@ -1112,7 +1126,7 @@ class App {
 		}
 
 		if (isset($this->template_engines[$template_engine])){
-			if(isset($this->template_engine_instance[$template_engine])){
+			if (isset($this->template_engine_instance[$template_engine])){
 				return $this->template_engine_instance[$template_engine];
 			} else {
 				$class = $this->template_engines[$template_engine];
@@ -1159,8 +1173,9 @@ class App {
 	}
 
 	function save_timestamp($stamp, $value) {
-		if (!isset($this->config['system']['profiler']) || !$this->config['system']['profiler'])
+		if (!isset($this->config['system']['profiler']) || !$this->config['system']['profiler']) {
 			return;
+		}
 
 		$duration = (float)(microtime(true)-$stamp);
 
@@ -1242,8 +1257,9 @@ class App {
 		array_shift($trace);
 
 		$callstack = array();
-		foreach ($trace AS $func)
+		foreach ($trace AS $func) {
 			$callstack[] = $func["function"];
+		}
 
 		return implode(", ", $callstack);
 	}
@@ -1286,10 +1302,11 @@ class App {
 		$backend[] = "statistics_json";
 		$backend[] = "xrd";
 
-		if (in_array($this->module, $backend))
+		if (in_array($this->module, $backend)) {
 			return(true);
-		else
+		} else {
 			return($this->backend);
+		}
 	}
 
 	/**
@@ -1302,8 +1319,9 @@ class App {
 		if ($this->is_backend()) {
 			$process = "backend";
 			$max_processes = get_config('system', 'max_processes_backend');
-			if (intval($max_processes) == 0)
+			if (intval($max_processes) == 0) {
 				$max_processes = 5;
+			}
 		} else {
 			$process = "frontend";
 			$max_processes = get_config('system', 'max_processes_frontend');
@@ -1375,15 +1393,17 @@ class App {
 		// add baseurl to args. cli scripts can't construct it
 		$args[] = $this->get_baseurl();
 
-		for($x = 0; $x < count($args); $x ++)
+		for ($x = 0; $x < count($args); $x ++) {
 			$args[$x] = escapeshellarg($args[$x]);
+		}
 
 		$cmdline = implode($args," ");
 
-		if(get_config('system','proc_windows'))
+		if (get_config('system','proc_windows')) {
 			proc_close(proc_open('cmd /c start /b ' . $cmdline,array(),$foo,dirname(__FILE__)));
-		else
+		} else {
 			proc_close(proc_open($cmdline." &",array(),$foo,dirname(__FILE__)));
+		}
 
 	}
 
@@ -1461,17 +1481,17 @@ function get_app() {
  * @return bool|int
  */
 function x($s,$k = NULL) {
-	if($k != NULL) {
-		if((is_array($s)) && (array_key_exists($k,$s))) {
-			if($s[$k])
+	if ($k != NULL) {
+		if ((is_array($s)) && (array_key_exists($k,$s))) {
+			if ($s[$k]) {
 				return (int) 1;
+			}
 			return (int) 0;
-	}
+		}
 		return false;
-	}
-	else {
-		if(isset($s)) {
-			if($s) {
+	} else {
+		if (isset($s)) {
+			if ($s) {
 				return (int) 1;
 			}
 			return (int) 0;
@@ -1499,8 +1519,9 @@ function clean_urls() {
 function z_path() {
 	$base = App::get_baseurl();
 
-	if(! clean_urls())
+	if (! clean_urls()) {
 		$base .= '/?q=';
+	}
 
 	return $base;
 }
@@ -1525,8 +1546,9 @@ function z_root() {
  * @return string
  */
 function absurl($path) {
-	if(strpos($path,'/') === 0)
+	if (strpos($path,'/') === 0) {
 		return z_path() . $path;
+	}
 	return $path;
 }
 
@@ -1542,12 +1564,13 @@ function is_ajax() {
 function check_db() {
 
 	$build = get_config('system','build');
-	if(! x($build)) {
+	if (! x($build)) {
 		set_config('system','build',DB_UPDATE_VERSION);
 		$build = DB_UPDATE_VERSION;
 	}
-	if($build != DB_UPDATE_VERSION)
+	if ($build != DB_UPDATE_VERSION) {
 		proc_run(PRIORITY_CRITICAL, 'include/dbupdate.php');
+	}
 
 }
 
@@ -1566,10 +1589,12 @@ function check_url(App $a) {
 	// and www.example.com vs example.com.
 	// We will only change the url to an ip address if there is no existing setting
 
-	if(! x($url))
+	if (! x($url)) {
 		$url = set_config('system','url',App::get_baseurl());
-	if((! link_compare($url,App::get_baseurl())) && (! preg_match("/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/",$a->get_hostname)))
+	}
+	if ((! link_compare($url,App::get_baseurl())) && (! preg_match("/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/",$a->get_hostname))) {
 		$url = set_config('system','url',App::get_baseurl());
+	}
 
 	return;
 }
@@ -1580,13 +1605,14 @@ function check_url(App $a) {
  */
 function update_db(App $a) {
 	$build = get_config('system','build');
-	if(! x($build))
+	if (! x($build)) {
 		$build = set_config('system','build',DB_UPDATE_VERSION);
+	}
 
-	if($build != DB_UPDATE_VERSION) {
+	if ($build != DB_UPDATE_VERSION) {
 		$stored = intval($build);
 		$current = intval(DB_UPDATE_VERSION);
-		if($stored < $current) {
+		if ($stored < $current) {
 			Config::load('database');
 
 			// We're reporting a different version than what is currently installed.
@@ -1600,8 +1626,9 @@ function update_db(App $a) {
 				// Compare the current structure with the defined structure
 
 				$t = get_config('database','dbupdate_'.DB_UPDATE_VERSION);
-				if($t !== false)
+				if ($t !== false) {
 					return;
+				}
 
 				set_config('database','dbupdate_'.DB_UPDATE_VERSION, time());
 
@@ -1609,15 +1636,19 @@ function update_db(App $a) {
 				// conflits with new routine)
 				for ($x = $stored; $x < NEW_UPDATE_ROUTINE_VERSION; $x++) {
 					$r = run_update_function($x);
-					if (!$r) break;
+					if (!$r) {
+						break;
+					}
 				}
-				if ($stored < NEW_UPDATE_ROUTINE_VERSION) $stored = NEW_UPDATE_ROUTINE_VERSION;
+				if ($stored < NEW_UPDATE_ROUTINE_VERSION) {
+					$stored = NEW_UPDATE_ROUTINE_VERSION;
+				}
 
 
 				// run new update routine
 				// it update the structure in one call
 				$retval = update_structure(false, true);
-				if($retval) {
+				if ($retval) {
 					update_fail(
 						DB_UPDATE_VERSION,
 						$retval
@@ -1628,9 +1659,11 @@ function update_db(App $a) {
 				}
 
 				// run any left update_nnnn functions in update.php
-				for($x = $stored; $x < $current; $x ++) {
+				for ($x = $stored; $x < $current; $x ++) {
 					$r = run_update_function($x);
-					if (!$r) break;
+					if (!$r) {
+						break;
+					}
 				}
 			}
 		}
@@ -1640,7 +1673,7 @@ function update_db(App $a) {
 }
 
 function run_update_function($x) {
-	if(function_exists('update_' . $x)) {
+	if (function_exists('update_' . $x)) {
 
 		// There could be a lot of processes running or about to run.
 		// We want exactly one process to run the update command.
@@ -1651,8 +1684,9 @@ function run_update_function($x) {
 		// delete the config entry to try again.
 
 		$t = get_config('database','update_' . $x);
-		if($t !== false)
+		if ($t !== false) {
 			return false;
+		}
 		set_config('database','update_' . $x, time());
 
 		// call the specific update
@@ -1660,7 +1694,7 @@ function run_update_function($x) {
 		$func = 'update_' . $x;
 		$retval = $func();
 
-		if($retval) {
+		if ($retval) {
 			//send the administrator an e-mail
 			update_fail(
 				$x,
@@ -1697,35 +1731,36 @@ function run_update_function($x) {
 function check_plugins(App $a) {
 
 	$r = q("SELECT * FROM `addon` WHERE `installed` = 1");
-	if (dbm::is_result($r))
+	if (dbm::is_result($r)) {
 		$installed = $r;
-	else
+	} else {
 		$installed = array();
+	}
 
 	$plugins = get_config('system','addon');
 	$plugins_arr = array();
 
-	if($plugins)
+	if ($plugins) {
 		$plugins_arr = explode(',',str_replace(' ', '',$plugins));
+	}
 
 	$a->plugins = $plugins_arr;
 
 	$installed_arr = array();
 
-	if(count($installed)) {
-		foreach($installed as $i) {
-			if(! in_array($i['name'],$plugins_arr)) {
+	if (count($installed)) {
+		foreach ($installed as $i) {
+			if (! in_array($i['name'],$plugins_arr)) {
 				uninstall_plugin($i['name']);
-			}
-			else {
+			} else {
 				$installed_arr[] = $i['name'];
 			}
 		}
 	}
 
-	if(count($plugins_arr)) {
-		foreach($plugins_arr as $p) {
-			if(! in_array($p,$installed_arr)) {
+	if (count($plugins_arr)) {
+		foreach ($plugins_arr as $p) {
+			if (! in_array($p,$installed_arr)) {
 				install_plugin($p);
 			}
 		}
@@ -1744,8 +1779,9 @@ function get_guid($size=16, $prefix = "") {
 		$prefix = hash("crc32", $a->get_hostname());
 	}
 
-	while (strlen($prefix) < ($size - 13))
+	while (strlen($prefix) < ($size - 13)) {
 		$prefix .= mt_rand();
+	}
 
 	if ($size >= 24) {
 		$prefix = substr($prefix, 0, $size - 22);
@@ -1785,12 +1821,11 @@ function login($register = false, $hiddens=false) {
 
 	$dest_url = $a->query_string;
 
-	if(local_user()) {
+	if (local_user()) {
 		$tpl = get_markup_template("logout.tpl");
-	}
-	else {
+	} else {
 		$a->page['htmlhead'] .= replace_macros(get_markup_template("login_head.tpl"),array(
-			'$baseurl'		=> $a->get_baseurl(true)
+			'$baseurl' => $a->get_baseurl(true)
 		));
 
 		$tpl = get_markup_template("login.tpl");
@@ -1800,29 +1835,29 @@ function login($register = false, $hiddens=false) {
 
 	$o .= replace_macros($tpl, array(
 
-		'$dest_url'	=> $dest_url,
-		'$logout'	=> t('Logout'),
-		'$login'	=> t('Login'),
+		'$dest_url'     => $dest_url,
+		'$logout'       => t('Logout'),
+		'$login'        => t('Login'),
 
-		'$lname'	=> array('username', t('Nickname or Email: ') , '', ''),
-		'$lpassword' 	=> array('password', t('Password: '), '', ''),
-		'$lremember'	=> array('remember', t('Remember me'), 0,  ''),
+		'$lname'        => array('username', t('Nickname or Email: ') , '', ''),
+		'$lpassword'    => array('password', t('Password: '), '', ''),
+		'$lremember'    => array('remember', t('Remember me'), 0,  ''),
 
-		'$openid'	=> !$noid,
-		'$lopenid'	=> array('openid_url', t('Or login using OpenID: '),'',''),
+		'$openid'       => !$noid,
+		'$lopenid'      => array('openid_url', t('Or login using OpenID: '),'',''),
 
-		'$hiddens'	=> $hiddens,
+		'$hiddens'      => $hiddens,
 
-		'$register'	=> $reg,
+		'$register'     => $reg,
 
 		'$lostpass'     => t('Forgot your password?'),
 		'$lostlink'     => t('Password Reset'),
 
-		'$tostitle'	=> t('Website Terms of Service'),
-		'$toslink'	=> t('terms of service'),
+		'$tostitle'     => t('Website Terms of Service'),
+		'$toslink'      => t('terms of service'),
 
-		'$privacytitle'	=> t('Website Privacy Policy'),
-		'$privacylink'	=> t('privacy policy'),
+		'$privacytitle' => t('Website Privacy Policy'),
+		'$privacylink'  => t('privacy policy'),
 
 	));
 
@@ -1846,8 +1881,9 @@ function killme() {
  * @brief Redirect to another URL and terminate this process.
  */
 function goaway($s) {
-	if (!strstr(normalise_link($s), "http://"))
+	if (!strstr(normalise_link($s), "http://")) {
 		$s = App::get_baseurl()."/".$s;
+	}
 
 	header("Location: $s");
 	killme();
@@ -1878,11 +1914,11 @@ function public_contact() {
 		if (x($_SESSION, 'my_address')) {
 			// Local user
 			$public_contact_id = intval(get_contact($_SESSION['my_address'], 0));
-		} else if (x($_SESSION, 'visitor_home')) {
+		} elseif (x($_SESSION, 'visitor_home')) {
 			// Remote user
 			$public_contact_id = intval(get_contact($_SESSION['visitor_home'], 0));
 		}
-	} else if (!x($_SESSION, 'authenticated')) {
+	} elseif (!x($_SESSION, 'authenticated')) {
 		$public_contact_id = false;
 	}
 
@@ -1895,8 +1931,9 @@ function public_contact() {
  * @return int|bool visitor_id or false
  */
 function remote_user() {
-	if((x($_SESSION,'authenticated')) && (x($_SESSION,'visitor_id')))
+	if ((x($_SESSION,'authenticated')) && (x($_SESSION,'visitor_id'))) {
 		return intval($_SESSION['visitor_id']);
+	}
 	return false;
 }
 
@@ -1909,9 +1946,12 @@ function remote_user() {
  */
 function notice($s) {
 	$a = get_app();
-	if(! x($_SESSION,'sysmsg'))	$_SESSION['sysmsg'] = array();
-	if($a->interactive)
+	if (! x($_SESSION,'sysmsg')) {
+		$_SESSION['sysmsg'] = array();
+	}
+	if ($a->interactive) {
 		$_SESSION['sysmsg'][] = $s;
+	}
 }
 
 /**
@@ -1924,12 +1964,16 @@ function notice($s) {
 function info($s) {
 	$a = get_app();
 
-	if (local_user() AND get_pconfig(local_user(),'system','ignore_info'))
+	if (local_user() AND get_pconfig(local_user(),'system','ignore_info')) {
 		return;
+	}
 
-	if(! x($_SESSION,'sysmsg_info')) $_SESSION['sysmsg_info'] = array();
-	if($a->interactive)
+	if (! x($_SESSION,'sysmsg_info')) {
+		$_SESSION['sysmsg_info'] = array();
+	}
+	if ($a->interactive) {
 		$_SESSION['sysmsg_info'][] = $s;
+	}
 }
 
 
@@ -1991,8 +2035,9 @@ function proc_run($cmd){
 	$arr = array('args' => $args, 'run_cmd' => true);
 
 	call_hooks("proc_run", $arr);
-	if (!$arr['run_cmd'] OR !count($args))
+	if (!$arr['run_cmd'] OR !count($args)) {
 		return;
+	}
 
 	$priority = PRIORITY_MEDIUM;
 	$dont_fork = get_config("system", "worker_dont_fork");
@@ -2015,12 +2060,13 @@ function proc_run($cmd){
 	$found = q("SELECT `id` FROM `workerqueue` WHERE `parameter` = '%s'",
 		dbesc($parameters));
 
-	if (!$found)
+	if (!dbm::is_result($found)) {
 		q("INSERT INTO `workerqueue` (`parameter`, `created`, `priority`)
 			VALUES ('%s', '%s', %d)",
 			dbesc($parameters),
 			dbesc(datetime_convert()),
 			intval($priority));
+	}
 
 	// Should we quit and wait for the poller to be called as a cronjob?
 	if ($dont_fork) {
@@ -2033,12 +2079,14 @@ function proc_run($cmd){
 	// Get number of allowed number of worker threads
 	$queues = intval(get_config("system", "worker_queues"));
 
-	if ($queues == 0)
+	if ($queues == 0) {
 		$queues = 4;
+	}
 
 	// If there are already enough workers running, don't fork another one
-	if ($workers[0]["workers"] >= $queues)
+	if ($workers[0]["workers"] >= $queues) {
 		return;
+	}
 
 	// Now call the poller to execute the jobs that we just added to the queue
 	$args = array("include/poller.php", "no_cron");
@@ -2055,20 +2103,22 @@ function current_theme(){
 
 	// Find the theme that belongs to the user whose stuff we are looking at
 
-	if($a->profile_uid && ($a->profile_uid != local_user())) {
+	if ($a->profile_uid && ($a->profile_uid != local_user())) {
 		$r = q("select theme from user where uid = %d limit 1",
 			intval($a->profile_uid)
 		);
-		if (dbm::is_result($r))
+		if (dbm::is_result($r)) {
 			$page_theme = $r[0]['theme'];
+		}
 	}
 
 	// Allow folks to over-rule user themes and always use their own on their own site.
 	// This works only if the user is on the same server
 
-	if($page_theme && local_user() && (local_user() != $a->profile_uid)) {
-		if(get_pconfig(local_user(),'system','always_my_theme'))
+	if ($page_theme && local_user() && (local_user() != $a->profile_uid)) {
+		if (get_pconfig(local_user(),'system','always_my_theme')) {
 			$page_theme = null;
+		}
 	}
 
 //		$mobile_detect = new Mobile_Detect();
@@ -2089,38 +2139,42 @@ function current_theme(){
 			}
 			$theme_name = ((isset($_SESSION) && x($_SESSION,'mobile-theme')) ? $_SESSION['mobile-theme'] : $system_theme);
 
-			if($theme_name === '---') {
+			if ($theme_name === '---') {
 				// user has selected to have the mobile theme be the same as the normal one
 				$system_theme = $standard_system_theme;
 				$theme_name = $standard_theme_name;
 
-				if($page_theme)
+				if ($page_theme) {
 					$theme_name = $page_theme;
+				}
 			}
 		}
-	}
-	else {
+	} else {
 		$system_theme = $standard_system_theme;
 		$theme_name = $standard_theme_name;
 
-		if($page_theme)
+		if ($page_theme) {
 			$theme_name = $page_theme;
+		}
 	}
 
-	if($theme_name &&
+	if ($theme_name &&
 			(file_exists('view/theme/' . $theme_name . '/style.css') ||
-					file_exists('view/theme/' . $theme_name . '/style.php')))
+					file_exists('view/theme/' . $theme_name . '/style.php'))) {
 		return($theme_name);
+	}
 
 	foreach($app_base_themes as $t) {
-		if(file_exists('view/theme/' . $t . '/style.css')||
-				file_exists('view/theme/' . $t . '/style.php'))
+		if (file_exists('view/theme/' . $t . '/style.css') ||
+				file_exists('view/theme/' . $t . '/style.php')) {
 			return($t);
+		}
 	}
 
 	$fallback = array_merge(glob('view/theme/*/style.css'),glob('view/theme/*/style.php'));
-	if(count($fallback))
+	if (count($fallback)) {
 		return (str_replace('view/theme/','', substr($fallback[0],0,-10)));
+	}
 
 }
 
@@ -2137,8 +2191,9 @@ function current_theme_url() {
 	$t = current_theme();
 
 	$opts = (($a->profile_uid) ? '?f=&puid=' . $a->profile_uid : '');
-	if (file_exists('view/theme/' . $t . '/style.php'))
+	if (file_exists('view/theme/' . $t . '/style.php')) {
 		return('view/theme/'.$t.'/style.pcss'.$opts);
+	}
 
 	return('view/theme/'.$t.'/style.css');
 }
@@ -2167,8 +2222,9 @@ function feed_birthday($uid,$tz) {
 
 	$birthday = '';
 
-	if(! strlen($tz))
+	if (! strlen($tz)) {
 		$tz = 'UTC';
+	}
 
 	$p = q("SELECT `dob` FROM `profile` WHERE `is-default` = 1 AND `uid` = %d LIMIT 1",
 			intval($uid)
@@ -2176,13 +2232,14 @@ function feed_birthday($uid,$tz) {
 
 	if (dbm::is_result($p)) {
 		$tmp_dob = substr($p[0]['dob'],5);
-		if(intval($tmp_dob)) {
+		if (intval($tmp_dob)) {
 			$y = datetime_convert($tz,$tz,'now','Y');
 			$bd = $y . '-' . $tmp_dob . ' 00:00';
 			$t_dob = strtotime($bd);
 			$now = strtotime(datetime_convert($tz,$tz,'now'));
-			if($t_dob < $now)
+			if ($t_dob < $now) {
 				$bd = $y + 1 . '-' . $tmp_dob . ' 00:00';
+			}
 			$birthday = datetime_convert($tz,'UTC',$bd,ATOM_TIME);
 		}
 	}
@@ -2201,8 +2258,9 @@ function is_site_admin() {
 	$adminlist = explode(",", str_replace(" ", "", $a->config['admin_email']));
 
 	//if(local_user() && x($a->user,'email') && x($a->config,'admin_email') && ($a->user['email'] === $a->config['admin_email']))
-	if(local_user() && x($a->user,'email') && x($a->config,'admin_email') && in_array($a->user['email'], $adminlist))
+	if (local_user() && x($a->user,'email') && x($a->config,'admin_email') && in_array($a->user['email'], $adminlist)) {
 		return true;
+	}
 	return false;
 }
 
@@ -2214,21 +2272,24 @@ function is_site_admin() {
  *
  * @return string
  */
-function build_querystring($params, $name=null) {
+function build_querystring($params, $name = null) {
 	$ret = "";
-	foreach($params as $key=>$val) {
-		if(is_array($val)) {
-			if($name==null) {
+	foreach ($params as $key => $val) {
+		if (is_array($val)) {
+			/// @TODO maybe not compare against null, use is_null()
+			if ($name == null) {
 				$ret .= build_querystring($val, $key);
 			} else {
 				$ret .= build_querystring($val, $name."[$key]");
 			}
 		} else {
 			$val = urlencode($val);
-			if($name!=null) {
-				$ret.=$name."[$key]"."=$val&";
+			/// @TODO maybe not compare against null, use is_null()
+			if ($name != null) {
+				/// @TODO two string concated, can be merged to one
+				$ret .= $name . "[$key]" . "=$val&";
 			} else {
-				$ret.= "$key=$val&";
+				$ret .= "$key=$val&";
 			}
 		}
 	}
@@ -2237,7 +2298,7 @@ function build_querystring($params, $name=null) {
 
 function explode_querystring($query) {
 	$arg_st = strpos($query, '?');
-	if($arg_st !== false) {
+	if ($arg_st !== false) {
 		$base = substr($query, 0, $arg_st);
 		$arg_st += 1;
 	} else {
@@ -2246,13 +2307,15 @@ function explode_querystring($query) {
 	}
 
 	$args = explode('&', substr($query, $arg_st));
-	foreach($args as $k=>$arg) {
-		if($arg === '')
+	foreach ($args as $k => $arg) {
+		/// @TODO really compare type-safe here?
+		if ($arg === '') {
 			unset($args[$k]);
+		}
 	}
 	$args = array_values($args);
 
-	if(!$base) {
+	if (!$base) {
 		$base = $args[0];
 		unset($args[0]);
 		$args = array_values($args);
@@ -2271,8 +2334,12 @@ function explode_querystring($query) {
 */
 function curPageURL() {
 	$pageURL = 'http';
-	if ($_SERVER["HTTPS"] == "on") {$pageURL .= "s";}
+	if ($_SERVER["HTTPS"] == "on") {
+		$pageURL .= "s";
+	}
+
 	$pageURL .= "://";
+
 	if ($_SERVER["SERVER_PORT"] != "80" && $_SERVER["SERVER_PORT"] != "443") {
 		$pageURL .= $_SERVER["SERVER_NAME"].":".$_SERVER["SERVER_PORT"].$_SERVER["REQUEST_URI"];
 	} else {
@@ -2283,7 +2350,8 @@ function curPageURL() {
 
 function random_digits($digits) {
 	$rn = '';
-	for($i = 0; $i < $digits; $i++) {
+	for ($i = 0; $i < $digits; $i++) {
+		/// @TODO rand() is different to mt_rand() and maybe lesser "random"
 		$rn .= rand(0,9);
 	}
 	return $rn;
@@ -2292,8 +2360,9 @@ function random_digits($digits) {
 function get_server() {
 	$server = get_config("system", "directory");
 
-	if ($server == "")
+	if ($server == "") {
 		$server = "http://dir.friendi.ca";
+	}
 
 	return($server);
 }
@@ -2301,12 +2370,13 @@ function get_server() {
 function get_cachefile($file, $writemode = true) {
 	$cache = get_itemcachepath();
 
-	if ((! $cache) || (! is_dir($cache)))
+	if ((! $cache) || (! is_dir($cache))) {
 		return("");
+	}
 
-	$subfolder = $cache."/".substr($file, 0, 2);
+	$subfolder = $cache . "/" . substr($file, 0, 2);
 
-	$cachepath = $subfolder."/".$file;
+	$cachepath = $subfolder . "/" . $file;
 
 	if ($writemode) {
 		if (!is_dir($subfolder)) {
@@ -2315,6 +2385,7 @@ function get_cachefile($file, $writemode = true) {
 		}
 	}
 
+	/// @TODO no need to put braces here
 	return($cachepath);
 }
 
@@ -2324,24 +2395,29 @@ function clear_cache($basepath = "", $path = "") {
 		$path = $basepath;
 	}
 
-	if (($path == "") OR (!is_dir($path)))
+	if (($path == "") OR (!is_dir($path))) {
 		return;
+	}
 
-	if (substr(realpath($path), 0, strlen($basepath)) != $basepath)
+	if (substr(realpath($path), 0, strlen($basepath)) != $basepath) {
 		return;
+	}
 
 	$cachetime = (int)get_config('system','itemcache_duration');
-	if ($cachetime == 0)
+	if ($cachetime == 0) {
 		$cachetime = 86400;
+	}
 
 	if (is_writable($path)){
 		if ($dh = opendir($path)) {
 			while (($file = readdir($dh)) !== false) {
 				$fullpath = $path."/".$file;
-				if ((filetype($fullpath) == "dir") and ($file != ".") and ($file != ".."))
+				if ((filetype($fullpath) == "dir") and ($file != ".") and ($file != "..")) {
 					clear_cache($basepath, $fullpath);
-				if ((filetype($fullpath) == "file") and (filectime($fullpath) < (time() - $cachetime)))
+				}
+				if ((filetype($fullpath) == "file") and (filectime($fullpath) < (time() - $cachetime))) {
 					unlink($fullpath);
+				}
 			}
 			closedir($dh);
 		}
@@ -2351,8 +2427,9 @@ function clear_cache($basepath = "", $path = "") {
 function get_itemcachepath() {
 	// Checking, if the cache is deactivated
 	$cachetime = (int)get_config('system','itemcache_duration');
-	if ($cachetime < 0)
+	if ($cachetime < 0) {
 		return "";
+	}
 
 	$itemcache = get_config('system','itemcache');
 	if (($itemcache != "") AND App::directory_usable($itemcache)) {
@@ -2429,8 +2506,10 @@ function get_temppath() {
 	if (($temppath != "") AND App::directory_usable($temppath)) {
 		// To avoid any interferences with other systems we create our own directory
 		$new_temppath .= "/".$a->get_hostname();
-		if (!is_dir($new_temppath))
+		if (!is_dir($new_temppath)) {
+			/// @TODO There is a mkdir()+chmod() upwards, maybe generalize this (+ configurable) into a function/method?
 			mkdir($new_temppath);
+		}
 
 		if (App::directory_usable($new_temppath)) {
 			// The new path is usable, we are happy
@@ -2451,6 +2530,7 @@ function get_temppath() {
 function set_template_engine(App $a, $engine = 'internal') {
 /// @note This function is no longer necessary, but keep it as a wrapper to the class method
 /// to avoid breaking themes again unnecessarily
+/// @TODO maybe output a warning here so the theme developer can see it? PHP won't show such warnings like Java does.
 
 	$a->set_template_engine($engine);
 }
@@ -2467,37 +2547,45 @@ function validate_include(&$file) {
 
 	$file = realpath($file);
 
-	if (strpos($file, getcwd()) !== 0)
+	if (strpos($file, getcwd()) !== 0) {
 		return false;
+	}
 
 	$file = str_replace(getcwd()."/", "", $file, $count);
-	if ($count != 1)
+	if ($count != 1) {
 		return false;
+	}
 
-	if ($orig_file !== $file)
+	if ($orig_file !== $file) {
 		return false;
+	}
 
 	$valid = false;
-	if (strpos($file, "include/") === 0)
+	if (strpos($file, "include/") === 0) {
 		$valid = true;
+	}
 
-	if (strpos($file, "addon/") === 0)
+	if (strpos($file, "addon/") === 0) {
 		$valid = true;
+	}
 
-	if (!$valid)
+	if (!$valid) {
 		return false;
+	}
 
 	return true;
 }
 
 function current_load() {
-	if (!function_exists('sys_getloadavg'))
+	if (!function_exists('sys_getloadavg')) {
 		return false;
+	}
 
 	$load_arr = sys_getloadavg();
 
-	if (!is_array($load_arr))
+	if (!is_array($load_arr)) {
 		return false;
+	}
 
 	return max($load_arr[0], $load_arr[1]);
 }
@@ -2518,8 +2606,9 @@ function argc() {
  * @return string Value of the argv key
  */
 function argv($x) {
-	if(array_key_exists($x,get_app()->argv))
+	if (array_key_exists($x,get_app()->argv)) {
 		return get_app()->argv[$x];
+	}
 
 	return '';
 }
@@ -2543,20 +2632,24 @@ function infinite_scroll_data($module) {
 		AND ($module == "network") AND ($_GET["mode"] != "minimal")) {
 
 		// get the page number
-		if (is_string($_GET["page"]))
+		if (is_string($_GET["page"])) {
 			$pageno = $_GET["page"];
-		else
+		} else {
 			$pageno = 1;
+		}
 
 		$reload_uri = "";
 
 		// try to get the uri from which we load the content
-		foreach ($_GET AS $param => $value)
-			if (($param != "page") AND ($param != "q"))
-				$reload_uri .= "&".$param."=".urlencode($value);
+		foreach ($_GET AS $param => $value) {
+			if (($param != "page") AND ($param != "q")) {
+				$reload_uri .= "&" . $param . "=" . urlencode($value);
+			}
+		}
 
-		if (($a->page_offset != "") AND !strstr($reload_uri, "&offset="))
-			$reload_uri .= "&offset=".urlencode($a->page_offset);
+		if (($a->page_offset != "") AND !strstr($reload_uri, "&offset=")) {
+			$reload_uri .= "&offset=" . urlencode($a->page_offset);
+		}
 
 		$arr = array("pageno" => $pageno, "reload_uri" => $reload_uri);
 
