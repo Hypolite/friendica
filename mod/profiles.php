@@ -471,10 +471,10 @@ function profiles_post(App $a) {
 			intval(local_user())
 		);
 
+		/// @TODO decide to use dbm::is_result() here and check $r
 		if ($r) {
 			info(t('Profile updated.') . EOL);
 		}
-
 
 		if ($namechanged && $is_default) {
 			$r = q("UPDATE `contact` SET `name` = '%s', `name-date` = '%s' WHERE `self` = 1 AND `uid` = %d",
