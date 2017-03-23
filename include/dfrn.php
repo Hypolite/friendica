@@ -2015,28 +2015,28 @@ class dfrn {
 
 			// Big question: Do we need these functions? They were part of the "consume_feed" function.
 			// This function once was responsible for DFRN and OStatus.
-			if(activity_match($item["verb"],ACTIVITY_FOLLOW)) {
+			if (activity_match($item["verb"], ACTIVITY_FOLLOW)) {
 				logger("New follower");
 				new_follower($importer, $contact, $item, $nickname);
 				return false;
 			}
-			if(activity_match($item["verb"],ACTIVITY_UNFOLLOW))  {
+			if (activity_match($item["verb"], ACTIVITY_UNFOLLOW))  {
 				logger("Lost follower");
 				lose_follower($importer, $contact, $item);
 				return false;
 			}
-			if(activity_match($item["verb"],ACTIVITY_REQ_FRIEND)) {
+			if (activity_match($item["verb"], ACTIVITY_REQ_FRIEND)) {
 				logger("New friend request");
 				new_follower($importer, $contact, $item, $nickname, true);
 				return false;
 			}
-			if(activity_match($item["verb"],ACTIVITY_UNFRIEND))  {
+			if (activity_match($item["verb"], ACTIVITY_UNFRIEND))  {
 				logger("Lost sharer");
 				lose_sharer($importer, $contact, $item);
 				return false;
 			}
 		} else {
-			if(($item["verb"] == ACTIVITY_LIKE)
+			if (($item["verb"] == ACTIVITY_LIKE)
 				|| ($item["verb"] == ACTIVITY_DISLIKE)
 				|| ($item["verb"] == ACTIVITY_ATTEND)
 				|| ($item["verb"] == ACTIVITY_ATTENDNO)
@@ -2139,8 +2139,9 @@ class dfrn {
 						break;
 					case "enclosure":
 						$enclosure = $href;
-						if(strlen($item["attach"]))
+						if (strlen($item["attach"])) {
 							$item["attach"] .= ",";
+						}
 
 						$item["attach"] .= '[attach]href="'.$href.'" length="'.$length.'" type="'.$type.'" title="'.$title.'"[/attach]';
 						break;
@@ -2206,7 +2207,7 @@ class dfrn {
 		$item["body"] = limit_body_size($item["body"]);
 
 		/// @todo Do we really need this check for HTML elements? (It was copied from the old function)
-		if((strpos($item['body'],'<') !== false) && (strpos($item['body'],'>') !== false)) {
+		if ((strpos($item['body'],'<') !== false) && (strpos($item['body'],'>') !== false)) {
 
 			$item['body'] = reltoabs($item['body'],$base_url);
 
@@ -2235,21 +2236,24 @@ class dfrn {
 		$item["location"] = $xpath->query("dfrn:location/text()", $entry)->item(0)->nodeValue;
 
 		$georsspoint = $xpath->query("georss:point", $entry);
-		if ($georsspoint)
+		if ($georsspoint) {
 			$item["coord"] = $georsspoint->item(0)->nodeValue;
+		}
 
 		$item["private"] = $xpath->query("dfrn:private/text()", $entry)->item(0)->nodeValue;
 
 		$item["extid"] = $xpath->query("dfrn:extid/text()", $entry)->item(0)->nodeValue;
 
-		if ($xpath->query("dfrn:bookmark/text()", $entry)->item(0)->nodeValue == "true")
+		if ($xpath->query("dfrn:bookmark/text()", $entry)->item(0)->nodeValue == "true") {
 			$item["bookmark"] = true;
+		}
 
 		$notice_info = $xpath->query("statusnet:notice_info", $entry);
 		if ($notice_info AND ($notice_info->length > 0)) {
 			foreach($notice_info->item(0)->attributes AS $attributes) {
-				if ($attributes->name == "source")
+				if ($attributes->name == "source") {
 					$item["app"] = strip_tags($attributes->textContent);
+				}
 			}
 		}
 
@@ -2257,21 +2261,24 @@ class dfrn {
 
 		// We store the data from "dfrn:diaspora_signature" in a different table, this is done in "item_store"
 		$dsprsig = unxmlify($xpath->query("dfrn:diaspora_signature/text()", $entry)->item(0)->nodeValue);
-		if ($dsprsig != "")
+		if ($dsprsig != "") {
 			$item["dsprsig"] = $dsprsig;
+		}
 
 		$item["verb"] = $xpath->query("activity:verb/text()", $entry)->item(0)->nodeValue;
 
-		if ($xpath->query("activity:object-type/text()", $entry)->item(0)->nodeValue != "")
+		if ($xpath->query("activity:object-type/text()", $entry)->item(0)->nodeValue != "") {
 			$item["object-type"] = $xpath->query("activity:object-type/text()", $entry)->item(0)->nodeValue;
+		}
 
 		$object = $xpath->query("activity:object", $entry)->item(0);
 		$item["object"] = self::transform_activity($xpath, $object, "object");
 
 		if (trim($item["object"]) != "") {
 			$r = parse_xml_string($item["object"], false);
-			if (isset($r->type))
+			if (isset($r->type)) {
 				$item["object-type"] = $r->type;
+			}
 		}
 
 		$target = $xpath->query("activity:target", $entry)->item(0);
@@ -2283,11 +2290,13 @@ class dfrn {
 				$term = "";
 				$scheme = "";
 				foreach($category->attributes AS $attributes) {
-					if ($attributes->name == "term")
+					if ($attributes->name == "term") {
 						$term = $attributes->textContent;
+					}
 
-					if ($attributes->name == "scheme")
+					if ($attributes->name == "scheme") {
 						$scheme = $attributes->textContent;
+					}
 				}
 
 				if (($term != "") AND ($scheme != "")) {
@@ -2296,10 +2305,11 @@ class dfrn {
 						$termhash = array_shift($parts);
 						$termurl = implode(":", $parts);
 
-						if(strlen($item["tag"]))
+						if (strlen($item["tag"])) {
 							$item["tag"] .= ",";
+						}
 
-						$item["tag"] .= $termhash."[url=".$termurl."]".$term."[/url]";
+						$item["tag"] .= $termhash . "[url=" . $termurl . "]" . $term . "[/url]";
 					}
 				}
 			}
@@ -2308,38 +2318,48 @@ class dfrn {
 		$enclosure = "";
 
 		$links = $xpath->query("atom:link", $entry);
-		if ($links)
+		if ($links) {
 			self::parse_links($links, $item);
+		}
 
 		// Is it a reply or a top level posting?
 		$item["parent-uri"] = $item["uri"];
 
 		$inreplyto = $xpath->query("thr:in-reply-to", $entry);
-		if (is_object($inreplyto->item(0)))
-			foreach($inreplyto->item(0)->attributes AS $attributes)
-				if ($attributes->name == "ref")
+		if (is_object($inreplyto->item(0))) {
+			foreach ($inreplyto->item(0)->attributes AS $attributes) {
+				if ($attributes->name == "ref") {
 					$item["parent-uri"] = $attributes->textContent;
+				}
+			}
+		}
 
 		// Get the type of the item (Top level post, reply or remote reply)
 		$entrytype = self::get_entry_type($importer, $item);
 
 		// Now assign the rest of the values that depend on the type of the message
 		if (in_array($entrytype, array(DFRN_REPLY, DFRN_REPLY_RC))) {
-			if (!isset($item["object-type"]))
+			if (!isset($item["object-type"])) {
 				$item["object-type"] = ACTIVITY_OBJ_COMMENT;
+			}
 
-			if ($item["contact-id"] != $owner["contact-id"])
+			if ($item["contact-id"] != $owner["contact-id"]) {
 				$item["contact-id"] = $owner["contact-id"];
+			}
 
-			if (($item["network"] != $owner["network"]) AND ($owner["network"] != ""))
+			if (($item["network"] != $owner["network"]) AND ($owner["network"] != "")) {
 				$item["network"] = $owner["network"];
+			}
 
-			if ($item["contact-id"] != $author["contact-id"])
+			if ($item["contact-id"] != $author["contact-id"]) {
 				$item["contact-id"] = $author["contact-id"];
+			}
 
-			if (($item["network"] != $author["network"]) AND ($author["network"] != ""))
+			if (($item["network"] != $author["network"]) AND ($author["network"] != "")) {
 				$item["network"] = $author["network"];
+			}
 
+			/// @TODO maybe remove this old-lost code then?
 			// This code was taken from the old DFRN code
 			// When activated, forums don't work.
 			// And: Why should we disallow commenting by followers?
@@ -2354,15 +2374,17 @@ class dfrn {
 			$item["type"] = "remote-comment";
 			$item["wall"] = 1;
 		} elseif ($entrytype == DFRN_TOP_LEVEL) {
-			if (!isset($item["object-type"]))
+			if (!isset($item["object-type"])) {
 				$item["object-type"] = ACTIVITY_OBJ_NOTE;
+			}
 
 			// Is it an event?
 			if ($item["object-type"] == ACTIVITY_OBJ_EVENT) {
 				logger("Item ".$item["uri"]." seems to contain an event.", LOGGER_DEBUG);
 				$ev = bbtoevent($item["body"]);
-				if((x($ev, "desc") || x($ev, "summary")) && x($ev, "start")) {
+				if ((x($ev, "desc") || x($ev, "summary")) && x($ev, "start")) {
 					logger("Event in item ".$item["uri"]." was found.", LOGGER_DEBUG);
+					/// @TODO Mixure of "/' ahead ...
 					$ev["cid"] = $importer["id"];
 					$ev["uid"] = $importer["uid"];
 					$ev["uri"] = $item["uri"];
@@ -2374,8 +2396,9 @@ class dfrn {
 						dbesc($item["uri"]),
 						intval($importer["uid"])
 					);
-					if (dbm::is_result($r))
+					if (dbm::is_result($r)) {
 						$ev["id"] = $r[0]["id"];
+					}
 
 					$event_id = event_store($ev);
 					logger("Event ".$event_id." was stored", LOGGER_DEBUG);
@@ -2612,7 +2635,7 @@ class dfrn {
 				}
 				// if this is a relayed delete, propagate it to other recipients
 
-				if($entrytype == DFRN_REPLY_RC) {
+				if ($entrytype == DFRN_REPLY_RC) {
 					logger("Notifying followers about deletion of post ".$item["id"], LOGGER_DEBUG);
 					proc_run(PRIORITY_HIGH, "include/notifier.php","drop", $item["id"]);
 				}
@@ -2629,10 +2652,11 @@ class dfrn {
 	 */
 	public static function import($xml,$importer, $sort_by_date = false) {
 
-		if ($xml == "")
+		if ($xml == "") {
 			return;
+		}
 
-		if($importer["readonly"]) {
+		if ($importer["readonly"]) {
 			// We aren't receiving stuff from this person. But we will quietly ignore them
 			// rather than a blatant "go away" message.
 			logger('ignoring contact '.$importer["id"]);
@@ -2665,56 +2689,66 @@ class dfrn {
 		// Update the contact table if the data has changed
 
 		// The "atom:author" is only present in feeds
-		if ($xpath->query("/atom:feed/atom:author")->length > 0)
+		if ($xpath->query("/atom:feed/atom:author")->length > 0) {
 			self::fetchauthor($xpath, $doc->firstChild, $importer, "atom:author", false, $xml);
+		}
 
 		// Only the "dfrn:owner" in the head section contains all data
-		if ($xpath->query("/atom:feed/dfrn:owner")->length > 0)
+		if ($xpath->query("/atom:feed/dfrn:owner")->length > 0) {
 			self::fetchauthor($xpath, $doc->firstChild, $importer, "dfrn:owner", false, $xml);
+		}
 
-		logger("Import DFRN message for user ".$importer["uid"]." from contact ".$importer["id"], LOGGER_DEBUG);
+		logger("Import DFRN message for user " . $importer["uid"] . " from contact " . $importer["id"], LOGGER_DEBUG);
 
 		// The account type is new since 3.5.1
 		if ($xpath->query("/atom:feed/dfrn:account_type")->length > 0) {
 			$accounttype = intval($xpath->evaluate("/atom:feed/dfrn:account_type/text()", $context)->item(0)->nodeValue);
 
-			if ($accounttype != $importer["contact-type"])
+			if ($accounttype != $importer["contact-type"]) {
+				/// @TODO this way is the norm or putting ); at the end of the line?
 				q("UPDATE `contact` SET `contact-type` = %d WHERE `id` = %d",
 					intval($accounttype),
 					intval($importer["id"])
 				);
+			}
 		}
 
 		// is it a public forum? Private forums aren't supported with this method
 		// This is deprecated since 3.5.1
 		$forum = intval($xpath->evaluate("/atom:feed/dfrn:community/text()", $context)->item(0)->nodeValue);
 
-		if ($forum != $importer["forum"])
+		if ($forum != $importer["forum"]) {
 			q("UPDATE `contact` SET `forum` = %d WHERE `forum` != %d AND `id` = %d",
 				intval($forum), intval($forum),
 				intval($importer["id"])
 			);
+		}
 
 		$mails = $xpath->query("/atom:feed/dfrn:mail");
-		foreach ($mails AS $mail)
+		foreach ($mails AS $mail) {
 			self::process_mail($xpath, $mail, $importer);
+		}
 
 		$suggestions = $xpath->query("/atom:feed/dfrn:suggest");
-		foreach ($suggestions AS $suggestion)
+		foreach ($suggestions AS $suggestion) {
 			self::process_suggestion($xpath, $suggestion, $importer);
+		}
 
 		$relocations = $xpath->query("/atom:feed/dfrn:relocate");
-		foreach ($relocations AS $relocation)
+		foreach ($relocations AS $relocation) {
 			self::process_relocation($xpath, $relocation, $importer);
+		}
 
 		$deletions = $xpath->query("/atom:feed/at:deleted-entry");
-		foreach ($deletions AS $deletion)
+		foreach ($deletions AS $deletion) {
 			self::process_deletion($xpath, $deletion, $importer);
+		}
 
 		if (!$sort_by_date) {
 			$entries = $xpath->query("/atom:feed/atom:entry");
-			foreach ($entries AS $entry)
+			foreach ($entries AS $entry) {
 				self::process_entry($header, $xpath, $entry, $importer);
+			}
 		} else {
 			$newentries = array();
 			$entries = $xpath->query("/atom:feed/atom:entry");
@@ -2726,10 +2760,10 @@ class dfrn {
 			// Now sort after the publishing date
 			ksort($newentries);
 
-			foreach ($newentries AS $entry)
+			foreach ($newentries AS $entry) {
 				self::process_entry($header, $xpath, $entry, $importer);
+			}
 		}
 		logger("Import done for user ".$importer["uid"]." from contact ".$importer["id"], LOGGER_DEBUG);
 	}
 }
-?>
