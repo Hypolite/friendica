@@ -326,9 +326,9 @@ function update_1032() {
 
 function update_1033() {
 	q("CREATE TABLE IF NOT EXISTS `cache` (
- 		`k` CHAR( 255 ) NOT NULL PRIMARY KEY ,
- 		`v` TEXT NOT NULL,
- 		`updated` DATETIME NOT NULL
+		`k` CHAR( 255 ) NOT NULL PRIMARY KEY ,
+		`v` TEXT NOT NULL,
+		`updated` DATETIME NOT NULL
 		) DEFAULT CHARSET=utf8 ");
 }
 
