@@ -1599,8 +1599,17 @@ class dfrn {
 			dbesc(normalise_link($suggest["url"])),
 			intval($suggest["uid"])
 		);
-		if (dbm::is_result($r))
+
+		/*
+		 * The valid result means the friend we're about to send a friend
+		 * suggestion already has them in their contact, which means no further
+		 * action is required.
+		 *
+		 * @see https://github.com/friendica/friendica/pull/3254#discussion_r107315246
+		 */
+		if (dbm::is_result($r)) {
 			return false;
+		}
 
 		// Do we already have an fcontact record for this person?
 
@@ -1618,27 +1627,29 @@ class dfrn {
 				intval($suggest["uid"]),
 				intval($fid)
 			);
-			if (dbm::is_result($r))
+			if (dbm::is_result($r)) {
 				return false;
+			}
 		}
-		if(!$fid)
+		if (!$fid) {
 			$r = q("INSERT INTO `fcontact` (`name`,`url`,`photo`,`request`) VALUES ('%s', '%s', '%s', '%s')",
-			dbesc($suggest["name"]),
-			dbesc($suggest["url"]),
-			dbesc($suggest["photo"]),
-			dbesc($suggest["request"])
-		);
+				dbesc($suggest["name"]),
+				dbesc($suggest["url"]),
+				dbesc($suggest["photo"]),
+				dbesc($suggest["request"])
+			);
+		}
 		$r = q("SELECT `id` FROM `fcontact` WHERE `url` = '%s' AND `name` = '%s' AND `request` = '%s' LIMIT 1",
 			dbesc($suggest["url"]),
 			dbesc($suggest["name"]),
 			dbesc($suggest["request"])
 		);
-		if (dbm::is_result($r))
+		if (dbm::is_result($r)) {
 			$fid = $r[0]["id"];
-		else
+		} else {
 			// database record did not get created. Quietly give up.
 			return false;
-
+		}
 
 		$hash = random_string();
 
