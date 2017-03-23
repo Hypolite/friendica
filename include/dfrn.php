@@ -1774,12 +1774,12 @@ class dfrn {
 		 * If no record in fcontact is found, below INSERT statement will not
 		 * link an introduction to it.
 		 */
-		if (!dbm::is_result($r)) {
+		if (dbm::is_result($r)) {
+			$fid = $r[0]["id"];
+		} else {
 			// database record did not get created. Quietly give up.
-			killme();
+			return false;
 		}
-
-		$fid = $r[0]["id"];
 
 		$hash = random_string();
 
