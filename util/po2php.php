@@ -12,12 +12,11 @@ function po2php_run(&$argv, &$argc) {
 	$pofile = $argv[1];
 	$outfile = dirname($pofile)."/strings.php";
 
-	if(strstr($outfile,'util'))
+	if (strstr($outfile,'util')) {
 		$lang = 'en';
-	else
+	} else {
 		$lang = str_replace('-','_',basename(dirname($pofile)));
-
-
+	}
 
 	if (!file_exists($pofile)){
 		print "Unable to find '$pofile'\n";
@@ -26,7 +25,7 @@ function po2php_run(&$argv, &$argc) {
 
 	print "Out to '$outfile'\n";
 
-	$out="<?php\n\n";
+	$out = "<?php\n\n";
 
 	$infile = file($pofile);
 	$k = "";
@@ -41,9 +40,11 @@ function po2php_run(&$argv, &$argc) {
 	foreach ($infile as $l) {
 		$l = str_replace('\"', DQ_ESCAPE, $l);
 		$len = strlen($l);
-		if ($l[0]=="#") $l="";
-		if (substr($l,0,15)=='"Plural-Forms: '){
-			$match=Array();
+		if ($l[0] == "#") {
+			$l = "";
+		}
+		if (substr($l,0,15) == '"Plural-Forms: ') {
+			$match = array();
 			preg_match("|nplurals=([0-9]*); *plural=(.*)[;\\\\]|", $l, $match);
 			$cond = str_replace('n','$n',$match[2]);
 			// define plural select function if not already defined
@@ -55,38 +56,36 @@ function po2php_run(&$argv, &$argc) {
 		}
 
 
-		if ($k!="" && substr($l,0,7)=="msgstr ") {
+		if ($k != "" && substr($l,0,7) == "msgstr ") {
 			if ($ink) {
-				/// @TODO false or FALSE, but not False ! And same with TRUE/true choice
 				$ink = false;
-				$out .= '$a->strings["'.$k.'"] = ';
+				$out .= '$a->strings["' . $k . '"] = ';
 			}
 			if ($inv) {
 				$inv = false;
-				$out .= '"'.$v.'"';
+				$out .= '"' . $v . '"';
 			}
 
-			$v = substr($l,8,$len-10);
-			$v = preg_replace_callback($escape_s_exp,'escape_s',$v);
+			$v = substr($l, 8, $len - 10);
+			$v = preg_replace_callback($escape_s_exp, 'escape_s', $v);
 			$inv = true;
 			//$out .= $v;
 		}
-		if ($k!="" && substr($l,0,7)=="msgstr["){
+		if ($k != "" && substr($l, 0, 7) == "msgstr[") {
 			if ($ink) {
 				$ink = false;
-				$out .= '$a->strings["'.$k.'"] = ';
+				$out .= '$a->strings["' . $k . '"] = ';
 			}
 			if ($inv) {
 				$inv = false;
-				$out .= '"'.$v.'"';
+				$out .= '"' . $v . '"';
 			}
 
 			if (!$arr) {
 				$arr = true;
 				$out .= "array(\n";
 			}
-			/// @TODOD No Array (object), but array (keyword) for those
-			$match=array();
+			$match = array();
 			preg_match("|\[([0-9]*)\] (.*)|", $l, $match);
 			$out .= "\t".
 				preg_replace_callback($escape_s_exp,'escape_s',$match[1])
@@ -106,7 +105,7 @@ function po2php_run(&$argv, &$argc) {
 			//$out .= '$a->strings['.$k.'] = ';
 		}
 
-		if (substr($l,0,6)=="msgid ") {
+		if (substr($l, 0, 6) == "msgid ") {
 			if ($inv) {
 				$inv = false;
 				$out .= '"'.$v.'"';
@@ -122,13 +121,13 @@ function po2php_run(&$argv, &$argc) {
 				$k = "";
 			}
 
-			$k = preg_replace_callback($escape_s_exp,'escape_s',$k);
+			$k = preg_replace_callback($escape_s_exp, 'escape_s', $k);
 			$ink = true;
 		}
 
-		if ($inv && substr($l,0,6)!="msgstr") {
-			$v .= trim($l,"\"\r\n");
-			$v = preg_replace_callback($escape_s_exp,'escape_s',$v);
+		if ($inv && substr($l, 0, 6) != "msgstr") {
+			$v .= trim($l, "\"\r\n");
+			$v = preg_replace_callback($escape_s_exp, 'escape_s', $v);
 			//$out .= '$a->strings['.$k.'] = ';
 		}
 
@@ -137,10 +136,10 @@ function po2php_run(&$argv, &$argc) {
 
 	if ($inv) {
 		$inv = false;
-		$out .= '"'.$v.'"';
+		$out .= '"' . $v . '"';
 	}
-	if ($k!="") {
-		$out .= $arr?");\n":";\n";
+	if ($k != "") {
+		$out .= ($arr ? ");\n" : ";\n");
 	}
 
 	$out = str_replace(DQ_ESCAPE, '\"', $out);
@@ -148,6 +147,6 @@ function po2php_run(&$argv, &$argc) {
 
 }
 
-if (array_search(__file__,get_included_files())===0){
+if (array_search(__FILE__, get_included_files()) === 0) {
 	po2php_run($_SERVER["argv"],$_SERVER["argc"]);
 }
