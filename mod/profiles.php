@@ -651,7 +651,7 @@ function profiles_content(App $a) {
 		$personal_account = !(in_array($a->user["page-flags"],
 					array(PAGE_COMMUNITY, PAGE_PRVGROUP)));
 
-		$detailled_profile = (get_pconfig(local_user(), 'system', 'detailled_profile') AND $personal_account);
+		$detailled_profile = (get_pconfig(local_user(), 'system', 'detailled_profile') && $personal_account);
 
 		$f = get_config('system', 'birthday_input_format');
 		if (! $f) {
