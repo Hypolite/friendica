@@ -32,8 +32,8 @@ $a->backend = false;
  * Ignore errors. If the file doesn't exist or is empty, we are running in
  * installation mode.
  *
+ * @TODO rewrite to avoid false:true
  */
-
 $install = ((file_exists('.htconfig.php') && filesize('.htconfig.php')) ? false : true);
 
 // Only load config if found, don't surpress errors
