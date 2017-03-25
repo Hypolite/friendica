@@ -392,7 +392,7 @@ $a->init_page_end();
 // If you're just visiting, let javascript take you home
 if (x($_SESSION, 'visitor_home')) {
 	$homebase = $_SESSION['visitor_home'];
-] elseif (local_user()) {
+} elseif (local_user()) {
 	$homebase = 'profile/' . $a->user['nickname'];
 }
 
