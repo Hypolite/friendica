@@ -333,6 +333,7 @@ if($a->module_loaded) {
 		$func = str_replace('-','_',current_theme()) . '_init';
 		$func($a);
 	}
+/// @TODO commented out? old-lost again? :-)
 //	elseif (x($a->theme_info,"extends") && file_exists("view/theme/".$a->theme_info["extends"]."/theme.php")) {
 //		require_once("view/theme/".$a->theme_info["extends"]."/theme.php");
 //		if(function_exists(str_replace('-','_',$a->theme_info["extends"]) . '_init')) {
@@ -341,7 +342,7 @@ if($a->module_loaded) {
 //		}
 //	}
 
-	if(($_SERVER['REQUEST_METHOD'] === 'POST') && (! $a->error)
+	if (($_SERVER['REQUEST_METHOD'] === 'POST') && (! $a->error)
 		&& (function_exists($a->module . '_post'))
 		&& (! x($_POST,'auth-params'))) {
 		call_hooks($a->module . '_mod_post', $_POST);
@@ -349,13 +350,13 @@ if($a->module_loaded) {
 		$func($a);
 	}
 
-	if((! $a->error) && (function_exists($a->module . '_afterpost'))) {
+	if ((! $a->error) && (function_exists($a->module . '_afterpost'))) {
 		call_hooks($a->module . '_mod_afterpost',$placeholder);
 		$func = $a->module . '_afterpost';
 		$func($a);
 	}
 
-	if((! $a->error) && (function_exists($a->module . '_content'))) {
+	if ((! $a->error) && (function_exists($a->module . '_content'))) {
 		$arr = array('content' => $a->page['content']);
 		call_hooks($a->module . '_mod_content', $arr);
 		$a->page['content'] = $arr['content'];
@@ -365,7 +366,7 @@ if($a->module_loaded) {
 		$a->page['content'] .= $arr['content'];
 	}
 
-	if(function_exists(str_replace('-','_',current_theme()) . '_content_loaded')) {
+	if (function_exists(str_replace('-','_',current_theme()) . '_content_loaded')) {
 		$func = str_replace('-','_',current_theme()) . '_content_loaded';
 		$func($a);
 	}
@@ -373,61 +374,55 @@ if($a->module_loaded) {
 
 /*
  * Create the page head after setting the language
- * and getting any auth credentials
+ * and getting any auth credentials.
  *
  * Moved init_pagehead() and init_page_end() to after
  * all the module functions have executed so that all
- * theme choices made by the modules can take effect
+ * theme choices made by the modules can take effect.
  */
 
 $a->init_pagehead();
 
-/**
+/*
  * Build the page ending -- this is stuff that goes right before
  * the closing </body> tag
  */
-
 $a->init_page_end();
 
 // If you're just visiting, let javascript take you home
-
-if(x($_SESSION,'visitor_home'))
+if (x($_SESSION, 'visitor_home')) {
 	$homebase = $_SESSION['visitor_home'];
-elseif(local_user())
+] elseif (local_user()) {
 	$homebase = 'profile/' . $a->user['nickname'];
+}
 
-if(isset($homebase))
+if (isset($homebase)) {
 	$a->page['content'] .= '<script>var homebase="' . $homebase . '" ; </script>';
+}
 
-// now that we've been through the module content, see if the page reported
-// a permission problem and if so, a 403 response would seem to be in order.
-
-if(stristr( implode("",$_SESSION['sysmsg']), t('Permission denied'))) {
+/*
+ * now that we've been through the module content, see if the page reported
+ * a permission problem and if so, a 403 response would seem to be in order.
+ */
+if (stristr( implode("",$_SESSION['sysmsg']), t('Permission denied'))) {
 	header($_SERVER["SERVER_PROTOCOL"] . ' 403 ' . t('Permission denied.'));
 }
 
-/**
- *
+/*
  * Report anything which needs to be communicated in the notification area (before the main body)
- *
  */
-
 call_hooks('page_end', $a->page['content']);
 
-/**
- *
+/*
  * Add the navigation (menu) template
- *
  */
-
 if ($a->module != 'install' && $a->module != 'maintenance') {
 	nav($a);
 }
 
-/**
+/*
  * Add a "toggle mobile" link if we're using a mobile device
  */
-
 if ($a->is_mobile || $a->is_tablet) {
 	if (isset($_SESSION['show-mobile']) && !$_SESSION['show-mobile']) {
 		$link = 'toggle_mobile?address=' . curPageURL();
