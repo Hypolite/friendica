@@ -1853,7 +1853,7 @@ class dfrn {
 
 			// do not accept (ignore) an earlier edit than one we currently have.
 			if (datetime_convert("UTC","UTC",$item["edited"]) < $current["edited"]) {
-				return(false);
+				return false;
 			}
 
 			$r = q("UPDATE `item` SET `title` = '%s', `body` = '%s', `tag` = '%s', `edited` = '%s', `changed` = '%s' WHERE `uri` = '%s' AND `uid` = %d",
@@ -1870,8 +1870,9 @@ class dfrn {
 
 			$changed = true;
 
-			if ($entrytype == DFRN_REPLY_RC)
+			if ($entrytype == DFRN_REPLY_RC) {
 				proc_run(PRIORITY_HIGH, "include/notifier.php","comment-import", $current["id"]);
+			}
 		}
 
 		// update last-child if it changes
@@ -1908,8 +1909,9 @@ class dfrn {
 				$sql_extra = "";
 				$community = true;
 				logger("possible community action");
-			} else
+			} else {
 				$sql_extra = " AND `contact`.`self` AND `item`.`wall` ";
+			}
 
 			// was the top-level post for this action written by somebody on this site?
 			// Specifically, the recipient?
@@ -1973,14 +1975,15 @@ class dfrn {
 	 */
 	private static function do_poke($item, $importer, $posted_id) {
 		$verb = urldecode(substr($item["verb"],strpos($item["verb"], "#")+1));
-		if(!$verb)
+		if (!$verb) {
 			return;
+		}
 		$xo = parse_xml_string($item["object"],false);
 
-		if(($xo->type == ACTIVITY_OBJ_PERSON) && ($xo->id)) {
+		if (($xo->type == ACTIVITY_OBJ_PERSON) && ($xo->id)) {
 
 			// somebody was poked/prodded. Was it me?
-			foreach($xo->link as $l) {
+			foreach ($xo->link as $l) {
 				$atts = $l->attributes();
 				switch ($atts["rel"]) {
 					case "alternate":
