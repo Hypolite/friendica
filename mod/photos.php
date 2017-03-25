@@ -1275,10 +1275,8 @@ function photos_content(App $a) {
 					));
 				}
 			}
-		} else {
-			if (($album !== t('Profile Photos')) && ($album !== 'Contact Photos') && ($album !== t('Contact Photos')) && $can_post) {
-				$edit = array(t('Edit Album'), 'photos/' . $a->data['user']['nickname'] . '/album/' . bin2hex($album) . '/edit');
-			}
+		} elseif (($album !== t('Profile Photos')) && ($album !== 'Contact Photos') && ($album !== t('Contact Photos')) && $can_post) {
+			$edit = array(t('Edit Album'), 'photos/' . $a->data['user']['nickname'] . '/album/' . bin2hex($album) . '/edit');
 		}
 
 		if ($_GET['order'] === 'posted') {
