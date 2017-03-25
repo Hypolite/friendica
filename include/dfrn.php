@@ -927,6 +927,7 @@ class dfrn {
 			$r = q("SELECT `forum`, `prv` FROM `contact` WHERE `uid` = %d AND `nurl` = '%s'",
 				intval($owner["uid"]),
 				dbesc(normalise_link($mention)));
+
 			if (dbm::is_result($r) AND ($r[0]["forum"] OR $r[0]["prv"])) {
 				xml::add_element($doc, $entry, "link", "", array("rel" => "mentioned",
 											"ostatus:object-type" => ACTIVITY_OBJ_GROUP,
