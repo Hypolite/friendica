@@ -74,7 +74,6 @@ class dfrn {
 	 * @param boolean $onlyheader Output only the header without content? (Default is "no")
 	 *
 	 * @return string DFRN feed entries
-	 * @todo Find proper type-hints
 	 */
 	public static function feed($dfrn_id, $owner_nick, $last_update, $direction = 0, $onlyheader = false) {
 
@@ -218,8 +217,10 @@ class dfrn {
 			dbesc($sort)
 		);
 
-		// Will check further below if this actually returned results.
-		// We will provide an empty feed if that is the case.
+		/*
+		 * Will check further below if this actually returned results.
+		 * We will provide an empty feed if that is the case.
+		 */
 
 		$items = $r;
 
@@ -240,10 +241,10 @@ class dfrn {
 
 		$root = self::add_header($doc, $owner, $author, $alternatelink, true);
 
-		// This hook can't work anymore
+		/// @TODO This hook can't work anymore
 		//	call_hooks('atom_feed', $atom);
 
-		if (!count($items) OR $onlyheader) {
+		if (!dbm::is_result($items) OR $onlyheader) {
 			$atom = trim($doc->saveXML());
 
 			call_hooks('atom_feed_end', $atom);
