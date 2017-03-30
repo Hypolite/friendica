@@ -1633,27 +1633,24 @@ function photos_content(App $a) {
 
 			$comments = '';
 			if (! dbm::is_result($r)) {
-				/// @TODO merge into one if() ?
-				if ($can_post || can_write_wall($a,$owner_uid)) {
-					if ($link_item['last-child']) {
-						$comments .= replace_macros($cmnt_tpl,array(
-							'$return_path' => '',
-							'$jsreload' => $return_url,
-							'$type' => 'wall-comment',
-							'$id' => $link_item['id'],
-							'$parent' => $link_item['id'],
-							'$profile_uid' =>  $owner_uid,
-							'$mylink' => $contact['url'],
-							'$mytitle' => t('This is you'),
-							'$myphoto' => $contact['thumb'],
-							'$comment' => t('Comment'),
-							'$submit' => t('Submit'),
-							'$preview' => t('Preview'),
-							'$sourceapp' => t($a->sourcename),
-							'$ww' => '',
-							'$rand_num' => random_digits(12)
-						));
-					}
+				if (($can_post || can_write_wall($a,$owner_uid)) && $link_item['last-child']) {
+					$comments .= replace_macros($cmnt_tpl,array(
+						'$return_path' => '',
+						'$jsreload' => $return_url,
+						'$type' => 'wall-comment',
+						'$id' => $link_item['id'],
+						'$parent' => $link_item['id'],
+						'$profile_uid' =>  $owner_uid,
+						'$mylink' => $contact['url'],
+						'$mytitle' => t('This is you'),
+						'$myphoto' => $contact['thumb'],
+						'$comment' => t('Comment'),
+						'$submit' => t('Submit'),
+						'$preview' => t('Preview'),
+						'$sourceapp' => t($a->sourcename),
+						'$ww' => '',
+						'$rand_num' => random_digits(12)
+					));
 				}
 			}
 
@@ -1678,27 +1675,24 @@ function photos_content(App $a) {
 				$like    = ((x($conv_responses['like'],$link_item['uri'])) ? format_like($conv_responses['like'][$link_item['uri']],$conv_responses['like'][$link_item['uri'] . '-l'], 'like',$link_item['id']) : '');
 				$dislike = ((x($conv_responses['dislike'],$link_item['uri'])) ? format_like($conv_responses['dislike'][$link_item['uri']],$conv_responses['dislike'][$link_item['uri'] . '-l'], 'dislike',$link_item['id']) : '');
 
-				/// @TODO merge into one if() ?
-				if ($can_post || can_write_wall($a,$owner_uid)) {
-					if ($link_item['last-child']) {
-						$comments .= replace_macros($cmnt_tpl,array(
-							'$return_path' => '',
-							'$jsreload' => $return_url,
-							'$type' => 'wall-comment',
-							'$id' => $link_item['id'],
-							'$parent' => $link_item['id'],
-							'$profile_uid' =>  $owner_uid,
-							'$mylink' => $contact['url'],
-							'$mytitle' => t('This is you'),
-							'$myphoto' => $contact['thumb'],
-							'$comment' => t('Comment'),
-							'$submit' => t('Submit'),
-							'$preview' => t('Preview'),
-							'$sourceapp' => t($a->sourcename),
-							'$ww' => '',
-							'$rand_num' => random_digits(12)
-						));
-					}
+				if (($can_post || can_write_wall($a, $owner_uid)) && $link_item['last-child']) {
+					$comments .= replace_macros($cmnt_tpl,array(
+						'$return_path' => '',
+						'$jsreload' => $return_url,
+						'$type' => 'wall-comment',
+						'$id' => $link_item['id'],
+						'$parent' => $link_item['id'],
+						'$profile_uid' =>  $owner_uid,
+						'$mylink' => $contact['url'],
+						'$mytitle' => t('This is you'),
+						'$myphoto' => $contact['thumb'],
+						'$comment' => t('Comment'),
+						'$submit' => t('Submit'),
+						'$preview' => t('Preview'),
+						'$sourceapp' => t($a->sourcename),
+						'$ww' => '',
+						'$rand_num' => random_digits(12)
+					));
 				}
 
 
@@ -1761,27 +1755,24 @@ function photos_content(App $a) {
 						'$comment' => $comment
 					));
 
-					/// @TODO merge into one if() ?
-					if ($can_post || can_write_wall($a, $owner_uid)) {
-						if ($item['last-child']) {
-							$comments .= replace_macros($cmnt_tpl, array(
-								'$return_path' => '',
-								'$jsreload' => $return_url,
-								'$type' => 'wall-comment',
-								'$id' => $item['item_id'],
-								'$parent' => $item['parent'],
-								'$profile_uid' =>  $owner_uid,
-								'$mylink' => $contact['url'],
-								'$mytitle' => t('This is you'),
-								'$myphoto' => $contact['thumb'],
-								'$comment' => t('Comment'),
-								'$submit' => t('Submit'),
-								'$preview' => t('Preview'),
-								'$sourceapp' => t($a->sourcename),
-								'$ww' => '',
-								'$rand_num' => random_digits(12)
-							));
-						}
+					if (($can_post || can_write_wall($a, $owner_uid)) && $item['last-child']) {
+						$comments .= replace_macros($cmnt_tpl, array(
+							'$return_path' => '',
+							'$jsreload' => $return_url,
+							'$type' => 'wall-comment',
+							'$id' => $item['item_id'],
+							'$parent' => $item['parent'],
+							'$profile_uid' =>  $owner_uid,
+							'$mylink' => $contact['url'],
+							'$mytitle' => t('This is you'),
+							'$myphoto' => $contact['thumb'],
+							'$comment' => t('Comment'),
+							'$submit' => t('Submit'),
+							'$preview' => t('Preview'),
+							'$sourceapp' => t($a->sourcename),
+							'$ww' => '',
+							'$rand_num' => random_digits(12)
+						));
 					}
 				}
 			}
