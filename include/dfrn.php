@@ -968,7 +968,7 @@ class dfrn {
 		}
 
 
-		$rino = get_config('system','rino_encrypt');
+		$rino = get_config('system', 'rino_encrypt');
 		$rino = intval($rino);
 		// use RINO1 if mcrypt isn't installed and RINO2 was selected
 		/// @TODO and or AND or && ? Please decide for one (see some lines above)
