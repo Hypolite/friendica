@@ -139,7 +139,7 @@ class TemplateTest extends PHPUnit_Framework_TestCase {
 
 		$text = replace_macros($tpl, array('$messages' => array(
 				array('new' => true, 'text' => 'new message'),
-				array('new' = >false, 'text' => 'old message'))));
+				array('new' => false, 'text' => 'old message'))));
 
 		$this->assertEquals('new messages:  new message', $text);
 	}
@@ -147,7 +147,7 @@ class TemplateTest extends PHPUnit_Framework_TestCase {
 	public function testConditionalFor() {
 		$tpl = '{{ if $enabled }}new messages:{{for $messages as $message}} $message.text{{ endfor }}{{endif}}';
 
-		$text = replace_macros($tpl, array('$enabled' = >true,
+		$text = replace_macros($tpl, array('$enabled' => true,
 				'$messages' => array(
 				array('new' => true, 'text' => 'new message'),
 				array('new' => false, 'text' => 'old message'))));
