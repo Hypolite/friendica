@@ -560,12 +560,12 @@ class App {
 	 * beyond are used.
 	 */
 	public	$theme = array(
-		'sourcename' => '',
-		'videowidth' => 425,
-		'videoheight' => 350,
+		'sourcename'      => '',
+		'videowidth'      => 425,
+		'videoheight'     => 350,
 		'force_max_items' => 0,
-		'thread_allow' => true,
-		'stylesheet' => '',
+		'thread_allow'    => true,
+		'stylesheet'      => '',
 		'template_engine' => 'smarty3',
 	);
 
@@ -649,7 +649,6 @@ class App {
 		set_include_path(
 				'include' . PATH_SEPARATOR
 				. 'library' . PATH_SEPARATOR
-				. 'library/phpsec' . PATH_SEPARATOR
 				. 'library/langdet' . PATH_SEPARATOR
 				. '.' );
 
@@ -943,7 +942,7 @@ class App {
 		if (!$this->module == '') {
 		    $this->page['title'] = $this->config['sitename'] . ' (' . $this->module . ')';
 		} else {
-		    $this->page['title'] = $this->config['sitename'];
+			$this->page['title'] = $this->config['sitename'];
 		}
 
 		/* put the head template at the beginning of page['htmlhead']
@@ -1071,7 +1070,7 @@ class App {
 		/// @TODO Really === and not just == ?
 		if ($name === "") {
 			$v = get_class_vars( $class );
-			if(x($v,"name")) $name = $v['name'];
+			if (x($v,"name")) $name = $v['name'];
 		}
 		if ($name === "") {
 			echo "template engine <tt>$class</tt> cannot be registered without a name.\n";
@@ -1590,7 +1589,7 @@ function update_db(App $a) {
 			// updating right this very second and the correct version of the update.php
 			// file may not be here yet. This can happen on a very busy site.
 
-			if(DB_UPDATE_VERSION == UPDATE_VERSION) {
+			if (DB_UPDATE_VERSION == UPDATE_VERSION) {
 				// Compare the current structure with the defined structure
 
 				$t = get_config('database','dbupdate_'.DB_UPDATE_VERSION);
@@ -1611,7 +1610,6 @@ function update_db(App $a) {
 				if ($stored < NEW_UPDATE_ROUTINE_VERSION) {
 					$stored = NEW_UPDATE_ROUTINE_VERSION;
 				}
-
 
 				// run new update routine
 				// it update the structure in one call
@@ -1695,7 +1693,7 @@ function run_update_function($x) {
  *
  * @param App $a
  *
-	 */
+ */
 function check_plugins(App $a) {
 
 	$r = q("SELECT * FROM `addon` WHERE `installed` = 1");
@@ -2133,7 +2131,7 @@ function current_theme(){
 		return($theme_name);
 	}
 
-	foreach($app_base_themes as $t) {
+	foreach ($app_base_themes as $t) {
 		if (file_exists('view/theme/' . $t . '/style.css') ||
 				file_exists('view/theme/' . $t . '/style.php')) {
 			return($t);
@@ -2145,6 +2143,7 @@ function current_theme(){
 		return (str_replace('view/theme/','', substr($fallback[0],0,-10)));
 	}
 
+	/// @TODO No final return statement?
 }
 
 /**
@@ -2409,7 +2408,7 @@ function get_itemcachepath() {
 
 	if ($temppath != "") {
 		$itemcache = $temppath."/itemcache";
-		if(!file_exists($itemcache) && !is_dir($itemcache)) {
+		if (!file_exists($itemcache) && !is_dir($itemcache)) {
 			mkdir($itemcache);
 		}
 
@@ -2504,7 +2503,7 @@ function set_template_engine(App $a, $engine = 'internal') {
 	$a->set_template_engine($engine);
 }
 
-if(!function_exists('exif_imagetype')) {
+if (!function_exists('exif_imagetype')) {
 	function exif_imagetype($file) {
 		$size = getimagesize($file);
 		return $size[2];
@@ -2538,11 +2537,8 @@ function validate_include(&$file) {
 		$valid = true;
 	}
 
-	if (!$valid) {
-		return false;
-	}
-
-	return true;
+	// Simply return flag
+	return $valid;
 }
 
 function current_load() {

@@ -28,7 +28,8 @@ $a->backend = false;
 /**
  *
  * Load the configuration file which contains our DB credentials.
- * Ignore errors. If the file doesn't exist or is empty, we are running in installation mode.
+ * Ignore errors. If the file doesn't exist or is empty, we are running in
+ * installation mode.
  *
  * @TODO rewrite to avoid false:true
  */
@@ -116,12 +117,12 @@ if (x($_SESSION,'authenticated') && !x($_SESSION,'language')) {
 	if (dbm::is_result($r)) $_SESSION['language'] = $r[0]['language'];
 }
 
-if((x($_SESSION,'language')) && ($_SESSION['language'] !== $lang)) {
+if ((x($_SESSION,'language')) && ($_SESSION['language'] !== $lang)) {
 	$lang = $_SESSION['language'];
 	load_translation_table($lang);
 }
 
-if((x($_GET,'zrl')) && (!$install && !$maintenance)) {
+if ((x($_GET,'zrl')) && (!$install && !$maintenance)) {
 	// Only continue when the given profile link seems valid
 	// Valid profile links contain a path with "/profile/" and no query parameters
 	if ((parse_url($_GET['zrl'], PHP_URL_QUERY) == "") AND
@@ -222,7 +223,7 @@ if ((local_user()) || (! $privateapps === "1")) {
  * further processing.
  */
 
-if(strlen($a->module)) {
+if (strlen($a->module)) {
 
 	/**
 	 *
@@ -232,12 +233,14 @@ if(strlen($a->module)) {
 	 */
 
 	// Compatibility with the Android Diaspora client
-	if ($a->module == "stream")
+	if ($a->module == "stream") {
 		$a->module = "network";
+	}
 
 	// Compatibility with the Firefox App
-	if (($a->module == "users") AND ($a->cmd == "users/sign_in"))
+	if (($a->module == "users") AND ($a->cmd == "users/sign_in")) {
 		$a->module = "login";
+	}
 
 	$privateapps = get_config('config','private_addons');
 
@@ -245,11 +248,11 @@ if(strlen($a->module)) {
 		//Check if module is an app and if public access to apps is allowed or not
 		if ((!local_user()) && plugin_is_app($a->module) && $privateapps === "1") {
 			info( t("You must be logged in to use addons. "));
-		}
-		else {
+		} else {
 			include_once("addon/{$a->module}/{$a->module}.php");
-			if(function_exists($a->module . '_module'))
+			if (function_exists($a->module . '_module')) {
 				$a->module_loaded = true;
+			}
 		}
 	}
 
@@ -319,17 +322,17 @@ if (!$install && !$maintenance) {
  * Call module functions
  */
 
-if($a->module_loaded) {
+if ($a->module_loaded) {
 	$a->page['page_title'] = $a->module;
 	$placeholder = '';
 
-	if(function_exists($a->module . '_init')) {
+	if (function_exists($a->module . '_init')) {
 		call_hooks($a->module . '_mod_init', $placeholder);
 		$func = $a->module . '_init';
 		$func($a);
 	}
 
-	if(function_exists(str_replace('-','_',current_theme()) . '_init')) {
+	if (function_exists(str_replace('-','_',current_theme()) . '_init')) {
 		$func = str_replace('-','_',current_theme()) . '_init';
 		$func($a);
 	}
@@ -396,7 +399,7 @@ if (isset($homebase)) {
  * now that we've been through the module content, see if the page reported
  * a permission problem and if so, a 403 response would seem to be in order.
  */
-if (stristr( implode("",$_SESSION['sysmsg']), t('Permission denied'))) {
+if (stristr(implode("", $_SESSION['sysmsg']), t('Permission denied'))) {
 	header($_SERVER["SERVER_PROTOCOL"] . ' 403 ' . t('Permission denied.'));
 }
 
