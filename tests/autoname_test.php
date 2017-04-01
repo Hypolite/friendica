@@ -21,20 +21,20 @@ class AutonameTest extends PHPUnit_Framework_TestCase {
 	public function testAutonameEven() {
 		$autoname1=autoname(10);
 		$autoname2=autoname(10);
-	
+
 		$this->assertNotEquals($autoname1, $autoname2);
 	}
-	
+
 	/**
 	 *autonames should be random, odd length
 	 */
 	public function testAutonameOdd() {
 		$autoname1=autoname(9);
 		$autoname2=autoname(9);
-	
+
 		$this->assertNotEquals($autoname1, $autoname2);
 	}
-	
+
 	/**
 	 * try to fail autonames
 	 */
@@ -42,7 +42,7 @@ class AutonameTest extends PHPUnit_Framework_TestCase {
 		$autoname1=autoname(0);
 		$this->assertEquals(0, strlen($autoname1));
 	}
-	
+
 	/**
 	 * try to fail it with invalid input
 	 * 
@@ -52,12 +52,14 @@ class AutonameTest extends PHPUnit_Framework_TestCase {
 		$autoname1=autoname(-23);
 		$this->assertEquals(0, strlen($autoname1));
 	}
-	
-	// 	public function testAutonameMaxLength() {
-	// 		$autoname2=autoname(PHP_INT_MAX);
-	// 		$this->assertEquals(PHP_INT_MAX, count($autoname2));
-	// 	}
-	
+
+	/*
+	 * public function testAutonameMaxLength() {
+	 * 	$autoname2 = autoname(PHP_INT_MAX);
+	 * 	$this->assertEquals(PHP_INT_MAX, count($autoname2));
+	 * }
+	 */
+
 	/**
 	 * test with a length, that may be too short
 	 */
@@ -68,9 +70,11 @@ class AutonameTest extends PHPUnit_Framework_TestCase {
 		$autoname2=autoname(1);
 		$this->assertEquals(1, count($autoname2));
 
-		// The following test is problematic, with only 26 possibilities
-		// generating the same thing twice happens often aka
-		// birthday paradox
-//		$this->assertFalse($autoname1==$autoname2); 
+		/*
+		 * The following test is problematic, with only 26 possibilities
+		 * generating the same thing twice happens often aka
+		 * birthday paradox
+		 * $this->assertFalse($autoname1 == $autoname2);
+		 */
 	}
 }
