@@ -12,8 +12,8 @@ function manage_post(App $a) {
 	$uid = local_user();
 	$orig_record = $a->user;
 
-	if((x($_SESSION,'submanage')) && intval($_SESSION['submanage'])) {
-		$r = q("select * from user where uid = %d limit 1",
+	if ((x($_SESSION,'submanage')) && intval($_SESSION['submanage'])) {
+		$r = q("SELECT * FROM `user` WHERE `uid` = %d LIMIT 1",
 			intval($_SESSION['submanage'])
 		);
 		if (dbm::is_result($r)) {

@@ -193,7 +193,7 @@ function nodeinfo_cron() {
 			WHERE (`profile`.`publish` OR `profile`.`net-publish`) AND `user`.`verified`
 				AND NOT `user`.`blocked` AND NOT `user`.`account_removed`
 				AND NOT `user`.`account_expired`");
-	if (is_array($users)) {
+	if (dbm::is_result($users)) {
 			$total_users = count($users);
 			$active_users_halfyear = 0;
 			$active_users_monthly = 0;
