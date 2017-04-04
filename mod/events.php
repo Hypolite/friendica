@@ -112,9 +112,10 @@ function events_post(App $a) {
 	$c = q("SELECT `id` FROM `contact` WHERE `uid` = %d AND `self` LIMIT 1",
 		intval(local_user())
 	);
-	if (count($c)) {
+	if (dbm::is_result($c)) {
 		$self = $c[0]['id'];
 	} else {
+		/// @TODO these else blocks are really superflous and should be avoided
 		$self = 0;
 	}
 
