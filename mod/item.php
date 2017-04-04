@@ -123,7 +123,7 @@ function item_post(App $a) {
 		$parent = $r[0]['id'];
 
 		// multi-level threading - preserve the info but re-parent to our single level threading
-		//if(($parid) && ($parid != $parent))
+		//if (($parid) && ($parid != $parent))
 		$thr_parent = $parent_uri;
 
 		if ($parent_item['contact-id'] && $uid) {
@@ -733,8 +733,10 @@ function item_post(App $a) {
 	// preview mode - prepare the body for display and send it via json
 	if ($preview) {
 		require_once 'include/conversation.php';
-		// We set the datarray ID to -1 because in preview mode the dataray
-		// doesn't have an ID.
+		/*
+		 * We set the datarray ID to -1 because in preview mode the dataray
+		 * doesn't have an ID.
+		 */
 		$datarray["id"] = -1;
 		$o = conversation($a,array(array_merge($contact_record,$datarray)),'search', false, true);
 		logger('preview: ' . $o);
@@ -1114,9 +1116,11 @@ function handle_tag(App $a, &$body, &$inform, &$str_tags, $profile_uid, $tag, $n
 
 				$r = q("SELECT `alias`, `name` FROM `contact` WHERE `nurl` = '%s' AND `alias` != '' AND `uid` = 0",
 					normalise_link($matches[1]));
+
 				if (!dbm::is_result($r)) {
 					$r = q("SELECT `alias`, `name` FROM `gcontact` WHERE `nurl` = '%s' AND `alias` != ''",
 						normalise_link($matches[1]));
+
 				}
 				if (dbm::is_result($r)) {
 					$data = $r[0];
@@ -1220,6 +1224,7 @@ function handle_tag(App $a, &$body, &$inform, &$str_tags, $profile_uid, $tag, $n
 						dbesc($network),
 						intval($profile_uid)
 				);
+			}
 
 			//select someone from this user's contacts by name in the current network
 			if (!dbm::is_result($r) AND ($network != "")) {
@@ -1231,7 +1236,7 @@ function handle_tag(App $a, &$body, &$inform, &$str_tags, $profile_uid, $tag, $n
 			}
 
 			// select someone by attag or nick and the name passed in
-			if(!dbm::is_result($r)) {
+			if (!dbm::is_result($r)) {
 				$r = q("SELECT `id`, `url`, `nick`, `name`, `alias`, `network` FROM `contact` WHERE `attag` = '%s' OR `nick` = '%s' AND `uid` = %d ORDER BY `attag` DESC LIMIT 1",
 						dbesc($name),
 						dbesc($name),
@@ -1240,7 +1245,7 @@ function handle_tag(App $a, &$body, &$inform, &$str_tags, $profile_uid, $tag, $n
 			}
 
 			// select someone from this user's contacts by name
-			if(!dbm::is_result($r)) {
+			if (!dbm::is_result($r)) {
 				$r = q("SELECT `id`, `url`, `nick`, `name`, `alias`, `network` FROM `contact` WHERE `name` = '%s' AND `uid` = %d LIMIT 1",
 						dbesc($name),
 						intval($profile_uid)
