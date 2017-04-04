@@ -92,7 +92,7 @@ function profiles_init(App $a) {
 			intval(local_user()),
 			intval($a->argv[2])
 		);
-		if(! dbm::is_result($r1)) {
+		if (! dbm::is_result($r1)) {
 			notice( t('Profile unavailable to clone.') . EOL);
 			killme();
 			return;
@@ -467,10 +467,10 @@ function profiles_post(App $a) {
 			intval(local_user())
 		);
 
+		/// @TODO Decide to use dbm::is_result() here
 		if ($r) {
-			info(t('Profile updated.') . EOL);
+			info( t('Profile updated.') . EOL);
 		}
-
 
 		if ($namechanged && $is_default) {
 			$r = q("UPDATE `contact` SET `name` = '%s', `name-date` = '%s' WHERE `self` = 1 AND `uid` = %d",
@@ -532,10 +532,11 @@ function profile_activity($changed, $value) {
 		intval(local_user())
 	);
 
-	if (! dbm::is_result($self)) {
+	if (!dbm::is_result($self)) {
 		return;
 	}
 
+	/// @TODO Merge into one statement
 	$arr = array();
 
 	$arr['guid'] = get_guid(32);
@@ -621,7 +622,6 @@ function profiles_content(App $a) {
 		}
 
 		require_once('include/profile_selectors.php');
-
 
 		$a->page['htmlhead'] .= replace_macros(get_markup_template('profed_head.tpl'), array(
 			'$baseurl' => App::get_baseurl(true),
@@ -750,7 +750,6 @@ function profiles_content(App $a) {
 
 		return $o;
 	} else {
-
 		// If we don't support multi profiles, don't display this list.
 		if (!feature_enabled(local_user(), 'multi_profiles')) {
 			$r = q("SELECT * FROM `profile` WHERE `uid` = %d AND `is-default`=1",

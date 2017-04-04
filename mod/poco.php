@@ -27,15 +27,7 @@ function poco_init(App $a) {
 	$justme = false;
 	$global = false;
 
-	if ($a->argc > 1 && $a->argv[1] === '@server') {
-		// List of all servers that this server knows
-		$ret = poco_serverlist();
-		header('Content-type: application/json');
-		echo json_encode($ret);
-		killme();
-	}
 	if ($a->argc > 1 && $a->argv[1] === '@global') {
-		// List of all profiles that this server recently had data from
 		$global = true;
 		$update_limit = date("Y-m-d H:i:s", time() - 30 * 86400);
 	}
@@ -48,7 +40,7 @@ function poco_init(App $a) {
 	if ($a->argc > 3 && $a->argv[3] === '@self') {
 		$justme = true;
 	}
-	if ($a->argc > 4 && intval($a->argv[4]) && $justme == false) {
+	if ($a->argc > 4 && intval($a->argv[4]) && $justme == false)
 		$cid = intval($a->argv[4]);
 	}
 
@@ -67,8 +59,11 @@ function poco_init(App $a) {
 	if ($justme) {
 		$sql_extra = " AND `contact`.`self` = 1 ";
 	}
-//	else
-//		$sql_extra = " AND `contact`.`self` = 0 ";
+	/*
+	else {
+		$sql_extra = " AND `contact`.`self` = 0 ";
+	}
+	*/
 
 	if ($cid) {
 		$sql_extra = sprintf(" AND `contact`.`id` = %d ",intval($cid));
@@ -157,27 +152,27 @@ function poco_init(App $a) {
 	if (x($_GET,'updatedSince') AND !$global) {
 		$ret['updatedSince'] = false;
 	}
+
 	$ret['startIndex']   = (int) $startIndex;
 	$ret['itemsPerPage'] = (int) $itemsPerPage;
 	$ret['totalResults'] = (int) $totalResults;
 	$ret['entry']        = array();
 
-
 	$fields_ret = array(
-		'id' => false,
-		'displayName' => false,
-		'urls' => false,
-		'updated' => false,
+		'id'                => false,
+		'displayName'       => false,
+		'urls'              => false,
+		'updated'           => false,
 		'preferredUsername' => false,
-		'photos' => false,
-		'aboutMe' => false,
-		'currentLocation' => false,
-		'network' => false,
-		'gender' => false,
-		'tags' => false,
-		'address' => false,
-		'contactType' => false,
-		'generation' => false
+		'photos'            => false,
+		'aboutMe'           => false,
+		'currentLocation'   => false,
+		'network'           => false,
+		'gender'            => false,
+		'tags'              => false,
+		'address'           => false,
+		'contactType'       => false,
+		'generation'        => false
 	);
 
 	if ((! x($_GET,'fields')) || ($_GET['fields'] === '@all')) {
@@ -207,14 +202,17 @@ function poco_init(App $a) {
 				if (($rr['about'] == "") AND isset($rr['pabout'])) {
 					$rr['about'] = $rr['pabout'];
 				}
+
 				if ($rr['location'] == "") {
 					if (isset($rr['plocation'])) {
 						$rr['location'] = $rr['plocation'];
 					}
+
 					if (isset($rr['pregion']) AND ($rr['pregion'] != "")) {
 						if ($rr['location'] != "") {
 							$rr['location'] .= ", ";
 						}
+
 						$rr['location'] .= $rr['pregion'];
 					}
 
@@ -235,6 +233,7 @@ function poco_init(App $a) {
 				if (isset($rr['account-type'])) {
 					$rr['contact-type'] = $rr['account-type'];
 				}
+
 				$about = Cache::get("about:".$rr['updated'].":".$rr['nurl']);
 				if (is_null($about)) {
 					$about = bbcode($rr['about'], false, false);
@@ -286,12 +285,14 @@ function poco_init(App $a) {
 						if ($rr['uri-date'] > $entry['updated']) {
 							$entry['updated'] = $rr['uri-date'];
 						}
+
 						if ($rr['avatar-date'] > $entry['updated']) {
 							$entry['updated'] = $rr['avatar-date'];
 						}
 					} else {
 						$entry['updated'] = $rr['updated'];
 					}
+
 					$entry['updated'] = date("c", strtotime($entry['updated']));
 				}
 				if ($fields_ret['photos']) {
@@ -333,6 +334,7 @@ function poco_init(App $a) {
 					if (isset($rr['pregion'])) {
 						 $entry['address']['region'] = $rr['pregion'];
 					}
+
 					// See above
 					//if (isset($rr['ppostalcode']))
 					//	 $entry['address']['postalCode'] = $rr['ppostalcode'];
@@ -345,6 +347,7 @@ function poco_init(App $a) {
 				if ($fields_ret['contactType']) {
 					$entry['contactType'] = intval($rr['contact-type']);
 				}
+
 				$ret['entry'][] = $entry;
 			}
 		} else {
@@ -353,6 +356,7 @@ function poco_init(App $a) {
 	} else {
 		http_status_exit(500);
 	}
+
 	logger("End of poco", LOGGER_DEBUG);
 
 	if ($format === 'xml') {
@@ -367,4 +371,5 @@ function poco_init(App $a) {
 	} else {
 		http_status_exit(500);
 	}
+
 }
