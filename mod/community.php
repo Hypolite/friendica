@@ -34,7 +34,7 @@ function community_content(App $a, $update = 0) {
 		nav_set_selected('community');
 	}
 
-	if (x($a->data,'search')) {
+	if (x($a->data, 'search')) {
 		$search = notags(trim($a->data['search']));
 	} else {
 		$search = ((x($_GET,'search')) ? notags(trim(rawurldecode($_GET['search']))) : '');
@@ -79,11 +79,12 @@ function community_content(App $a, $update = 0) {
 	} else {
 		$s = $r;
 	}
+
 	// we behave the same in message lists as the search module
 
 	$o .= conversation($a, $s, 'community', $update);
 
-        $o .= alt_pager($a, count($r));
+	$o .= alt_pager($a, count($r));
 
 	return $o;
 }

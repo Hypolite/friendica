@@ -676,6 +676,7 @@ function admin_page_site_post(App $a) {
 	if (!$thread_allow) {
 		$ostatus_disabled = true;
 	}
+
 	if ($ssl_policy != intval(get_config('system','ssl_policy'))) {
 		if ($ssl_policy == SSL_POLICY_FULL) {
 			q("UPDATE `contact` SET
@@ -850,6 +851,7 @@ function admin_page_site(App $a) {
 		foreach ($files as $file) {
 			if (intval(file_exists($file.'/unsupported')))
 				continue;
+			}
 
 			$f = basename($file);
 
@@ -1594,15 +1596,15 @@ function admin_page_plugins(App $a) {
  * @param array $themes
  * @param string $th
  * @param int $result
+ * @todo Set proper type-hints
  */
 function toggle_theme(&$themes,$th,&$result) {
-	for($x = 0; $x < count($themes); $x ++) {
-		if ($themes[$x]['name'] === $th) {
-			if ($themes[$x]['allowed']) {
+	foreach ($themes as $x => $theme) {
+		if ($theme['name'] === $th) {
+			if ($theme['allowed']) {
 				$themes[$x]['allowed'] = 0;
 				$result = 0;
-			}
-			else {
+			} else {
 				$themes[$x]['allowed'] = 1;
 				$result = 1;
 			}
@@ -1616,9 +1618,9 @@ function toggle_theme(&$themes,$th,&$result) {
  * @return int
  */
 function theme_status($themes,$th) {
-	for($x = 0; $x < count($themes); $x ++) {
-		if ($themes[$x]['name'] === $th) {
-			if ($themes[$x]['allowed']) {
+	foreach ($themes as $theme) {
+		if ($theme['name'] === $th) {
+			if ($theme['allowed']) {
 				return 1;
 			}
 			else {
@@ -1748,7 +1750,8 @@ function admin_page_themes(App $a) {
 			$status="off"; $action= t("Enable");
 		}
 
-		$readme = Null;
+		$readme = null;
+
 		if (is_file("view/theme/$theme/README.md")) {
 			$readme = file_get_contents("view/theme/$theme/README.md");
 			$readme = Markdown($readme);
