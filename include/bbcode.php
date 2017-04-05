@@ -314,7 +314,7 @@ function get_bb_tag_pos($s, $name, $occurence = 1) {
 	$start_equal = strpos($s, '=', $start_open);
 	$start_close = strpos($s, ']', $start_open);
 
-	if ( $start_close === false) {
+	if ($start_close === false) {
 		return false;
 	}
 
