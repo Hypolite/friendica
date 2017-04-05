@@ -3449,10 +3449,11 @@ $called_api = null;
 			throw new ForbiddenException();
 		}
 		// input params
+
 		$photo_id = (x($_REQUEST, 'photo_id') ? $_REQUEST['photo_id'] : null);
 		$desc = (x($_REQUEST, 'desc') ? $_REQUEST['desc'] : (array_key_exists('desc', $_REQUEST) ? "" : null)); // extra check necessary to distinguish between 'not provided' and 'empty string'
 		$album = (x($_REQUEST,'album') ? $_REQUEST['album'] : null);
-		$album_new = (x($_REQUEST,'album_new') ? $_REQUEST['album_new'] : null);
+		$album_new = (x($_REQUEST, 'album_new') ? $_REQUEST['album_new'] : null);
 		$allow_cid = (x($_REQUEST, 'allow_cid') ? $_REQUEST['allow_cid'] : (array_key_exists('allow_cid', $_REQUEST) ? " " : null));
 		$deny_cid = (x($_REQUEST, 'deny_cid') ? $_REQUEST['deny_cid'] : (array_key_exists('deny_cid', $_REQUEST) ? " " : null));
 		$allow_gid = (x($_REQUEST, 'allow_gid') ? $_REQUEST['allow_gid'] : (array_key_exists('allow_gid', $_REQUEST) ? " " : null));
@@ -3495,9 +3496,11 @@ $called_api = null;
 		$acl_input_error |= check_acl_input($deny_cid);
 		$acl_input_error |= check_acl_input($allow_gid);
 		$acl_input_error |= check_acl_input($deny_gid);
+
 		if ($acl_input_error) {
 			throw new BadRequestException("acl data invalid");
 		}
+
 		// now let's upload the new media in create-mode
 		if ($mode == "create") {
 			$media = $_FILES['media'];
