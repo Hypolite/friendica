@@ -263,6 +263,7 @@ function bb_unspacefy_and_trim($st) {
 }
 
 function bb_find_open_close($s, $open, $close, $occurence = 1) {
+
 	if ($occurence < 1) {
 		$occurence = 1;
 	}
@@ -290,6 +291,7 @@ function bb_find_open_close($s, $open, $close, $occurence = 1) {
 }
 
 function get_bb_tag_pos($s, $name, $occurence = 1) {
+
 	if ($occurence < 1) {
 		$occurence = 1;
 	}
