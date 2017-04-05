@@ -32,6 +32,7 @@ function bb_map_coords($match) {
 	// the extra space in the following line is intentional
 	return str_replace($match[0], '<div class="map"  >' . generate_map(str_replace('/', ' ', $match[1])) . '</div>', $match[0]);
 }
+
 function bb_map_location($match) {
 	// the extra space in the following line is intentional
 	return str_replace($match[0], '<div class="map"  >' . generate_named_map($match[1]) . '</div>', $match[0]);
@@ -88,7 +89,7 @@ function bb_attachment($Text, $simplehtml = false, $tryoembed = true) {
 			}
 		}
 	}
-	return trim($data["text"].' '.$text.' '.$data["after"]);
+	return trim($data["text"] . ' ' . $text . ' ' . $data["after"]);
 }
 
 function bb_remove_share_information($Text, $plaintext = false, $nolink = false) {
@@ -165,16 +166,16 @@ function cleancss($input) {
  * @return string reformatted link including HTML codes
  */
 function bb_style_url($match) {
-        $url = $match[1];
+	$url = $match[1];
 
 	if (isset($match[2]) && ($match[1] != $match[2])) {
 		return $match[0];
 	}
 
-        $parts = parse_url($url);
-        if (!isset($parts['scheme'])) {
-                return $match[0];
-        }
+	$parts = parse_url($url);
+	if (!isset($parts['scheme'])) {
+		return $match[0];
+	}
 
 	return style_url_for_mastodon($url);
 }
@@ -185,26 +186,26 @@ function bb_style_url($match) {
  * @return string reformatted link including HTML codes
  */
 function style_url_for_mastodon($url) {
-        $styled_url = $url;
+	$styled_url = $url;
 
-        $parts = parse_url($url);
-        $scheme = $parts['scheme'].'://';
-        $styled_url = str_replace($scheme, '', $styled_url);
+	$parts = parse_url($url);
+	$scheme = $parts['scheme'].'://';
+	$styled_url = str_replace($scheme, '', $styled_url);
 
-        $html = '<a href="%s" class="attachment" rel="nofollow noopener" target="_blank">'.
-                 '<span class="invisible">%s</span>';
+	$html = '<a href="%s" class="attachment" rel="nofollow noopener" target="_blank">'.
+		 '<span class="invisible">%s</span>';
 
-        if (strlen($styled_url) > 30) {
-                $html .= '<span class="ellipsis">%s</span>'.
-                        '<span class="invisible">%s</span></a>';
+	if (strlen($styled_url) > 30) {
+		$html .= '<span class="ellipsis">%s</span>'.
+			'<span class="invisible">%s</span></a>';
 
-                $ellipsis = substr($styled_url, 0, 30);
-                $rest = substr($styled_url, 30);
-                return sprintf($html, $url, $scheme, $ellipsis, $rest);
-        } else {
-                $html .= '%s</a>';
-                return sprintf($html, $url, $scheme, $styled_url);
-        }
+		$ellipsis = substr($styled_url, 0, 30);
+		$rest = substr($styled_url, 30);
+		return sprintf($html, $url, $scheme, $ellipsis, $rest);
+	} else {
+		$html .= '%s</a>';
+		return sprintf($html, $url, $scheme, $styled_url);
+	}
 }
 
 function stripcode_br_cb($s) {
@@ -233,6 +234,9 @@ function tryoembed($match) {
 	}
 
 	$html = oembed_format_object($o);
+
+	return $html;
+>>>>>>> more spaces/curly braces added
 
 	return $html;
 }
@@ -1109,9 +1113,9 @@ function bbcode($Text, $preserve_nl = false, $tryoembed = true, $simplehtml = fa
 	$endlessloop = 0;
 
 	while ((((strpos($Text, "[/list]") !== false) && (strpos($Text, "[list") !== false)) ||
-	       ((strpos($Text, "[/ol]") !== false) && (strpos($Text, "[ol]") !== false)) ||
-	       ((strpos($Text, "[/ul]") !== false) && (strpos($Text, "[ul]") !== false)) ||
-	       ((strpos($Text, "[/li]") !== false) && (strpos($Text, "[li]") !== false))) && (++$endlessloop < 20)) {
+			((strpos($Text, "[/ol]") !== false) && (strpos($Text, "[ol]") !== false)) ||
+			((strpos($Text, "[/ul]") !== false) && (strpos($Text, "[ul]") !== false)) ||
+			((strpos($Text, "[/li]") !== false) && (strpos($Text, "[li]") !== false))) && (++$endlessloop < 20)) {
 		$Text = preg_replace("/\[list\](.*?)\[\/list\]/ism", '<ul class="listbullet" style="list-style-type: circle;">$1</ul>', $Text);
 		$Text = preg_replace("/\[list=\](.*?)\[\/list\]/ism", '<ul class="listnone" style="list-style-type: none;">$1</ul>', $Text);
 		$Text = preg_replace("/\[list=1\](.*?)\[\/list\]/ism", '<ul class="listdecimal" style="list-style-type: decimal;">$1</ul>', $Text);
