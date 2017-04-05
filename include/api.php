@@ -1412,8 +1412,8 @@ $called_api = null;
 	}
 
 	/// @TODO move to top of file or somewhere better
-	api_register_func('api/users/show','api_users_show');
-	api_register_func('api/externalprofile/show','api_users_show');
+	api_register_func('api/users/show', 'api_users_show');
+	api_register_func('api/externalprofile/show', 'api_users_show');
 
 	function api_users_search($type) {
 
@@ -2942,8 +2942,8 @@ $called_api = null;
 	}
 
 	/// @TODO move to top of file or somewhere better
-	api_register_func('api/gnusocial/config','api_statusnet_config', false);
-	api_register_func('api/statusnet/config','api_statusnet_config', false);
+	api_register_func('api/gnusocial/config', 'api_statusnet_config', false);
+	api_register_func('api/statusnet/config', 'api_statusnet_config', false);
 
 	function api_statusnet_version($type) {
 		// liar
@@ -2953,8 +2953,8 @@ $called_api = null;
 	}
 
 	/// @TODO move to top of file or somewhere better
-	api_register_func('api/gnusocial/version','api_statusnet_version', false);
-	api_register_func('api/statusnet/version','api_statusnet_version', false);
+	api_register_func('api/gnusocial/version', 'api_statusnet_version', false);
+	api_register_func('api/statusnet/version', 'api_statusnet_version', false);
 
 	/**
 	 * @todo use api_format_data() to return data
@@ -3013,8 +3013,8 @@ $called_api = null;
 	}
 
 	/// @TODO move to top of file or somewhere better
-	api_register_func('api/friends/ids','api_friends_ids',true);
-	api_register_func('api/followers/ids','api_followers_ids',true);
+	api_register_func('api/friends/ids', 'api_friends_ids', true);
+	api_register_func('api/followers/ids', 'api_followers_ids', true);
 
 	function api_direct_messages_new($type) {
 
@@ -3077,7 +3077,7 @@ $called_api = null;
 	}
 
 	/// @TODO move to top of file or somewhere better
-	api_register_func('api/direct_messages/new','api_direct_messages_new',true, API_METHOD_POST);
+	api_register_func('api/direct_messages/new', 'api_direct_messages_new', true, API_METHOD_POST);
 
 	/**
 	 * @brief delete a direct_message from mail table through api
@@ -3414,7 +3414,7 @@ $called_api = null;
 			'image/png' => 'png',
 			'image/gif' => 'gif'
 		);
-		$data = array('photo'=>array());
+		$data = array('photo' => array());
 		if (dbm::is_result($r)) {
 			foreach ($r as $rr) {
 				$photo = array();
@@ -3644,8 +3644,7 @@ $called_api = null;
 	function api_fr_photo_detail($type) {
 		if (api_user() === false) {
 			throw new ForbiddenException();
-		}
-		if (!x($_REQUEST, 'photo_id')) {
+		} elseif (!x($_REQUEST, 'photo_id')) {
 			throw new BadRequestException("No photo id.");
 		}
 
