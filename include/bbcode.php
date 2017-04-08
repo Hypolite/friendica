@@ -236,9 +236,6 @@ function tryoembed($match) {
 	$html = oembed_format_object($o);
 
 	return $html;
->>>>>>> more spaces/curly braces added
-
-	return $html;
 }
 
 /*
