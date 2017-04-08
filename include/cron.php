@@ -236,7 +236,7 @@ function cron_poll_contacts($argc, $argv) {
 						break;
 					case 0:
 					default:
-						if (datetime_convert('UTC', 'UTC', 'now') > datetime_convert('UTC', 'UTC', $t . " + ".$min_poll_interval." minute")) {
+						if (datetime_convert('UTC', 'UTC', 'now') > datetime_convert('UTC', 'UTC', $t . " + " . $min_poll_interval . " minute")) {
 							$update = true;
 						}
 						break;
