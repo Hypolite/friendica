@@ -106,7 +106,7 @@ function localize_item(&$item) {
 		$item['body'] = item_redir_and_replace_images($extracted['body'], $extracted['images'], $item['contact-id']);
 	}
 
-	/// @Separted ???
+	/// @TODO Separted ???
 	$xmlhead = "<" . "?xml version='1.0' encoding='UTF-8' ?" . ">";
 	if (activity_match($item['verb'], ACTIVITY_LIKE)
 		|| activity_match($item['verb'], ACTIVITY_DISLIKE)
@@ -152,17 +152,13 @@ function localize_item(&$item) {
 
 		if (activity_match($item['verb'], ACTIVITY_LIKE)) {
 			$bodyverb = t('%1$s likes %2$s\'s %3$s');
-		}
-		elseif (activity_match($item['verb'], ACTIVITY_DISLIKE)) {
+		} elseif (activity_match($item['verb'], ACTIVITY_DISLIKE)) {
 			$bodyverb = t('%1$s doesn\'t like %2$s\'s %3$s');
-		}
-		elseif (activity_match($item['verb'], ACTIVITY_ATTEND)) {
+		} elseif (activity_match($item['verb'], ACTIVITY_ATTEND)) {
 			$bodyverb = t('%1$s attends %2$s\'s %3$s');
-		}
-		elseif (activity_match($item['verb'], ACTIVITY_ATTENDNO)) {
+		} elseif (activity_match($item['verb'], ACTIVITY_ATTENDNO)) {
 			$bodyverb = t('%1$s doesn\'t attend %2$s\'s %3$s');
-		}
-		elseif (activity_match($item['verb'], ACTIVITY_ATTENDMAYBE)) {
+		} elseif (activity_match($item['verb'], ACTIVITY_ATTENDMAYBE)) {
 			$bodyverb = t('%1$s attends maybe %2$s\'s %3$s');
 		}
 		$item['body'] = sprintf($bodyverb, $author, $objauthor, $plink);
@@ -308,8 +304,8 @@ function localize_item(&$item) {
 		$item['body'] = sprintf( t('%1$s tagged %2$s\'s %3$s with %4$s'), $author, $objauthor, $plink, $tag );
 
 	}
-	if (activity_match($item['verb'], ACTIVITY_FAVORITE)) {
 
+	if (activity_match($item['verb'], ACTIVITY_FAVORITE)) {
 		if ($item['object-type'] == "") {
 			return;
 		}
@@ -855,7 +851,6 @@ function conversation(App $a, $items, $mode, $update, $preview = false) {
 			 */
 			$threads = array();
 			foreach ($items as $item) {
-
 				if ($arr_blocked) {
 					$blocked = false;
 					foreach ($arr_blocked as $b) {
@@ -1489,7 +1484,7 @@ function find_thread_parent_index($arr, $x) {
 	return false;
 }
 
-/// @TODO Type-hint is array
+/// @TODO Add type-hint
 function render_location_dummy($item) {
 	if ($item['location'] != "") {
 		return $item['location'];
