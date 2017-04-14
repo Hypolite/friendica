@@ -487,7 +487,7 @@ function store_conversation($arr) {
 	return $arr;
 }
 
-/// @TODO add type-hint array
+/// @TODO Maybe $arr must be called-by-reference? This function modifies it
 function item_store($arr, $force_parent = false, $notify = false, $dontcache = false) {
 
 	$a = get_app();
