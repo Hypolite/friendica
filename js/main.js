@@ -60,6 +60,7 @@
 	var last_popup_menu = null;
 	var last_popup_button = null;
 	var lockLoadContent = false;
+	var lastItem = null;
 
 	$(function() {
 		$.ajaxSetup({cache: false});
@@ -393,7 +394,11 @@
 	}
 
 	function liveUpdate(src) {
-		if((src == null) || (stopped) || (! profile_uid)) { $('.like-rotator').hide(); return; }
+		if((src == null) || (stopped) || (typeof profile_uid == "undefined")) {
+			$('.like-rotator').hide();
+			return;
+		}
+
 		if(($('.comment-edit-text-full').length) || (in_progress)) {
 			if(livetime) {
 				clearTimeout(livetime);
@@ -414,18 +419,25 @@
 		var udargs = ((netargs.length) ? '/' + netargs : '');
 		var update_url = 'update_' + src + udargs + '&p=' + profile_uid + '&page=' + profile_page + '&force=' + ((force_update) ? 1 : 0);
 
+		// If the uid of the local user not the uid of the profile we it doesn't
+		// make sense to search for unseen items.Instead we add a timestamp parameter
+		// of the last data we got to the url. So we search for items
+		// from that time until now.
+		if (typeof pageLoadTimestamp != 'undefined' && localUser != profile_uid) {
+			lastItem = (lastItem ? lastItem : pageLoadTimestamp);
+			update_url += '&dbegin=' + lastItem;
+		}
+
 		$.get(update_url,function(data) {
 			in_progress = false;
 			force_update = false;
-			//			$('.collapsed-comments',data).each(function() {
-			//	var ident = $(this).attr('id');
-			//	var is_hidden = $('#' + ident).is(':hidden');
-			//	if($('#' + ident).length) {
-			//		$('#' + ident).replaceWith($(this));
-			//		if(is_hidden)
-			//			$('#' + ident).hide();
-			//	}
-			//});
+
+			// If there are new items we will get a new timestamp.
+			// So lets update the old timestamp value.
+			var itemTimestamp = $(data).find('div#last_item').data("time");
+			if (typeof itemTimestamp !== "undefined") {
+				lastItem = itemTimestamp
+			}
 
 			// add a new thread
 			$('.toplevel_item',data).each(function() {

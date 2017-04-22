@@ -195,9 +195,9 @@ function profile_content(App $a, $update = 0) {
 				'visitor' => (($is_owner || $commvisitor) ? 'block' : 'none'),
 				'profile_uid' => $a->profile['profile_uid'],
 				'acl_data' => ( $is_owner ? construct_acl_data($a, $a->user) : '' ), // For non-Javascript ACL selector
-		);
+			);
 
-		$o .= status_editor($a,$x);
+			$o .= status_editor($a,$x);
 		}
 	}
 
@@ -209,6 +209,19 @@ function profile_content(App $a, $update = 0) {
 
 
 	if ($update) {
+		$dbegin = (x($_GET, 'dbegin') ? intval($_GET['dbegin']) : 0);
+
+		// If we get a `dbegin' query parameter we use query for items from the timestamp on
+		// until now. This should be uses if a user isn't logged in or if visited the profile page
+		// is not his/her own one.
+		// To prevent misuse this is only posible for the last 24h.
+		if ($dbegin > (time() - 86400)) {
+			$sql_extra4 = " AND `item`.`received` > '" . gmdate("Y-m-d H:i:s", $dbegin) . "'";
+		// Otherwise we query for unseen items. This should be used if a logged in user does visit his/her
+		// own profile page.
+		} else {
+			$sql_extra4 = " AND `item`.`unseen`";
+		}
 
 		$r = q("SELECT distinct(parent) AS `item_id`, `item`.`network` AS `item_network`, `item`.`created`
 			FROM `item` INNER JOIN `contact` ON `contact`.`id` = `item`.`contact-id`
@@ -217,12 +230,24 @@ function profile_content(App $a, $update = 0) {
 			(`item`.`deleted` = 0 OR item.verb = '" . ACTIVITY_LIKE ."'
 			OR item.verb = '" . ACTIVITY_DISLIKE . "' OR item.verb = '" . ACTIVITY_ATTEND . "'
 			OR item.verb = '" . ACTIVITY_ATTENDNO . "' OR item.verb = '" . ACTIVITY_ATTENDMAYBE . "')
-			AND `item`.`moderated` = 0 and `item`.`unseen` = 1
+			AND `item`.`moderated` = 0 $sql_extra4
 			AND `item`.`wall` = 1
 			$sql_extra
 			ORDER BY `item`.`created` DESC",
 			intval($a->profile['profile_uid'])
 		);
+
+		// We insert a dummy html element at this point to provide a "data-time" attribute
+		// with a timestamp. So we could get the timestamp of the last item results
+		// through javascript. This is not very elegant. Maybe someone finde a better solution.
+		if (dbm::is_result($r)) {
+			$o .= replace_macros(get_markup_template("timestamp.tpl"),array(
+				'$id' => 'last_item',
+				'$timestamp' => time()
+			));
+		} else {
+			return "";
+		}
 
 	} else {
 		$sql_post_table = "";

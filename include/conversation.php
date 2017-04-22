@@ -563,7 +563,10 @@ function conversation(App $a, $items, $mode, $update, $preview = false) {
 
 				$live_update_div = '<div id="live-profile"></div>' . "\r\n"
 					. "<script> var profile_uid = " . $a->profile['profile_uid']
-					. "; var netargs = '?f='; var profile_page = " . $a->pager['page'] . "; </script>\r\n";
+					. "; var netargs = '?f='; "
+					. "; var profile_page = " . $a->pager['page']
+					. "; var pageLoadTimestamp =" . time()
+					. "; </script>\r\n";
 			}
 		}
 	} elseif ($mode === 'notes') {
