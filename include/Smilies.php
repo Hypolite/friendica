@@ -3,6 +3,7 @@
 /**
  * @file include/Smilies.php
  * @brief This file contains the Smilies class which contains functions to handle smiles
+ * @todo move to proper folder
  */
 
 use Friendica\App;

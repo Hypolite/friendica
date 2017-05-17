@@ -5,6 +5,7 @@ use Friendica\App;
 /**
  * @file include/ForumManager.php
  * @brief ForumManager class with its methods related to forum functionality *
+ * @todo move to proper folder
  */
 
 /**

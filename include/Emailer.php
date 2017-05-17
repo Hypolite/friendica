@@ -1,6 +1,9 @@
 <?php
 
-require_once('include/email.php');
+require_once 'include/email.php';
+
+/// @todo move to proper folder
+/// @todo maybe it is time to switch to PhpMailer?
 
 class Emailer {
 	/**
@@ -16,12 +19,12 @@ class Emailer {
 	 * @param additionalMailHeader	additions to the smtp mail header
 	 * @param optional uid      user id of the destination user
 	 */
-	static public function send($params) {
+	public static function send($params) {
 
 		call_hooks('emailer_send_prepare', $params);
 
 		$email_textonly = False;
-		if (x($params,"uid")) {
+		if (x($params, "uid")) {
 			$email_textonly = get_pconfig($params['uid'], "system", "email_textonly");
 		}
 
@@ -29,10 +32,10 @@ class Emailer {
 		$messageSubject = email_header_encode(html_entity_decode($params['messageSubject'],ENT_QUOTES,'UTF-8'),'UTF-8');
 
 		// generate a mime boundary
-		$mimeBoundary   =rand(0,9)."-"
-				.rand(100000000,999999999)."-"
-				.rand(100000000,999999999)."=:"
-				.rand(10000,99999);
+		$mimeBoundary = rand(0,9) . "-"
+				. rand(100000000, 999999999) . "-"
+				. rand(100000000, 999999999) . "=:"
+				. rand(10000, 99999);
 
 		// generate a multipart/alternative message header
 		$messageHeader =

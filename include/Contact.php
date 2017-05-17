@@ -1,5 +1,6 @@
 <?php
 
+/// @TODO Is no class file, should be renamed all lower-case
 use Friendica\App;
 use Friendica\Network\Probe;
 
@@ -8,18 +9,21 @@ use Friendica\Network\Probe;
 // authorisation to do this.
 
 function user_remove($uid) {
-	if(! $uid)
+	if (! $uid) {
 		return;
+	}
 	logger('Removing user: ' . $uid);
 
-	$r = q("select * from user where uid = %d limit 1", intval($uid));
+	$r = q("SELECT * FROM `user` WHERE `uid` = %d LIMIT 1", intval($uid));
 
-	call_hooks('remove_user',$r[0]);
+	call_hooks('remove_user', $r[0]);
 
-	// save username (actually the nickname as it is guaranteed
-	// unique), so it cannot be re-registered in the future.
+	/*
+	 * save username (actually the nickname as it is guaranteed
+	 * unique), so it cannot be re-registered in the future.
+	 */
 
-	q("insert into userd ( username ) values ( '%s' )",
+	q("INSERT INTO `userd` ( `username` ) VALUES ( '%s' )",
 		$r[0]['nickname']
 	);
 
@@ -30,7 +34,7 @@ function user_remove($uid) {
 	// Send an update to the directory
 	proc_run(PRIORITY_LOW, "include/directory.php", $r[0]['url']);
 
-	if($uid == local_user()) {
+	if ($uid == local_user()) {
 		unset($_SESSION['authenticated']);
 		unset($_SESSION['uid']);
 		goaway(App::get_baseurl());
@@ -48,7 +52,7 @@ function contact_remove($id) {
 		return;
 	}
 
-	$archive = get_pconfig($r[0]['uid'], 'system','archive_removed_contacts');
+	$archive = get_pconfig($r[0]['uid'], 'system', 'archive_removed_contacts');
 	if ($archive) {
 		q("update contact set `archive` = 1, `network` = 'none', `writable` = 0 where id = %d",
 			intval($id)
@@ -82,16 +86,16 @@ function terminate_friendship($user,$self,$contact) {
 		$item['follow'] = $contact["url"];
 		$slap = ostatus::salmon($item, $user);
 
-		if ((x($contact,'notify')) && (strlen($contact['notify']))) {
+		if ((x($contact, 'notify')) && (strlen($contact['notify']))) {
 			require_once 'include/salmon.php';
 			slapper($user,$contact['notify'],$slap);
 		}
 	} elseif ($contact['network'] === NETWORK_DIASPORA) {
 		require_once 'include/diaspora.php';
-		Diaspora::send_unshare($user,$contact);
+		Diaspora::send_unshare($user, $contact);
 	} elseif ($contact['network'] === NETWORK_DFRN) {
 		require_once 'include/dfrn.php';
-		dfrn::deliver($user,$contact,'placeholder', 1);
+		dfrn::deliver($user, $contact, 'placeholder', 1);
 	}
 
 }
@@ -105,8 +109,9 @@ function terminate_friendship($user,$self,$contact) {
 
 function mark_for_death($contact) {
 
-	if($contact['archive'])
+	if ($contact['archive']) {
 		return;
+	}
 
 	if ($contact['term-date'] <= NULL_DATE) {
 		q("UPDATE `contact` SET `term-date` = '%s' WHERE `id` = %d",
@@ -132,7 +137,7 @@ function mark_for_death($contact) {
 		/// Check for contact vitality via probing
 
 		$expiry = $contact['term-date'] . ' + 32 days ';
-		if(datetime_convert() > datetime_convert('UTC','UTC',$expiry)) {
+		if (datetime_convert() > datetime_convert('UTC', 'UTC', $expiry)) {
 
 			// relationship is really truly dead.
 			// archive them rather than delete
@@ -212,18 +217,20 @@ function get_contact_details_by_url($url, $uid = -1, $default = array()) {
 			dbesc(normalise_link($url)), intval($uid));
 
 	// Fetch the data from the contact table with "uid=0" (which is filled automatically)
-	if (!dbm::is_result($r))
+	if (!dbm::is_result($r)) {
 		$r = q("SELECT `id`, 0 AS `cid`, `id` AS `zid`, 0 AS `gid`, `uid`, `url`, `nurl`, `alias`, `network`, `name`, `nick`, `addr`, `location`, `about`, `xmpp`,
 			`keywords`, `gender`, `photo`, `thumb`, `micro`, `forum`, `prv`, (`forum` | `prv`) AS `community`, `contact-type`, `bd` AS `birthday`, 0 AS `self`
 			FROM `contact` WHERE `nurl` = '%s' AND `uid` = 0",
 				dbesc(normalise_link($url)));
+	}
 
 	// Fetch the data from the gcontact table
-	if (!dbm::is_result($r))
+	if (!dbm::is_result($r)) {
 		$r = q("SELECT 0 AS `id`, 0 AS `cid`, `id` AS `gid`, 0 AS `zid`, 0 AS `uid`, `url`, `nurl`, `alias`, `network`, `name`, `nick`, `addr`, `location`, `about`, '' AS `xmpp`,
 			`keywords`, `gender`, `photo`, `photo` AS `thumb`, `photo` AS `micro`, `community` AS `forum`, 0 AS `prv`, `community`, `contact-type`, `birthday`, 0 AS `self`
 			FROM `gcontact` WHERE `nurl` = '%s'",
 				dbesc(normalise_link($url)));
+	}
 
 	if (dbm::is_result($r)) {
 		// If there is more than one entry we filter out the connector networks
@@ -328,18 +335,20 @@ function get_contact_details_by_addr($addr, $uid = -1) {
 			dbesc($addr), intval($uid));
 
 	// Fetch the data from the contact table with "uid=0" (which is filled automatically)
-	if (!dbm::is_result($r))
+	if (!dbm::is_result($r)) {
 		$r = q("SELECT `id`, 0 AS `cid`, `id` AS `zid`, 0 AS `gid`, `uid`, `url`, `nurl`, `alias`, `network`, `name`, `nick`, `addr`, `location`, `about`, `xmpp`,
 			`keywords`, `gender`, `photo`, `thumb`, `micro`, `forum`, `prv`, (`forum` | `prv`) AS `community`, `contact-type`, `bd` AS `birthday`, 0 AS `self`
 			FROM `contact` WHERE `addr` = '%s' AND `uid` = 0",
 				dbesc($addr));
+	}
 
 	// Fetch the data from the gcontact table
-	if (!dbm::is_result($r))
+	if (!dbm::is_result($r)) {
 		$r = q("SELECT 0 AS `id`, 0 AS `cid`, `id` AS `gid`, 0 AS `zid`, 0 AS `uid`, `url`, `nurl`, `alias`, `network`, `name`, `nick`, `addr`, `location`, `about`, '' AS `xmpp`,
 			`keywords`, `gender`, `photo`, `photo` AS `thumb`, `photo` AS `micro`, `community` AS `forum`, 0 AS `prv`, `community`, `contact-type`, `birthday`, 0 AS `self`
 			FROM `gcontact` WHERE `addr` = '%s'",
 				dbesc($addr));
+	}
 
 	if (!dbm::is_result($r)) {
 		$data = Probe::uri($addr);
@@ -353,8 +362,7 @@ function get_contact_details_by_addr($addr, $uid = -1) {
 }
 
 if (! function_exists('contact_photo_menu')) {
-function contact_photo_menu($contact, $uid = 0)
-{
+function contact_photo_menu($contact, $uid = 0) {
 	$a = get_app();
 
 	$contact_url = '';
@@ -379,7 +387,7 @@ function contact_photo_menu($contact, $uid = 0)
 
 		$r = q("SELECT * FROM `contact` WHERE `nurl` = '%s' AND `network` = '%s' AND `uid` = %d",
 			dbesc($contact['nurl']), dbesc($contact['network']), intval($uid));
-		if ($r) {
+		if (dbm::is_result($r)) {
 			return contact_photo_menu($r[0], $uid);
 		} else {
 			$profile_link = zrl($contact['url']);
@@ -424,7 +432,7 @@ function contact_photo_menu($contact, $uid = 0)
 	$posts_link = App::get_baseurl() . '/contacts/' . $contact['id'] . '/posts';
 	$contact_drop_link = App::get_baseurl() . '/contacts/' . $contact['id'] . '/drop?confirm=1';
 
-	/**
+	/*
 	 * menu array:
 	 * "name" => [ "Label", "link", (bool)Should the link opened in a new tab? ]
 	 */
@@ -463,16 +471,17 @@ function random_profile() {
 			ORDER BY rand() LIMIT 1",
 		dbesc(NETWORK_DFRN));
 
-	if (dbm::is_result($r))
+	if (dbm::is_result($r)) {
 		return dirname($r[0]['url']);
+	}
 	return '';
 }
 
 
-function contacts_not_grouped($uid,$start = 0,$count = 0) {
+function contacts_not_grouped($uid, $start = 0, $count = 0) {
 
-	if(! $count) {
-		$r = q("select count(*) as total from contact where uid = %d and self = 0 and id not in (select distinct(`contact-id`) from group_member where uid = %d) ",
+	if (! $count) {
+		$r = q("SELECT COUNT(`id`) AS `total` FROM `contact` WHERE `uid` = %d AND `self` = 0 AND `id` NOT IN (SELECT DISTINCT(`contact-id`) FROM `group_member` WHERE `uid` = %d) ",
 			intval($uid),
 			intval($uid)
 		);
@@ -482,7 +491,7 @@ function contacts_not_grouped($uid,$start = 0,$count = 0) {
 
 	}
 
-	$r = q("select * from contact where uid = %d and self = 0 and id not in (select distinct(`contact-id`) from group_member where uid = %d) and blocked = 0 and pending = 0 limit %d, %d",
+	$r = q("SELECT * FROM `contact` WHERE `uid` = %d AND `self` = 0 AND `id` NOT IN (SELECT DISTINCT(`contact-id`) FROM `group_member` WHERE `uid` = %d) AND `blocked` = 0 AND `pending` = 0 LIMIT %d, %d",
 		intval($uid),
 		intval($uid),
 		intval($start),
@@ -677,10 +686,11 @@ function posts_from_gcontact(App $a, $gcontact_id) {
 	// There are no posts with "uid = 0" with connector networks
 	// This speeds up the query a lot
 	$r = q("SELECT `network` FROM `gcontact` WHERE `id` = %d", dbesc($gcontact_id));
-	if (in_array($r[0]["network"], array(NETWORK_DFRN, NETWORK_DIASPORA, NETWORK_OSTATUS, "")))
+	if (dbm::is_result($r) && in_array($r[0]["network"], array(NETWORK_DFRN, NETWORK_DIASPORA, NETWORK_OSTATUS, ""))) {
 		$sql = "(`item`.`uid` = 0 OR  (`item`.`uid` = %d AND `item`.`private`))";
-	else
+	} else {
 		$sql = "`item`.`uid` = %d";
+	}
 
 	$r = q("SELECT `item`.`uri`, `item`.*, `item`.`id` AS `item_id`,
 			`author-name` AS `name`, `owner-avatar` AS `photo`,
@@ -718,7 +728,7 @@ function posts_from_contact_url(App $a, $contact_url) {
 	$r = q("SELECT `network`, `id` AS `author-id` FROM `contact`
 		WHERE `contact`.`nurl` = '%s' AND `contact`.`uid` = 0",
 		dbesc(normalise_link($contact_url)));
-	if (in_array($r[0]["network"], array(NETWORK_DFRN, NETWORK_DIASPORA, NETWORK_OSTATUS, ""))) {
+	if (dbm::is_result($r) && in_array($r[0]["network"], array(NETWORK_DFRN, NETWORK_DIASPORA, NETWORK_OSTATUS, ""))) {
 		$sql = "(`item`.`uid` = 0 OR (`item`.`uid` = %d AND `item`.`private`))";
 	} else {
 		$sql = "`item`.`uid` = %d";
@@ -755,19 +765,22 @@ function posts_from_contact_url(App $a, $contact_url) {
 function formatted_location($profile) {
 	$location = '';
 
-	if($profile['locality'])
+	if ($profile['locality']) {
 		$location .= $profile['locality'];
+	}
 
-	if($profile['region'] && ($profile['locality'] != $profile['region'])) {
-		if($location)
+	if ($profile['region'] && ($profile['locality'] != $profile['region'])) {
+		if ($location) {
 			$location .= ', ';
+		}
 
 		$location .= $profile['region'];
 	}
 
-	if($profile['country-name']) {
-		if($location)
+	if ($profile['country-name']) {
+		if ($location) {
 			$location .= ', ';
+		}
 
 		$location .= $profile['country-name'];
 	}
@@ -788,22 +801,25 @@ function account_type($contact) {
 	// "page-flags" is a field in the user table,
 	// "forum" and "prv" are used in the contact table. They stand for PAGE_COMMUNITY and PAGE_PRVGROUP.
 	// "community" is used in the gcontact table and is true if the contact is PAGE_COMMUNITY or PAGE_PRVGROUP.
-	if((isset($contact['page-flags']) && (intval($contact['page-flags']) == PAGE_COMMUNITY))
+	if ((isset($contact['page-flags']) && (intval($contact['page-flags']) == PAGE_COMMUNITY))
 		|| (isset($contact['page-flags']) && (intval($contact['page-flags']) == PAGE_PRVGROUP))
 		|| (isset($contact['forum']) && intval($contact['forum']))
 		|| (isset($contact['prv']) && intval($contact['prv']))
-		|| (isset($contact['community']) && intval($contact['community'])))
+		|| (isset($contact['community']) && intval($contact['community']))) {
 		$type = ACCOUNT_TYPE_COMMUNITY;
-	else
+	} else {
 		$type = ACCOUNT_TYPE_PERSON;
+	}
 
 	// The "contact-type" (contact table) and "account-type" (user table) are more general then the chaos from above.
-	if (isset($contact["contact-type"]))
+	if (isset($contact["contact-type"])) {
 		$type = $contact["contact-type"];
-	if (isset($contact["account-type"]))
+	}
+	if (isset($contact["account-type"])) {
 		$type = $contact["account-type"];
+	}
 
-	switch($type) {
+	switch ($type) {
 		case ACCOUNT_TYPE_ORGANISATION:
 			$account_type = t("Organisation");
 			break;

@@ -3,6 +3,7 @@
 /**
  * @file include/DirSearch.php
  * @brief This file includes the DirSearch class with directory related functions
+ * @todo move to proper folder
  */
 
 

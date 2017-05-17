@@ -3,6 +3,7 @@
  * @file include/NotificationsManager.php
  * @brief Methods for read and write notifications from/to database
  *  or for formatting notifications
+ * @todo move to proper folder
  */
 
 require_once 'include/html2plain.php';

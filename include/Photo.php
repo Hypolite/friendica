@@ -2,11 +2,12 @@
 /**
  * @file include/Photo.php
  * @brief This file contains the Photo class for image processing
+ * @todo move to proper folder
  */
 
 use Friendica\App;
 
-require_once("include/photos.php");
+require_once "include/photos.php";
 
 class Photo {
 
@@ -116,7 +117,7 @@ class Photo {
 			/*
 			 * setup the compression here, so we'll do it only once
 			 */
-			switch($this->getType()){
+			switch ($this->getType()) {
 				case "image/png":
 					$quality = get_config('system', 'png_quality');
 					if ((! $quality) || ($quality > 9)) {
