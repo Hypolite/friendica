@@ -1720,19 +1720,19 @@ function poco_discover_federation() {
 		$servers = json_decode($serverdata);
 
 		foreach ($servers->pods as $server) {
-			proc_run(PRIORITY_LOW, "include/discover_poco.php", "server", "https://".$server->host);
+			proc_run(PRIORITY_LOW, "include/discover_poco.php", "server", "https://" . $server->host);
 		}
 	}
 
 	// Disvover Mastodon servers
-	if (!Config::get('system','ostatus_disabled')) {
+	if (!Config::get('system', 'ostatus_disabled')) {
 		$serverdata = fetch_url("https://instances.mastodon.xyz/instances.json");
 
 		if ($serverdata) {
 			$servers = json_decode($serverdata);
 
 			foreach ($servers as $server) {
-				$url = (is_null($server->https_score) ? 'http' : 'https').'://'.$server->name;
+				$url = (is_null($server->https_score) ? 'http' : 'https') . '://' . $server->name;
 				proc_run(PRIORITY_LOW, "include/discover_poco.php", "server", $url);
 			}
 		}
