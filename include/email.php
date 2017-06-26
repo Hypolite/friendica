@@ -199,7 +199,7 @@ function email_get_part($mbox,$uid,$p,$partno, $subtype) {
 	// SUBPART RECURSION
 	if (isset($p->parts) && $p->parts) {
 		$x = "";
-		foreach ($p->parts as $partno0=>$p2) {
+		foreach ($p->parts as $partno0 => $p2) {
 			$x .=  email_get_part($mbox,$uid,$p2,$partno . '.' . ($partno0+1), $subtype);  // 1.2, 1.2.1, etc.
 			//if ($x) {
 			//	return $x;
