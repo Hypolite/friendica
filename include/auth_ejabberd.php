@@ -64,7 +64,7 @@ if (is_null($db)) {
 $sLogFile = get_config('jabber','logfile');
 
 // set true to debug if needed
-$bDebug	= get_config('jabber','debug');
+$bDebug = get_config('jabber','debug');
 
 $oAuth = new exAuth($sLogFile, $bDebug);
 
@@ -84,12 +84,13 @@ class exAuth {
 		global $db;
 
 		// setter
-		$this->sLogFile 	= $sLogFile;
-		$this->bDebug		= $bDebug;
+		$this->sLogFile = $sLogFile;
+		$this->bDebug   = $bDebug;
 
 		// Open the logfile if the logfile name is defined
-		if ($this->sLogFile != '')
+		if ($this->sLogFile != '') {
 			$this->rLogFile = fopen($this->sLogFile, "a") || die("Error opening log file: ". $this->sLogFile);
+		}
 
 		$this->writeLog("[exAuth] start");
 
@@ -203,15 +204,18 @@ class exAuth {
 
 		$data = z_fetch_url($url);
 
-		if (!is_array($data))
-			return(false);
+		if (!is_array($data)) {
+			return false;
+		}
 
-		if ($data["return_code"] != "200")
-			return(false);
+		if ($data["return_code"] != "200") {
+			return false;
+		}
 
 		$json = @json_decode($data["body"]);
-		if (!is_object($json))
-			return(false);
+		if (!is_object($json)) {
+			return false;
+		}
 
 		return($json->nick == $user);
 	}
@@ -310,8 +314,9 @@ class exAuth {
 	 * @param string $sMessage The logfile message
 	 */
 	private function writeLog($sMessage) {
-		if (is_resource($this->rLogFile))
+		if (is_resource($this->rLogFile)) {
 			fwrite($this->rLogFile, date("r")." ".$sMessage."\n");
+		}
 	}
 
 	/**
@@ -320,8 +325,9 @@ class exAuth {
 	 * @param string $sMessage The logfile message
 	 */
 	private function writeDebugLog($sMessage) {
-		if ($this->bDebug)
+		if ($this->bDebug) [
 			$this->writeLog($sMessage);
+		}
 	}
 
 	/**
@@ -331,7 +337,8 @@ class exAuth {
 		// close the log file
 		$this->writeLog("[exAuth] stop");
 
-		if (is_resource($this->rLogFile))
+		if (is_resource($this->rLogFile)) {
 			fclose($this->rLogFile);
+		}
 	}
 }
