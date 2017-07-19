@@ -1553,43 +1553,6 @@ function get_spoolpath() {
 	return "";
 }
 
-function get_temppath() {
-	$a = get_app();
-
-	$temppath = get_config("system", "temppath");
-
-	if (($temppath != "") AND App::directory_usable($temppath)) {
-		// We have a temp path and it is usable
-		return $temppath;
-	}
-
-	// We don't have a working preconfigured temp path, so we take the system path.
-	$temppath = sys_get_temp_dir();
-
-	// Check if it is usable
-	if (($temppath != "") AND App::directory_usable($temppath)) {
-		// To avoid any interferences with other systems we create our own directory
-		$new_temppath .= "/".$a->get_hostname();
-		if (!is_dir($new_temppath)) {
-			/// @TODO There is a mkdir()+chmod() upwards, maybe generalize this (+ configurable) into a function/method?
-			mkdir($new_temppath);
-		}
-
-		if (App::directory_usable($new_temppath)) {
-			// The new path is usable, we are happy
-			set_config("system", "temppath", $new_temppath);
-			return $new_temppath;
-		} else {
-			// We can't create a subdirectory, strange.
-			// But the directory seems to work, so we use it but don't store it.
-			return $temppath;
-		}
-	}
-
-	// Reaching this point means that the operating system is configured badly.
-	return '';
-}
-
 /// @deprecated
 function set_template_engine(App $a, $engine = 'internal') {
 /// @note This function is no longer necessary, but keep it as a wrapper to the class method
