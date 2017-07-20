@@ -9,20 +9,20 @@
 
 use Friendica\App;
 
-require_once("include/Contact.php");
-require_once("include/ostatus.php");
-require_once("include/enotify.php");
-require_once("include/threads.php");
-require_once("include/socgraph.php");
-require_once("include/items.php");
-require_once("include/tags.php");
-require_once("include/files.php");
-require_once("include/event.php");
-require_once("include/text.php");
-require_once("include/oembed.php");
-require_once("include/html2bbcode.php");
-require_once("include/bbcode.php");
-require_once("include/xml.php");
+require_once "include/Contact.php";
+require_once "include/ostatus.php";
+require_once "include/enotify.php";
+require_once "include/threads.php";
+require_once "include/socgraph.php";
+require_once "include/items.php";
+require_once "include/tags.php";
+require_once "include/files.php";
+require_once "include/event.php";
+require_once "include/text.php";
+require_once "include/oembed.php";
+require_once "include/html2bbcode.php";
+require_once "include/bbcode.php";
+require_once "include/xml.php";
 
 /**
  * @brief This class contain functions to create and send DFRN XML files
@@ -61,7 +61,7 @@ class dfrn {
 			$root->appendChild($entry);
 		}
 
-		return(trim($doc->saveXML()));
+		return trim($doc->saveXML());
 	}
 
 	/**
@@ -152,7 +152,8 @@ class dfrn {
 			}
 
 			$contact = $r[0];
-			require_once('include/security.php');
+			/// @TODO On top of this file, double-quote is used, here single
+			require_once 'include/security.php';
 			$groups = init_groups_visitor($contact['id']);
 
 			if (count($groups)) {
@@ -193,10 +194,8 @@ class dfrn {
 			//$sql_extra .= file_tag_file_query('item',$category,'category');
 		}
 
-		if ($public_feed) {
-			if (! $converse) {
-				$sql_extra .= " AND `contact`.`self` = 1 ";
-			}
+		if ($public_feed && ! $converse) {
+			$sql_extra .= " AND `contact`.`self` = 1 ";
 		}
 
 		$check_date = datetime_convert('UTC','UTC',$last_update,'Y-m-d H:i:s');
@@ -373,7 +372,7 @@ class dfrn {
 
 		$root->appendChild($mail);
 
-		return(trim($doc->saveXML()));
+		return trim($doc->saveXML());
 	}
 
 	/**
@@ -401,7 +400,7 @@ class dfrn {
 
 		$root->appendChild($suggest);
 
-		return(trim($doc->saveXML()));
+		return trim($doc->saveXML());
 	}
 
 	/**
@@ -462,7 +461,7 @@ class dfrn {
 
 		$root->appendChild($relocate);
 
-		return(trim($doc->saveXML()));
+		return trim($doc->saveXML());
 	}
 
 	/**
@@ -557,6 +556,7 @@ class dfrn {
 		$r = q("SELECT `id` FROM `profile` INNER JOIN `user` ON `user`.`uid` = `profile`.`uid`
 				WHERE (`hidewall` OR NOT `net-publish`) AND `user`.`uid` = %d",
 			intval($owner['uid']));
+
 		if (dbm::is_result($r)) {
 			$hidewall = true;
 		} else {
@@ -616,6 +616,7 @@ class dfrn {
 			intval($owner['uid']));
 
 		if (dbm::is_result($r)) {
+			/// @TODO Get rid of this and use $r[0] directly
 			$profile = $r[0];
 
 			xml::add_element($doc, $author, "poco:displayName", $profile["name"]);
@@ -866,7 +867,7 @@ class dfrn {
 			$htmlbody = $body;
 
 			if ($item['title'] != "") {
-				$htmlbody = "[b]".$item['title']."[/b]\n\n".$htmlbody;
+				$htmlbody = "[b]" . $item['title'] . "[/b]\n\n" . $htmlbody;
 			}
 
 			$htmlbody = bbcode($htmlbody, false, false, 7);
@@ -882,13 +883,13 @@ class dfrn {
 			$parent = q("SELECT `guid` FROM `item` WHERE `id` = %d", intval($item["parent"]));
 			$parent_item = (($item['thr-parent']) ? $item['thr-parent'] : $item['parent-uri']);
 			$attributes = array("ref" => $parent_item, "type" => "text/html",
-						"href" => App::get_baseurl().'/display/'.$parent[0]['guid'],
+						"href" => App::get_baseurl() . '/display/' . $parent[0]['guid'],
 						"dfrn:diaspora_guid" => $parent[0]['guid']);
 			xml::add_element($doc, $entry, "thr:in-reply-to", "", $attributes);
 		}
 
 		// Add conversation data. This is used for OStatus
-		$conversation_href = App::get_baseurl()."/display/".$owner["nick"]."/".$item["parent"];
+		$conversation_href = App::get_baseurl() . "/display/" . $owner["nick"] . "/" . $item["parent"];
 		$conversation_uri = $conversation_href;
 
 		if (isset($parent_item)) {
@@ -987,6 +988,7 @@ class dfrn {
 
 		$tags = item_getfeedtags($item);
 
+		/// @TODO Combine this with similar below if() block?
 		if (count($tags)) {
 			foreach ($tags as $t) {
 				if (($type != 'html') || ($t[0] != "@")) {
@@ -1059,7 +1061,7 @@ class dfrn {
 	 * @return int Deliver status. -1 means an error.
 	 * @todo Add array type-hint for $owner, $contact
 	 */
-	public static function deliver($owner,$contact,$atom, $dissolve = false) {
+	public static function deliver($owner, $contact, $atom, $dissolve = false) {
 
 		$a = get_app();
 
@@ -1116,7 +1118,7 @@ class dfrn {
 			return 3;
 		}
 
-		if (strpos($xml,'<?xml') === false) {
+		if (strpos($xml, '<?xml') === false) {
 			logger('dfrn_deliver: no valid XML returned');
 			logger('dfrn_deliver: returned XML: ' . $xml, LOGGER_DATA);
 			return 3;
@@ -1125,6 +1127,7 @@ class dfrn {
 		$res = parse_xml_string($xml);
 
 		if ((intval($res->status) != 0) || (! strlen($res->challenge)) || (! strlen($res->dfrn_id))) {
+			/// @TODO Document why 3 instead of res->status
 			return (($res->status) ? $res->status : 3);
 		}
 
@@ -1147,7 +1150,7 @@ class dfrn {
 		if ($perm) {
 			if ((($perm == 'rw') && (! intval($contact['writable'])))
 				|| (($perm == 'r') && (intval($contact['writable'])))) {
-				q("update contact set writable = %d where id = %d",
+				q("UPDATE `contact` SET `writable` = %d WHERE `id` = %d",
 					intval(($perm == 'rw') ? 1 : 0),
 					intval($contact['id'])
 				);
@@ -1238,21 +1241,20 @@ class dfrn {
 
 			//logger('rino: sent key = ' . $key, LOGGER_DEBUG);
 
-
 			if ($dfrn_version >= 2.1) {
 				if (($contact['duplex'] && strlen($contact['pubkey']))
-						|| ($owner['page-flags'] == PAGE_COMMUNITY && strlen($contact['pubkey']))
-						|| ($contact['rel'] == CONTACT_IS_SHARING && strlen($contact['pubkey']))) {
-					openssl_public_encrypt($key,$postvars['key'],$contact['pubkey']);
-				} else {
-					openssl_private_encrypt($key,$postvars['key'],$contact['prvkey']);
-				}
+					|| ($owner['page-flags'] == PAGE_COMMUNITY && strlen($contact['pubkey']))
+					|| ($contact['rel'] == CONTACT_IS_SHARING && strlen($contact['pubkey']))) {
 
+					openssl_public_encrypt($key, $postvars['key'], $contact['pubkey']);
+				} else {
+					openssl_private_encrypt($key, $postvars['key'], $contact['prvkey']);
+				}
 			} else {
 				if (($contact['duplex'] && strlen($contact['prvkey'])) || ($owner['page-flags'] == PAGE_COMMUNITY)) {
-					openssl_private_encrypt($key,$postvars['key'],$contact['prvkey']);
+					openssl_private_encrypt($key, $postvars['key'], $contact['prvkey']);
 				} else {
-					openssl_public_encrypt($key,$postvars['key'],$contact['pubkey']);
+					openssl_public_encrypt($key, $postvars['key'], $contact['pubkey']);
 				}
 
 			}
@@ -1320,7 +1322,7 @@ class dfrn {
 		$bdtext = sprintf(t("%s\'s birthday"), $contact["name"]);
 		$bdtext2 = sprintf(t("Happy Birthday %s"), " [url=".$contact["url"]."]".$contact["name"]."[/url]") ;
 
-		$r = q("INSERT INTO `event` (`uid`,`cid`,`created`,`edited`,`start`,`finish`,`summary`,`desc`,`type`)
+		$r = q("INSERT INTO `event` (`uid`, `cid`, `created`, `edited`, `start`, `finish`, `summary`, `desc`, `type`)
 			VALUES ( %d, %d, '%s', '%s', '%s', '%s', '%s', '%s', '%s') ",
 			intval($contact["uid"]),
 			intval($contact["id"]),
@@ -1359,11 +1361,11 @@ class dfrn {
 
 		if (dbm::is_result($r)) {
 			$contact = $r[0];
-			$author["contact-id"] = $r[0]["id"];
-			$author["network"] = $r[0]["network"];
+			$author["contact-id"] = $contact["id"];
+			$author["network"] = $contact["network"];
 		} else {
 			if (!$onlyfetch) {
-				logger("Contact ".$author["link"]." wasn't found for user ".$importer["uid"]." XML: ".$xml, LOGGER_DEBUG);
+				logger("Contact " . $author["link"] . " wasn't found for user " . $importer["uid"] . " XML: " . $xml, LOGGER_DEBUG);
 			}
 
 			$author["contact-id"] = $importer["id"];
@@ -1374,7 +1376,7 @@ class dfrn {
 		// Until now we aren't serving different sizes - but maybe later
 		$avatarlist = array();
 		/// @todo check if "avatar" or "photo" would be the best field in the specification
-		$avatars = $xpath->query($element."/atom:link[@rel='avatar']", $context);
+		$avatars = $xpath->query($element . "/atom:link[@rel='avatar']", $context);
 		foreach ($avatars as $avatar) {
 			$href = "";
 			$width = 0;
@@ -1394,6 +1396,7 @@ class dfrn {
 				$avatarlist[$width] = $href;
 			}
 		}
+
 		if (count($avatarlist) > 0) {
 			krsort($avatarlist);
 			$author["avatar"] = current($avatarlist);
@@ -1755,7 +1758,7 @@ class dfrn {
 			}
 		}
 		if (!$fid) {
-			$r = q("INSERT INTO `fcontact` (`name`,`url`,`photo`,`request`) VALUES ('%s', '%s', '%s', '%s')",
+			$r = q("INSERT INTO `fcontact` (`name`, `url`, `photo`, `request`) VALUES ('%s', '%s', '%s', '%s')",
 				dbesc($suggest["name"]),
 				dbesc($suggest["url"]),
 				dbesc($suggest["photo"]),
@@ -1922,10 +1925,11 @@ class dfrn {
 		$fields = array(
 			'owner-link' => array($old["url"], $relocate["url"]),
 			'author-link' => array($old["url"], $relocate["url"]),
+			/// @TODO Commented out, why?
 			//'owner-avatar' => array($old["photo"], $relocate["photo"]),
 			//'author-avatar' => array($old["photo"], $relocate["photo"]),
 		);
-		foreach ($fields as $n=>$f) {
+		foreach ($fields as $n => $f) {
 			$r = q("SELECT `id` FROM `item` WHERE `%s` = '%s' AND `uid` = %d LIMIT 1",
 					$n, dbesc($f[0]),
 					intval($importer["importer_uid"]));
@@ -1936,9 +1940,9 @@ class dfrn {
 						$n, dbesc($f[0]),
 						intval($importer["importer_uid"]));
 
-					if ($x === false) {
-						return false;
-					}
+				if ($x === false) {
+					return false;
+				}
 			}
 		}
 
@@ -1965,7 +1969,9 @@ class dfrn {
 		if (edited_timestamp_is_newer($current, $item)) {
 
 			// do not accept (ignore) an earlier edit than one we currently have.
-			if (datetime_convert("UTC","UTC",$item["edited"]) < $current["edited"]) {
+			/// @TODO datetime_convert() seems to be deprecated as there is a method now?
+			/// @TODO Same call in below UPDATE statement, reduce it to one
+			if (datetime_convert("UTC", "UTC", $item["edited"]) < $current["edited"]) {
 				return false;
 			}
 
@@ -1973,7 +1979,7 @@ class dfrn {
 				dbesc($item["title"]),
 				dbesc($item["body"]),
 				dbesc($item["tag"]),
-				dbesc(datetime_convert("UTC","UTC",$item["edited"])),
+				dbesc(datetime_convert("UTC", "UTC", $item["edited"])),
 				dbesc(datetime_convert()),
 				dbesc($item["uri"]),
 				intval($importer["importer_uid"])
@@ -2036,6 +2042,7 @@ class dfrn {
 				LIMIT 1",
 				dbesc($item["parent-uri"])
 			);
+
 			if (dbm::is_result($r)) {
 				$r = q("SELECT `item`.`forum_mode`, `item`.`wall` FROM `item`
 					INNER JOIN `contact` ON `contact`.`id` = `item`.`contact-id`
@@ -2322,7 +2329,7 @@ class dfrn {
 
 		// Is there an existing item?
 		if (dbm::is_result($current) && edited_timestamp_is_newer($current[0], $item) &&
-			(datetime_convert("UTC","UTC",$item["edited"]) < $current[0]["edited"])) {
+			(datetime_convert("UTC", "UTC", $item["edited"]) < $current[0]["edited"])) {
 			logger("Item ".$item["uri"]." already existed.", LOGGER_DEBUG);
 			return;
 		}
@@ -2370,7 +2377,7 @@ class dfrn {
 			$purifier = new HTMLPurifier($config);
 			$item['body'] = $purifier->purify($item['body']);
 
-			$item['body'] = @html2bbcode($item['body']);
+			$item['body'] = html2bbcode($item['body']);
 		}
 
 		/// @todo We should check for a repeated post and if we know the repeated author.
@@ -2540,7 +2547,7 @@ class dfrn {
 
 			// Is it an event?
 			if ($item["object-type"] == ACTIVITY_OBJ_EVENT) {
-				logger("Item ".$item["uri"]." seems to contain an event.", LOGGER_DEBUG);
+				logger("Item " . $item["uri"] . " seems to contain an event.", LOGGER_DEBUG);
 				$ev = bbtoevent($item["body"]);
 				if ((x($ev, "desc") || x($ev, "summary")) && x($ev, "start")) {
 					logger("Event in item ".$item["uri"]." was found.", LOGGER_DEBUG);
@@ -2575,9 +2582,9 @@ class dfrn {
 		// Update content if 'updated' changes
 		if (dbm::is_result($current)) {
 			if (self::update_content($r[0], $item, $importer, $entrytype)) {
-				logger("Item ".$item["uri"]." was updated.", LOGGER_DEBUG);
+				logger("Item " . $item["uri"] . " was updated.", LOGGER_DEBUG);
 			} else {
-				logger("Item ".$item["uri"]." already existed.", LOGGER_DEBUG);
+				logger("Item " . $item["uri"] . " already existed.", LOGGER_DEBUG);
 			}
 			return;
 		}
@@ -2588,7 +2595,7 @@ class dfrn {
 
 			if ($posted_id) {
 
-				logger("Reply from contact ".$item["contact-id"]." was stored with id ".$posted_id, LOGGER_DEBUG);
+				logger("Reply from contact " . $item["contact-id"] . " was stored with id " . $posted_id, LOGGER_DEBUG);
 
 				$item["id"] = $posted_id;
 
@@ -2616,14 +2623,14 @@ class dfrn {
 				}
 
 				if ($posted_id && $parent && ($entrytype == DFRN_REPLY_RC)) {
-					logger("Notifying followers about comment ".$posted_id, LOGGER_DEBUG);
+					logger("Notifying followers about comment " . $posted_id, LOGGER_DEBUG);
 					proc_run(PRIORITY_HIGH, "include/notifier.php", "comment-import", $posted_id);
 				}
 
 				return true;
 			}
 		} else { // $entrytype == DFRN_TOP_LEVEL
-			if (!link_compare($item["owner-link"],$importer["url"])) {
+			if (!link_compare($item["owner-link"], $importer["url"])) {
 				/*
 				 * The item owner info is not our contact. It's OK and is to be expected if this is a tgroup delivery,
 				 * but otherwise there's a possible data mixup on the sender's system.
@@ -2637,7 +2644,7 @@ class dfrn {
 			}
 
 			if (($importer["rel"] == CONTACT_IS_FOLLOWER) && (!tgroup_check($importer["importer_uid"], $item))) {
-				logger("Contact ".$importer["id"]." is only follower and tgroup check was negative.", LOGGER_DEBUG);
+				logger("Contact " . $importer["id"] . " is only follower and tgroup check was negative.", LOGGER_DEBUG);
 				return;
 			}
 
@@ -2692,6 +2699,7 @@ class dfrn {
 				intval($importer["uid"]),
 				intval($importer["id"])
 			);
+
 		if (!dbm::is_result($r)) {
 			logger("Item with uri " . $uri . " from contact " . $importer["id"] . " for user " . $importer["uid"] . " wasn't found.", LOGGER_DEBUG);
 			return;
@@ -2842,6 +2850,7 @@ class dfrn {
 		$xpath->registerNamespace("ostatus", NAMESPACE_OSTATUS);
 		$xpath->registerNamespace("statusnet", NAMESPACE_STATUSNET);
 
+		/// @TODO Common in friendica, not so common PHP-globally
 		$header = array();
 		$header["uid"] = $importer["uid"];
 		$header["network"] = NETWORK_DFRN;
