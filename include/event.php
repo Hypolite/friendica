@@ -49,27 +49,26 @@ function format_event_html($ev, $simple = false) {
 
 	$o = '<div class="vevent">' . "\r\n";
 
+	$o .= '<div class="summary event-summary">' . bbcode($ev['summary']) . '</div>' . "\r\n";
 
-	$o .= '<p class="summary event-summary">' . bbcode($ev['summary']) . '</p>' . "\r\n";
-
-	$o .= '<p class="description event-description">' . bbcode($ev['desc']) . '</p>' . "\r\n";
-
-	$o .= '<p class="event-start">' . t('Starts:') . ' <abbr class="dtstart" title="'
+	$o .= '<div class="event-start"><span class="event-label">' . t('Starts:') . '</span>&nbsp;<span class="dtstart" title="'
 		. datetime_convert('UTC', 'UTC', $ev['start'], (($ev['adjust']) ? ATOM_TIME : 'Y-m-d\TH:i:s' ))
 		. '" >'.$event_start
-		. '</abbr></p>' . "\r\n";
+		. '</span></div>' . "\r\n";
 
 	if (! $ev['nofinish']) {
-		$o .= '<p class="event-end" >' . t('Finishes:') . ' <abbr class="dtend" title="'
+		$o .= '<div class="event-end" ><span class="event-label">' . t('Finishes:') . '</span>&nbsp;<span class="dtend" title="'
 			. datetime_convert('UTC', 'UTC', $ev['finish'], (($ev['adjust']) ? ATOM_TIME : 'Y-m-d\TH:i:s' ))
 			. '" >'.$event_end
-			. '</abbr></p>' . "\r\n";
+			. '</span></div>' . "\r\n";
 	}
 
+	$o .= '<div class="description event-description">' . bbcode($ev['desc']) . '</div>' . "\r\n";
+
 	if (strlen($ev['location'])) {
-		$o .= '<p class="event-location"> ' . t('Location:') . ' <span class="location">'
+		$o .= '<div class="event-location"><span class="event-label">' . t('Location:') . '</span>&nbsp;<span class="location">'
 			. bbcode($ev['location'])
-			. '</span></p>' . "\r\n";
+			. '</span></div>' . "\r\n";
 
 		// Include a map of the location if the [map] BBCode is used
 		if (strpos($ev['location'], "[map") !== false) {

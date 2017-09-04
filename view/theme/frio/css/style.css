@@ -1694,6 +1694,13 @@ code > .hl-main {
 .oembed.video .embed_video > div:hover {
     background-color: rgba(0,0,0,0);
 }
+.vevent .event-summary {
+    font-size: 16px;
+}
+.vevent .event-location .location {
+    font-size: inherit;
+    color: inherit;
+}
 .wall-item-tags,
 .itemedited {
     margin-top: 10px;
