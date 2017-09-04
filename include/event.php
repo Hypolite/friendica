@@ -276,9 +276,32 @@ function event_store($arr) {
 			intval($arr['uid'])
 		);
 		if (dbm::is_result($r)) {
-			$object = '<object><type>' . xmlify(ACTIVITY_OBJ_EVENT) . '</type><title></title><id>' . xmlify($arr['uri']) . '</id>';
-			$object .= '<content>' . xmlify(format_event_bbcode($arr)) . '</content>';
-			$object .= '</object>' . "\n";
+			$object = build_event_object(array(
+				'id' => $arr['uri'],
+				'title'       => $arr['summary'],
+				'start'       => $arr['start'],
+				'finish'      => $arr['finish'],
+				'nofinish'    => $arr['nofinish'],
+				'description' => $arr['desc'],
+				'location'    => $arr['location'],
+				'adjust'      => $arr['adjust'],
+				'content'     => format_event_bbcode($arr),
+				'link'        => array(
+					array('rel' => 'alternate', 'type' => 'text/html', 'href' => System::baseUrl() . '/display/' . $arr['guid']),
+				),
+				'author'      => array(
+					'name'    => $contact['name'],
+					'address' => $contact['addr'],
+					'link'    => array(
+						array('rel' => 'alternate', 'type' => 'text/html', 'href' => $contact['url']),
+						array('rel' => 'photo', 'type' => 'image/jpeg', 'href' => $contact['thumb'])
+					),
+				),
+			));
+
+//			$object = '<object><type>' . xmlify(ACTIVITY_OBJ_EVENT) . '</type><title></title><id>' . xmlify($arr['uri']) . '</id>';
+//			$object .= '<content>' . xmlify(format_event_bbcode($arr)) . '</content>';
+//			$object .= '</object>' . "\n";
 
 			q("UPDATE `item` SET `body` = '%s', `object` = '%s', `edited` = '%s' WHERE `id` = %d AND `uid` = %d",
 				dbesc(format_event_bbcode($arr)),
@@ -361,10 +384,32 @@ function event_store($arr) {
 		$item_arr['origin']        = ((intval($arr['cid']) == 0) ? 1 : 0);
 		$item_arr['body']          = format_event_bbcode($event);
 
+		$item_arr['object']        = build_event_object(array(
+			'id'          => $arr['uri'],
+			'title'       => $arr['summary'],
+			'start'       => $arr['start'],
+			'finish'      => $arr['finish'],
+			'nofinish'    => $arr['nofinish'],
+			'description' => $arr['desc'],
+			'location'    => $arr['location'],
+			'adjust'      => $arr['adjust'],
+			'content'     => format_event_bbcode($arr),
+			'link'        => array(
+				array('rel' => 'alternate', 'type' => 'text/html', 'href' => System::baseUrl() . '/display/' . $arr['guid']),
+			),
+			'author'      => array(
+				'name'    => $contact['name'],
+				'address' => $contact['addr'],
+				'link'    => array(
+					array('rel' => 'alternate', 'type' => 'text/html', 'href' => $contact['url']),
+					array('rel' => 'photo', 'type' => 'image/jpeg', 'href' => $contact['thumb'])
+				),
+			),
+		));
 
-		$item_arr['object']  = '<object><type>' . xmlify(ACTIVITY_OBJ_EVENT) . '</type><title></title><id>' . xmlify($arr['uri']) . '</id>';
-		$item_arr['object'] .= '<content>' . xmlify(format_event_bbcode($event)) . '</content>';
-		$item_arr['object'] .= '</object>' . "\n";
+//		$item_arr['object']  = '<object><type>' . xmlify(ACTIVITY_OBJ_EVENT) . '</type><title></title><id>' . xmlify($arr['uri']) . '</id>';
+//		$item_arr['object'] .= '<content>' . xmlify(format_event_bbcode($event)) . '</content>';
+//		$item_arr['object'] .= '</object>' . "\n";
 
 		$item_id = item_store($item_arr);
 
@@ -879,4 +924,93 @@ function widget_events() {
 		'$export_csv' => t("Export calendar as csv"),
 		'$user' => $user
 	));
+}
+
+/**
+ * Generate a string with an event XML object from an array
+ * 
+ * @param array $arr The array with the event data
+ * @return string A string with the XML event object
+ */
+function build_event_object($arr) {
+	if (!((is_array($arr)) && count($arr))) {
+		return "";
+	}
+
+	$obj = '<object>';
+
+	$obj .= '<type>' . xmlify(ACTIVITY_OBJ_EVENT) . '</type>';
+	$obj .= '<title>' . xmlify($arr['title']) . '</title>';
+
+	if (isset($arr['id'])) {
+		$obj .= '<id>' . xmlify($arr['id']) . '</id>';
+	}
+	$obj .= '<startTime>' . xmlify($arr['start']) . '</startTime>';
+	if (isset($arr['endTime']) && $arr['endTime'] != "0000-00-00 00:00:00") {
+		$obj .= '<endTime>' . xmlify($arr['finish']) . '</endTime>';
+	}
+	if (isset($arr['nofinish']) && intval($arr['nofinish']) > 0) {
+		$obj .= '<nofinish>' . xmlify($arr['nofinish']) . '</nofinish>';
+	}
+	if (isset($arr['description']) && $arr['description'] != "") {
+		$obj .= '<description>' . xmlify($arr['description']) . '</description>';
+	}
+	if (isset($arr['location']) && $arr['location'] != "") {
+		$obj .= '<location>' . xmlify($arr['location']) . '</location>';
+	}
+	if (isset($arr['adjust']) && intval($arr['adjust']) > 0) {
+		$obj .= '<adjust>' . xmlify($arr['adjust']) . '</adjust>';
+	}
+	$obj .= '<content>' . xmlify($arr['content']) . '</content>';
+	if (is_array($arr['link'])) {
+		$obj .= build_obj_links($arr['link']);
+	}
+
+	// Add author information
+	if (count($arr['author'])) {
+		$obj .= '<author>';
+		if (isset($arr['author']['name']) && $arr['author']['name'] != "") {
+			$obj .= '<name>' . xmlify($arr['author']['name']) . '</name>';
+		}
+		if (isset($arr['author']['address']) && $arr['author']['address'] != "") {
+			$obj .= '<address>' . xmlify($arr['author']['address']) . '</address>';
+		}
+		if (isset($arr['author']['link']) && count($arr['author']['link'])) {
+			$obj .= build_obj_links($arr['author']['link']);
+		}
+
+		$obj .= '</author>';
+	}
+
+	$obj .= '</object>' . "\n";
+
+	return $obj;
+}
+
+
+/**
+ * Build a XML <link> element
+ * 
+ * @param array $arr The array wiht the link attributes
+ * @return string A string with the XML Element as content
+ */
+function build_obj_links($arr) {
+	if (!((is_array($arr)) && count($arr))) {
+		return "";
+	}
+	$l = "";
+
+	foreach ($arr as $link) {
+		$attr = "";
+		// Take every array key as link attribute name
+		// and add the attribute value
+		foreach ($link as $k => $v) {
+			$attr .= ' ' . $k . '="' . $v . '"';
+		}
+
+		$l .= '<link'. $attr . ' />';
+	}
+	$s = '<link>' . xmlify($l) . '</link>';
+
+	return $s;
 }
