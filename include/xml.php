@@ -6,26 +6,29 @@
 
 
 /**
- * @brief This class contain methods to work with XML data
- *
+ * @brief This class contain methods to work with XML data.
  */
 class xml {
 	/**
-	 * @brief Creates an XML structure out of a given array
-	 *
-	 * @param array $array The array of the XML structure that will be generated
-	 * @param object $xml The createdXML will be returned by reference
+	 * @brief Creates an XML structure out of a given array.
+	 * 
+	 * @param array $array The array of the XML structure that will be generated.
+	 * @param object $xml The createdXML will be returned by reference.
 	 * @param bool $remove_header Should the XML header be removed or not?
-	 * @param array $namespaces List of namespaces
+	 * @param array $namespaces List of namespaces.
 	 * @param bool $root - interally used parameter. Mustn't be used from outside.
-	 *
-	 * @return string The created XML
+	 * 
+	 * @return string The created XML.
+	 * 
+	 * @todo Support conversation of arrays created from xml::to_array()
+	 *     (at the moment attributes won't be handled if priority "tag"
+	 *     priority "tag" is chosen).
 	 */
 	public static function from_array($array, &$xml, $remove_header = false, $namespaces = array(), $root = true) {
 
 		if ($root) {
 			foreach ($array as $key => $value) {
-				foreach ($namespaces AS $nskey => $nsvalue) {
+				foreach ($namespaces as $nskey => $nsvalue) {
 					$key .= " xmlns".($nskey == "" ? "":":").$nskey.'="'.$nsvalue.'"';
 				}
 
@@ -50,7 +53,7 @@ class xml {
 			}
 		}
 
-		foreach($array as $key => $value) {
+		foreach ($array as $key => $value) {
 			if (!isset($element) && isset($xml)) {
 				$element = $xml;
 			}
@@ -93,53 +96,81 @@ class xml {
 						$namespace = NULL;
 					}
 
-					$element->addAttribute($attr_key, $attr_value, $namespace);
+					$element->addAttribute($attr_key, self::bool2str($attr_value), $namespace);
 				}
 
 				continue;
 			}
 
 			if (!is_array($value)) {
-				$element = $xml->addChild($key, xmlify($value), $namespace);
+				$element = $xml->addChild($key, xmlify(self::bool2str($value)), $namespace);
 			} elseif (is_array($value)) {
-				$element = $xml->addChild($key, NULL, $namespace);
-				self::from_array($value, $element, $remove_header, $namespaces, false);
+				// More than one node of its kind.
+				// If the new array is numeric index, means it is array of nodes of the same kind
+				// it should follow the parent key name.
+				if (is_numeric(key($value))) {
+					foreach ($value as $k => $v) {
+						$val = NULL;
+
+						// If there is a '@value' key use it as value.
+						if (isset($v['@value'])) {
+							$val = xmlify(self::bool2str($v['@value']));
+							unset($v['@value']);
+						} elseif (!is_array($v)) {
+							$val = xmlify(self::bool2str($v));
+						}
+
+						$element = $xml->addChild($key, $val, $namespace);
+						self::from_array($v, $element, $remove_header, $namespaces, false);
+					}
+				} else {
+					$val = NULL;
+
+					// If there is a '@value' key use it as value.
+					if (isset($value['@value'])) {
+						$val = xmlify(self::bool2str($value['@value']));
+						unset($value['@value']);
+					}
+
+					$element = $xml->addChild($key, $val, $namespace);
+					self::from_array($value, $element, $remove_header, $namespaces, false);
+				}
 			}
 		}
 	}
 
 	/**
-	 * @brief Copies an XML object
-	 *
-	 * @param object $source The XML source
-	 * @param object $target The XML target
-	 * @param string $elementname Name of the XML element of the target
+	 * @brief Copies an XML object.
+	 * 
+	 * @param object $source The XML source.
+	 * @param object $target The XML target.
+	 * @param string $elementname Name of the XML element of the target.
 	 */
 	public static function copy(&$source, &$target, $elementname) {
-		if (count($source->children()) == 0)
+		if (count($source->children()) == 0) {
 			$target->addChild($elementname, xmlify($source));
-		else {
+		} else {
 			$child = $target->addChild($elementname);
-			foreach ($source->children() AS $childfield => $childentry) {
+			foreach ($source->children() as $childfield => $childentry) {
 				self::copy($childentry, $child, $childfield);
 			}
 		}
 	}
 
 	/**
-	 * @brief Create an XML element
-	 *
-	 * @param object $doc XML root
-	 * @param string $element XML element name
-	 * @param string $value XML value
-	 * @param array $attributes array containing the attributes
-	 *
-	 * @return object XML element object
+	 * @brief Create an XML element.
+	 * 
+	 * @param object $doc XML root.
+	 * @param string $element XML element name.
+	 * @param string $value XML value.
+	 * @param array $attributes array containing the attributes.
+	 * 
+	 * @return object XML element object.
 	 */
 	public static function create_element($doc, $element, $value = "", $attributes = array()) {
 		$element = $doc->createElement($element, xmlify($value));
 
-		foreach ($attributes AS $key => $value) {
+		foreach ($attributes as $key => $value) {
 			$attribute = $doc->createAttribute($key);
 			$attribute->value = xmlify($value);
 			$element->appendChild($attribute);
@@ -148,13 +179,13 @@ class xml {
 	}
 
 	/**
-	 * @brief Create an XML and append it to the parent object
+	 * @brief Create an XML and append it to the parent object.
 	 *
-	 * @param object $doc XML root
-	 * @param object $parent parent object
-	 * @param string $element XML element name
-	 * @param string $value XML value
-	 * @param array $attributes array containing the attributes
+	 * @param object $doc XML root.
+	 * @param object $parent parent object.
+	 * @param string $element XML element name.
+	 * @param string $value XML value.
+	 * @param array $attributes array containing the attributes.
 	 */
 	public static function add_element($doc, $parent, $element, $value = "", $attributes = array()) {
 		$element = self::create_element($doc, $element, $value, $attributes);
@@ -163,17 +194,17 @@ class xml {
 
 	/**
 	 * @brief Convert an XML document to a normalised, case-corrected array
-	 *   used by webfinger
-	 *
-	 * @param object $xml_element The XML document
+	 *   used by webfinger.
+	 * 
+	 * @param object $xml_element The XML document.
 	 * @param integer $recursion_depth recursion counter for internal use - default 0
-	 *    internal use, recursion counter
-	 *
-	 * @return array | sring The array from the xml element or the string
+	 *    internal use, recursion counter.
+	 * 
+	 * @return array | sring The array from the xml element or the string.
 	 */
-	public static function element_to_array($xml_element, &$recursion_depth=0) {
+	public static function element_to_array($xml_element, &$recursion_depth = 0) {
 
-		// If we're getting too deep, bail out
+		// If we're getting too deep, bail out.
 		if ($recursion_depth > 512) {
 			return(null);
 		}
@@ -192,7 +223,6 @@ class xml {
 			}
 
 			foreach ($xml_element as $key => $value) {
-
 				$recursion_depth++;
 				$result_array[strtolower($key)] =
 					self::element_to_array($value, $recursion_depth);
@@ -214,26 +244,28 @@ class xml {
 
 	/**
 	 * @brief Convert the given XML text to an array in the XML structure.
-	 *
+	 * 
 	 * xml::to_array() will convert the given XML text to an array in the XML structure.
 	 * Link: http://www.bin-co.com/php/scripts/xml2array/
 	 * Portions significantly re-written by mike@macgirvin.com for Friendica
-	 * (namespaces, lowercase tags, get_attribute default changed, more...)
-	 *
+	 * (namespaces, lowercase tags, get_attribute default changed, more...).
+	 * 
 	 * Examples: $array =  xml::to_array(file_get_contents('feed.xml'));
-	 *		$array =  xml::to_array(file_get_contents('feed.xml', true, 1, 'attribute'));
-	 *
-	 * @param object $contents The XML text
+	 *      $array =  xml::to_array(file_get_contents('feed.xml', true, 1, 'attribute'));
+	 * 
+	 * @param object $contents The XML text.
 	 * @param boolean $namespaces True or false include namespace information
-	 *	in the returned array as array elements.
-	 * @param integer $get_attributes 1 or 0. If this is 1 the function will get the attributes as well as the tag values -
-	 *	this results in a different array structure in the return value.
-	 * @param string $priority Can be 'tag' or 'attribute'. This will change the way the resulting
-	 *	 array sturcture. For 'tag', the tags are given more importance.
-	 *
+	 *      in the returned array as array elements.
+	 * @param integer $get_attributes 1 or 0. If this is 1 the function will
+	 *      get the attributes as well as the tag values - this results 
+	 *      in a different array structure in the return value.
+	 * @param string $priority Can be 'tag', 'attribute' or 'mixed'. This will change the way the resulting
+	 *      array sturcture. For 'tag', the tags are given more importance.
+	 * @param boolean $lowercase Convert tag name to lowercase.
+	 * 
 	 * @return array The parsed XML in an array form. Use print_r() to see the resulting array structure.
 	 */
-	public static function to_array($contents, $namespaces = true, $get_attributes = 1, $priority = 'attribute') {
+	public static function to_array($contents, $namespaces = true, $get_attributes = 1, $priority = 'attribute', $lowercase = true) {
 		if (!$contents) {
 			return array();
 		}
@@ -248,7 +280,7 @@ class xml {
 		libxml_clear_errors();
 
 		if ($namespaces) {
-			$parser = @xml_parser_create_ns("UTF-8",':');
+			$parser = @xml_parser_create_ns("UTF-8", ':');
 		} else {
 			$parser = @xml_parser_create();
 		}
@@ -283,9 +315,11 @@ class xml {
 		$current = &$xml_array; // Reference
 
 		// Go through the tags.
-		$repeated_tag_index = array(); // Multiple tags with same name will be turned into an array
+		// Multiple tags with same name will be turned into an array.
+		$repeated_tag_index = array();
 		foreach ($xml_values as $data) {
-			unset($attributes, $value); // Remove existing values, or there will be trouble
+			// Remove existing values, or there will be trouble.
+			unset($attributes, $value);
 
 			// This command will extract these variables into the foreach scope
 			// tag(string), type(string), level(int), attributes(array).
@@ -295,20 +329,27 @@ class xml {
 			$attributes_data = array();
 
 			if (isset($value)) {
-				if ($priority == 'tag') {
-					$result = $value;
+				// If there are also attributes we store the value under
+				// a '@value' key for the 'mixed' priority mode.
+				if ($priority == 'mixed' && isset($attributes) && $get_attributes) {
+						$result['@value'] = unxmlify($value);
+				} elseif ($priority == 'tag' || $priority == 'mixed') {
+					$result = unxmlify($value);
 				} else {
-					$result['value'] = $value; // Put the value in a assoc array if we are in the 'Attribute' mode
+					// Put the value in a assoc array
+					// if we are in the 'Attribute' mode.
+					$result['@value'] = unxmlify($value);
 				}
 			}
 
 			//Set the attributes too.
 			if (isset($attributes) and $get_attributes) {
 				foreach ($attributes as $attr => $val) {
-					if($priority == 'tag') {
+					if ($priority == 'tag') {
 						$attributes_data[$attr] = $val;
 					} else {
-						$result['@attributes'][$attr] = $val; // Set all the attributes in a array called 'attr'
+						// Set all the attributes in a array called 'attr'.
+						$result['@attributes'][$attr] = $val;
 					}
 				}
 			}
@@ -316,14 +357,18 @@ class xml {
 			// See tag status and do the needed.
 			if ($namespaces && strpos($tag, ':')) {
 				$namespc = substr($tag, 0, strrpos($tag, ':'));
-				$tag = strtolower(substr($tag, strlen($namespc)+1));
+				$tag = substr($tag, strlen($namespc)+1);
+				$tag = ($lowercase ? strtolower($tag) : $tag);
 				$result['@namespace'] = $namespc;
 			}
-			$tag = strtolower($tag);
 
-			if ($type == "open") {   // The starting of the tag '<tag>'
+			$tag = ($lowercase ? strtolower($tag) : $tag);
+
+			// The starting of the tag '<tag>'.
+			if ($type == "open") {
 				$parent[$level-1] = &$current;
-				if (!is_array($current) || (!in_array($tag, array_keys($current)))) { // Insert New tag
+				// Insert New tag
+				if (!is_array($current) || (!in_array($tag, array_keys($current)))) {
 					$current[$tag] = $result;
 					if ($attributes_data) {
 						$current[$tag. '_attr'] = $attributes_data;
@@ -332,16 +377,21 @@ class xml {
 
 					$current = &$current[$tag];
 
-				} else { // There was another element with the same tag name
-
-					if (isset($current[$tag][0])) { // If there is a 0th element it is already an array
+				// There was another element with the same tag name.
+				} else {
+					// If there is a 0th element it is already an array.
+					if (isset($current[$tag][0])) {
 						$current[$tag][$repeated_tag_index[$tag.'_'.$level]] = $result;
 						$repeated_tag_index[$tag.'_'.$level]++;
-					} else { // This section will make the value an array if multiple tags with the same name appear together
-						$current[$tag] = array($current[$tag], $result); // This will combine the existing item and the new item together to make an array
+
+					// This section will make the value an array if multiple tags with the same name appear together.
+					} else {
+						// This will combine the existing item and the new item together to make an array.
+						$current[$tag] = array($current[$tag], $result);
 						$repeated_tag_index[$tag.'_'.$level] = 2;
 
-						if (isset($current[$tag.'_attr'])) { // The attribute of the last(0th) tag must be moved as well
+						// The attribute of the last(0th) tag must be moved as well.
+						if (isset($current[$tag.'_attr'])) {
 							$current[$tag]['0_attr'] = $current[$tag.'_attr'];
 							unset($current[$tag.'_attr']);
 						}
@@ -351,7 +401,8 @@ class xml {
 					$current = &$current[$tag][$last_item_index];
 				}
 
-			} elseif ($type == "complete") { // Tags that ends in 1 line '<tag />'
+			// Tags that ends in 1 line '<tag />'.
+			} elseif ($type == "complete") {
 				//See if the key is already taken.
 				if (!isset($current[$tag])) { //New Key
 					$current[$tag] = $result;
@@ -360,9 +411,10 @@ class xml {
 						$current[$tag. '_attr'] = $attributes_data;
 					}
 
-				} else { // If taken, put all things inside a list(array)
-					if (isset($current[$tag][0]) and is_array($current[$tag])) { // If it is already an array...
-
+				// If taken, put all things inside a list(array).
+				} else {
+					// If it is already an array...
+					if (isset($current[$tag][0]) and is_array($current[$tag])) {
 						// ...push the new element into that array.
 						$current[$tag][$repeated_tag_index[$tag.'_'.$level]] = $result;
 
@@ -371,12 +423,14 @@ class xml {
 						}
 						$repeated_tag_index[$tag.'_'.$level]++;
 
-					} else { // If it is not an array...
-						$current[$tag] = array($current[$tag], $result); //...Make it an array using using the existing value and the new value
+					// If it is not an array...
+					} else {
+						//...Make it an array using using the existing value and the new value.
+						$current[$tag] = array($current[$tag], $result);
 						$repeated_tag_index[$tag.'_'.$level] = 1;
 						if ($priority == 'tag' and $get_attributes) {
-							if (isset($current[$tag.'_attr'])) { // The attribute of the last(0th) tag must be moved as well
-
+							// The attribute of the last(0th) tag must be moved as well.
+							if (isset($current[$tag.'_attr'])) {
 								$current[$tag]['0_attr'] = $current[$tag.'_attr'];
 								unset($current[$tag.'_attr']);
 							}
@@ -389,7 +443,8 @@ class xml {
 					}
 				}
 
-			} elseif ($type == 'close') { // End of tag '</tag>'
+			// End of tag '</tag>'.
+			} elseif ($type == 'close') {
 				$current = &$parent[$level-1];
 			}
 		}
@@ -398,10 +453,10 @@ class xml {
 	}
 
 	/**
-	 * @brief Delete a node in a XML object
-	 *
-	 * @param object $doc XML document
-	 * @param string $node Node name
+	 * @brief Delete a node in a XML object.
+	 * 
+	 * @param object $doc XML document.
+	 * @param string $node Node name.
 	 */
 	public static function deleteNode(&$doc, $node) {
 		$xpath = new DomXPath($doc);
@@ -409,5 +464,19 @@ class xml {
 		foreach ($list as $child) {
 			$child->parentNode->removeChild($child);
 		}
+	}
+
+	/*
+	 * @brief Get string representation of boolean value.
+	 * 
+	 * @param mixed $v String, boolean, or Integer input value.
+	 * @return mixed Output value with the correct data type.
+	 */
+	private static function bool2str($v){
+		//Convert boolean to text value.
+		$v = ($v === true ? 'true' : $v);
+		$v = ($v === false ? 'false' : $v);
+
+		return $v;
 	}
 }
