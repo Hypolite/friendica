@@ -3,6 +3,14 @@
 /**
  * @file include/Smilies.php
  * @brief This file contains the Smilies class which contains functions to handle smiles
+ *
+ * @todo Use the shortcodes from here:
+ * https://github.com/iamcal/emoji-data/blob/master/emoji_pretty.json?raw=true
+ * https://raw.githubusercontent.com/emojione/emojione/master/extras/alpha-codes/eac.json?raw=true
+ * https://github.com/johannhof/emoji-helper/blob/master/data/emoji.json?raw=true
+ *
+ * Have also a look here:
+ * https://www.webpagefx.com/tools/emoji-cheat-sheet/
  */
 
 use Friendica\App;
@@ -119,7 +127,7 @@ class Smilies {
 		'<img class="smiley" src="' . System::baseUrl() . '/images/smiley-facepalm.gif" alt=":facepalm" title=":facepalm" />',
 		'<img class="smiley" src="' . System::baseUrl() . '/images/like.gif" alt=":like" title=":like" />',
 		'<img class="smiley" src="' . System::baseUrl() . '/images/dislike.gif" alt=":dislike" title=":dislike" />',
-		'<a href="http://friendica.com">~friendica <img class="smiley" src="' . System::baseUrl() . '/images/friendica-16.png" alt="~friendica" title="~friendica" /></a>',
+		'<a href="https://friendi.ca">~friendica <img class="smiley" src="' . System::baseUrl() . '/images/friendica-16.png" alt="~friendica" title="~friendica" /></a>',
 		'<a href="http://redmatrix.me/">red<img class="smiley" src="' . System::baseUrl() . '/images/rm-16.png" alt="red#" title="red#" />matrix</a>',
 		'<a href="http://redmatrix.me/">red<img class="smiley" src="' . System::baseUrl() . '/images/rm-16.png" alt="red#matrix" title="red#matrix" />matrix</a>'
 		);

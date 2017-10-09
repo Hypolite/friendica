@@ -11,7 +11,7 @@ Diese Funktionalität benötigt ein wenig mehr als die normalen Blogs.
 Nicht jeder PHP/MySQL-Hosting-Anbieter kann Friendica unterstützen. 
 Viele hingegen können es. Aber **bitte** prüfe die Voraussetzungen deines Servers vor der Installation. 
 
-Wenn dir Fehler während der Installation auffallen, sag uns bitte über http://bugs.friendica.com Bescheid. 
+Wenn dir Fehler während der Installation auffallen, sag uns bitte über [github](https://github.com/friendica/issues) Bescheid. 
 Gib uns bitte so viele Infos zu deinem System, wie du kannst, und beschreibe den Fehler mit allen Details und Fehlermeldungen, so dass wir den Fehler zukünftig verhindern können. 
 Aufgrund der großen Anzahl an verschiedenen Betriebssystemen und PHP-Plattformen haben wir nur geringe Kapazitäten, um deine PHP-Installation zu debuggen oder fehlende Module zu ersetzen, aber wir tun unser Bestes, um allgemeine Code-Fehler zu beheben.
 
@@ -22,11 +22,11 @@ Wir planen, diese Einschränkung in einer zukünftigen Version zu beheben.
 
 1. Voraussetzungen
     - Apache mit einer aktiverten mod-rewrite-Funktion und dem Eintrag "Options All", so dass du die lokale .htaccess-Datei nutzen kannst
-    - PHP  5.2+. Je neuer, desto besser. Du benötigst 5.3 für die Authentifizierung untereinander. In einer Windows-Umgebung arbeitet die Version 5.2+ möglicherweise nicht, da die Funktion dns_get_record() erst ab Version 5.3 verfügbar ist.
+    - PHP  5.4+. Je neuer, desto besser.
         - PHP *Kommandozeilen*-Zugang mit register_argc_argv auf "true" gesetzt in der php.ini-Datei
-        - Curl, GD, PDO, MySQLi und OpenSSL-Erweiterung
+        - Curl, GD, PDO, MySQLi, xml und OpenSSL-Erweiterung
         - etwas in der Art eines Email-Servers oder eines Gateways wie PHP mail()
-    - Mysql 5.x
+    - Mysql 5.5.3+
     - die Möglichkeit, wiederkehrende Aufgaben mit cron (Linux/Mac) oder "Scheduled Tasks" einzustellen (Windows) [Beachte: andere Optionen sind in Abschnitt 7 dieser Dokumentation zu finden] 
     - Installation in einer Top-Level-Domain oder Subdomain (ohne eine Verzeichnis/Pfad-Komponente in der URL) wird bevorzugt. Verzeichnispfade sind für diesen Zweck nicht so günstig und wurden auch nicht ausführlich getestet.
 

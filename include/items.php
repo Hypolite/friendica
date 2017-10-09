@@ -397,15 +397,24 @@ function uri_to_guid($uri, $host = "") {
 	// We have to avoid that different routines could accidentally create the same value
 	$parsed = parse_url($uri);
 
+	// When the hostname isn't given, we take it from the uri
 	if ($host == "") {
-		$host = $parsed["host"];
+		// Is it in the format data@host.tld?
+		if ((count($parsed) == 1) && strstr($uri, '@')) {
+			$mailparts = explode('@', $uri);
+			$host = array_pop($mailparts);
+		} else {
+			$host = $parsed["host"];
+		}
 	}
 
+	// We use a hash of the hostname as prefix for the guid
 	$guid_prefix = hash("crc32", $host);
 
 	// Remove the scheme to make sure that "https" and "http" doesn't make a difference
 	unset($parsed["scheme"]);
 
+	// Glue it together to be able to make a hash from it
 	$host_id = implode("/", $parsed);
 
 	// We could use any hash algorithm since it isn't a security issue
@@ -534,6 +543,7 @@ function item_store($arr, $force_parent = false, $notify = false, $dontcache = f
 	}
 
 	// Converting the plink
+	/// @todo Check if this is really still needed
 	if ($arr['network'] == NETWORK_OSTATUS) {
 		if (isset($arr['plink'])) {
 			$arr['plink'] = ostatus::convert_href($arr['plink']);
@@ -751,8 +761,18 @@ function item_store($arr, $force_parent = false, $notify = false, $dontcache = f
 		$arr["author-id"] = get_contact($arr["author-link"], 0);
 	}
 
+	if (blockedContact($arr["author-id"])) {
+		logger('Contact '.$arr["author-id"].' is blocked, item '.$arr["uri"].' will not be stored');
+		return 0;
+	}
+
 	if ($arr["owner-id"] == 0) {
 		$arr["owner-id"] = get_contact($arr["owner-link"], 0);
+	}
+
+	if (blockedContact($arr["owner-id"])) {
+		logger('Contact '.$arr["owner-id"].' is blocked, item '.$arr["uri"].' will not be stored');
+		return 0;
 	}
 
 	if ($arr['guid'] != "") {
@@ -939,6 +959,10 @@ function item_store($arr, $force_parent = false, $notify = false, $dontcache = f
 		call_hooks('post_remote', $arr);
 	}
 
+	// This array field is used to trigger some automatic reactions
+	// It is mainly used in the "post_local" hook.
+	unset($arr['api_source']);
+
 	if (x($arr, 'cancel')) {
 		logger('item_store: post cancelled by plugin.');
 		return 0;
@@ -950,7 +974,7 @@ function item_store($arr, $force_parent = false, $notify = false, $dontcache = f
 	 * An unique index would help - but the limitations of MySQL (maximum size of index values) prevent this.
 	 */
 	if ($arr["uid"] == 0) {
-		$r = qu("SELECT `id` FROM `item` WHERE `uri` = '%s' AND `uid` = 0 LIMIT 1", dbesc(trim($arr['uri'])));
+		$r = q("SELECT `id` FROM `item` WHERE `uri` = '%s' AND `uid` = 0 LIMIT 1", dbesc(trim($arr['uri'])));
 		if (dbm::is_result($r)) {
 			logger('Global item already stored. URI: '.$arr['uri'].' on network '.$arr['network'], LOGGER_DEBUG);
 			return 0;
@@ -1615,6 +1639,13 @@ function item_is_remote_self($contact, &$datarray) {
 	} else {
 		$datarray["app"] = "Feed";
 	}
+
+	// Trigger automatic reactions for addons
+	$datarray['api_source'] = true;
+
+	// We have to tell the hooks who we are - this really should be improved
+	$_SESSION["authenticated"] = true;
+	$_SESSION["uid"] = $contact['uid'];
 
 	return true;
 }
