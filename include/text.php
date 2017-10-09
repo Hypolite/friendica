@@ -1318,6 +1318,22 @@ function prepare_body(&$item, $attach = false, $preview = false) {
 	$hashtags = array();
 	$mentions = array();
 
+	// In order to provide theme developers more possibilities event items
+	// are treated differently. This possibility does only exist for events
+	// which are constructed under Friendica versions which are newer than 3.4.3.
+	if ($item['object-type'] === ACTIVITY_OBJ_EVENT) {
+		$ev_obj = xml::to_array($item['object'], false, 1, "mixed", false);
+
+		// Ensure compatibility with older items - this check can be removed at a later point.
+		if (isset($ev_obj['object']['author'])) {
+			// Put the event data to the item. So theme developer
+			// can use it.
+			$item['event'] = $ev_obj['object'];
+			$item['body'] = $ev_obj['object']['description'];
+		}
+		
+	}
+
 	if (!get_config('system','suppress_tags')) {
 		$taglist = dba::p("SELECT `type`, `term`, `url` FROM `term` WHERE `otype` = ? AND `oid` = ? AND `type` IN (?, ?) ORDER BY `tid`",
 				intval(TERM_OBJ_POST), intval($item['id']), intval(TERM_HASHTAG), intval(TERM_MENTION));
@@ -1350,10 +1366,10 @@ function prepare_body(&$item, $attach = false, $preview = false) {
 	$item['hashtags'] = $hashtags;
 	$item['mentions'] = $mentions;
 
-	// Update the cached values if there is no "zrl=..." on the links
+	// Update the cached values if there is no "zrl=..." on the links.
 	$update = (!local_user() and !remote_user() and ($item["uid"] == 0));
 
-	// Or update it if the current viewer is the intented viewer
+	// Or update it if the current viewer is the intented viewer.
 	if (($item["uid"] == local_user()) && ($item["uid"] != 0)) {
 		$update = true;
 	}
@@ -1361,12 +1377,13 @@ function prepare_body(&$item, $attach = false, $preview = false) {
 	put_item_in_cache($item, $update);
 	$s = $item["rendered-html"];
 
+
 	$prep_arr = array('item' => $item, 'html' => $s, 'preview' => $preview);
 	call_hooks('prepare_body', $prep_arr);
 	$s = $prep_arr['html'];
 
 	if (! $attach) {
-		// Replace the blockquotes with quotes that are used in mails
+		// Replace the blockquotes with quotes that are used in mails.
 		$mailquote = '<blockquote type="cite" class="gmail_quote" style="margin:0 0 0 .8ex;border-left:1px #ccc solid;padding-left:1ex;">';
 		$s = str_replace(array('<blockquote>', '<blockquote class="spoiler">', '<blockquote class="author">'), array($mailquote, $mailquote, $mailquote), $s);
 		return $s;
@@ -1450,7 +1467,7 @@ function prepare_body(&$item, $attach = false, $preview = false) {
 	}
 
 
-	// Look for spoiler
+	// Look for spoiler.
 	$spoilersearch = '<blockquote class="spoiler">';
 
 	// Remove line breaks before the spoiler
@@ -1469,7 +1486,7 @@ function prepare_body(&$item, $attach = false, $preview = false) {
 		$s = substr($s, 0, $pos) . $spoilerreplace . substr($s, $pos + strlen($spoilersearch));
 	}
 
-	// Look for quote with author
+	// Look for quote with author.
 	$authorsearch = '<blockquote class="author">';
 
 	while ((strpos($s, $authorsearch) !== false)) {
@@ -1480,10 +1497,16 @@ function prepare_body(&$item, $attach = false, $preview = false) {
 		$s = substr($s, 0, $pos) . $authorreplace . substr($s, $pos + strlen($authorsearch));
 	}
 
-	// replace friendica image url size with theme preference
+	// Replace friendica image url size with theme preference.
 	if (x($a->theme_info, 'item_image_size')){
 		$ps = $a->theme_info['item_image_size'];
 		$s = preg_replace('|(<img[^>]+src="[^"]+/photo/[0-9a-f]+)-[0-9]|', "$1-" . $ps, $s);
+	}
+
+	// Format event body.(does only work for events constructed in
+	// Friendica versions newer than 3.5.3.
+	if (isset($item['event'])) {
+		$s = format_event_obj($item['event'], $s);
 	}
 
 	$prep_arr = array('item' => $item, 'html' => $s);

@@ -103,7 +103,7 @@
  * The event-card
  */
 .event-card {
-	width: auto;
+    width: auto;
 }
 .event-card .event-label,
 .event-card .location-label {

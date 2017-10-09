@@ -10,6 +10,7 @@ use Friendica\Core\System;
 require_once 'include/bbcode.php';
 require_once 'include/map.php';
 require_once 'include/datetime.php';
+require_once 'include/Smilies.php';
 
 function format_event_html($ev, $simple = false) {
 
@@ -83,6 +84,12 @@ function format_event_html($ev, $simple = false) {
 	return $o;
 }
 
+/**
+ * @brief Convert an array with event data to bbcode.
+ * 
+ * @param array $ev Array which conains the event data.
+ * @return string The event as a bbcode formatted string.
+ */
 function format_event_bbcode($ev) {
 
 	$o = '';
@@ -114,6 +121,13 @@ function format_event_bbcode($ev) {
 	return $o;
 }
 
+/**
+ * @brief Extract bbcode formatted event data from a string
+ *     and convert it to html.
+ * 
+ * @params: string $s The string which should be parsed for event data.
+ * @return string The html output.
+ */
 function bbtovcal($s) {
 	$o = '';
 	$ev = bbtoevent($s);
@@ -125,6 +139,12 @@ function bbtovcal($s) {
 	return $o;
 }
 
+/**
+ * @brief Extract bbcode formatted event data from a string.
+ * 
+ * @params: string $s The string which should be parsed for event data.
+ * @return array The array with the event information.
+ */
 function bbtoevent($s) {
 
 	$ev = array();
@@ -183,6 +203,15 @@ function ev_compare($a,$b) {
 	return strcmp($date_a, $date_b);
 }
 
+/**
+ * @brief Delete an event from the event table.
+ * 
+ * Note: This function does only delete the event from the event table not its
+ * related entry in the item table.
+ * 
+ * @param int $event_id Event ID.
+ * @return void
+ */
 function event_delete($event_id) {
 	if ($event_id == 0) {
 		return;
@@ -192,6 +221,14 @@ function event_delete($event_id) {
 	logger("Deleted event ".$event_id, LOGGER_DEBUG);
 }
 
+/**
+ * @brief Store the event.
+ * 
+ * Store the event in the event table and create an event item in the item table.
+ * 
+ * @param array $arr Array with event data.
+ * @return int The event id.
+ */
 function event_store($arr) {
 
 	require_once 'include/datetime.php';
@@ -277,31 +314,40 @@ function event_store($arr) {
 		);
 		if (dbm::is_result($r)) {
 			$object = build_event_object(array(
-				'id' => $arr['uri'],
+				'id'          => $arr['uri'],
 				'title'       => $arr['summary'],
-				'start'       => $arr['start'],
-				'finish'      => $arr['finish'],
+				'startTime'   => $arr['start'],
+				'endTime'     => $arr['finish'],
 				'nofinish'    => $arr['nofinish'],
 				'description' => $arr['desc'],
 				'location'    => $arr['location'],
 				'adjust'      => $arr['adjust'],
 				'content'     => format_event_bbcode($arr),
 				'link'        => array(
-					array('rel' => 'alternate', 'type' => 'text/html', 'href' => System::baseUrl() . '/display/' . $arr['guid']),
+					'@attributes' => array(
+						'rel' => 'alternate',
+						'type' => 'text/html',
+						'href' => System::baseUrl() . '/display/' . $arr['guid']
+					),
 				),
 				'author'      => array(
 					'name'    => $contact['name'],
 					'address' => $contact['addr'],
 					'link'    => array(
-						array('rel' => 'alternate', 'type' => 'text/html', 'href' => $contact['url']),
-						array('rel' => 'photo', 'type' => 'image/jpeg', 'href' => $contact['thumb'])
+						array("@attributes" => array(
+							'rel' => 'alternate',
+							'type' => 'text/html',
+							'href' => $contact['url'])
+						),
+						array("@attributes" =>array(
+							'rel' => 'photo',
+							'type' => 'image/jpeg',
+							'href' => $contact['thumb'])
+						)
 					),
 				),
 			));
 
-//			$object = '<object><type>' . xmlify(ACTIVITY_OBJ_EVENT) . '</type><title></title><id>' . xmlify($arr['uri']) . '</id>';
-//			$object .= '<content>' . xmlify(format_event_bbcode($arr)) . '</content>';
-//			$object .= '</object>' . "\n";
 
 			q("UPDATE `item` SET `body` = '%s', `object` = '%s', `edited` = '%s' WHERE `id` = %d AND `uid` = %d",
 				dbesc(format_event_bbcode($arr)),
@@ -387,30 +433,38 @@ function event_store($arr) {
 		$item_arr['object']        = build_event_object(array(
 			'id'          => $arr['uri'],
 			'title'       => $arr['summary'],
-			'start'       => $arr['start'],
-			'finish'      => $arr['finish'],
+			'startTime'   => $arr['start'],
+			'endTime'     => $arr['finish'],
 			'nofinish'    => $arr['nofinish'],
 			'description' => $arr['desc'],
 			'location'    => $arr['location'],
 			'adjust'      => $arr['adjust'],
 			'content'     => format_event_bbcode($arr),
 			'link'        => array(
-				array('rel' => 'alternate', 'type' => 'text/html', 'href' => System::baseUrl() . '/display/' . $arr['guid']),
+				'@attributes' => array(
+						'rel' => 'alternate',
+						'type' => 'text/html',
+						'href' => System::baseUrl() . '/display/' . $arr['guid']
+				),
 			),
 			'author'      => array(
 				'name'    => $contact['name'],
 				'address' => $contact['addr'],
 				'link'    => array(
-					array('rel' => 'alternate', 'type' => 'text/html', 'href' => $contact['url']),
-					array('rel' => 'photo', 'type' => 'image/jpeg', 'href' => $contact['thumb'])
+					array('@attributes' => array(
+							'rel' => 'alternate',
+							'type' => 'text/html',
+							'href' => $contact['url'])
+					),
+					array('@attributes' => array(
+							'rel' => 'photo',
+							'type' => 'image/jpeg',
+							'href' => $contact['thumb']))
 				),
 			),
 		));
 
-//		$item_arr['object']  = '<object><type>' . xmlify(ACTIVITY_OBJ_EVENT) . '</type><title></title><id>' . xmlify($arr['uri']) . '</id>';
-//		$item_arr['object'] .= '<content>' . xmlify(format_event_bbcode($event)) . '</content>';
-//		$item_arr['object'] .= '</object>' . "\n";
-
+		
 		$item_id = item_store($item_arr);
 
 		$r = q("SELECT * FROM `user` WHERE `uid` = %d LIMIT 1",
@@ -440,6 +494,11 @@ function event_store($arr) {
 	}
 }
 
+/**
+ * @brief Create an array with translation strings used for events.
+ * 
+ * @return array Array with translations strings.
+ */
 function get_event_strings() {
 
 	// First day of the week (0 = Sunday)
@@ -510,12 +569,12 @@ function get_event_strings() {
 }
 
 /**
- * @brief Removes duplicated birthday events
+ * @brief Removes duplicated birthday events.
  *
- * @param array $dates Array of possibly duplicated events
- * @return array Cleaned events
+ * @param array $dates Array of possibly duplicated events.
+ * @return array Cleaned events.
  *
- * @todo We should replace this with a separate update function if there is some time left
+ * @todo We should replace this with a separate update function if there is some time left.
  */
 function event_remove_duplicates($dates) {
 	$dates2 = array();
@@ -560,18 +619,19 @@ function event_by_id($owner_uid = 0, $event_params, $sql_extra = '') {
 }
 
 /**
- * @brief Get all events in a specific timeframe
+ * @brief Get all events in a specific timeframe.
  *
- * @param int $owner_uid The User ID of the owner of the events
+ * @param int $owner_uid The User ID of the owner of the events.
  * @param array $event_params An assoziative array with
- *	int 'ignored' =>
- *	string 'start' => Start time of the timeframe
- *	string 'finish' => Finish time of the timeframe
- *	string 'adjust_start' =>
+ *	int 'ignored' =><br>
+ *	string 'start' => Start time of the timeframe.<br>
+ *	string 'finish' => Finish time of the timeframe.<br>
+ *	string 'adjust_start' =><br>
  *	string 'adjust_start' =>
  *
- * @param string $sql_extra Additional sql conditions (e.g. permission request)
- * @return array Query results
+ * @param string $sql_extra Additional sql conditions (e.g. permission request).
+ * 
+ * @return array Query results.
  */
 function events_by_date($owner_uid = 0, $event_params, $sql_extra = '') {
 	// Only allow events if there is a valid owner_id
@@ -603,10 +663,10 @@ function events_by_date($owner_uid = 0, $event_params, $sql_extra = '') {
 }
 
 /**
- * @brief Convert an array query results in an arry which could be used by the events template
+ * @brief Convert an array query results in an arry which could be used by the events template.
  *
- * @param array $arr Event query array
- * @return array Event array for the template
+ * @param array $arr Event query array.
+ * @return array Event array for the template.
  */
 function process_events($arr) {
 	$events=array();
@@ -670,13 +730,13 @@ function process_events($arr) {
 }
 
 /**
- * @brief Format event to export format (ical/csv)
+ * @brief Format event to export format (ical/csv).
  *
- * @param array $events Query result for events
- * @param string $format The output format (ical/csv)
- * @param string $timezone The timezone of the user (not implemented yet)
+ * @param array $events Query result for events.
+ * @param string $format The output format (ical/csv).
+ * @param string $timezone The timezone of the user (not implemented yet).
  *
- * @return string Content according to selected export format
+ * @return string Content according to selected export format.
  */
 function event_format_export ($events, $format = 'ical', $timezone) {
 	if (! ((is_array($events)) && count($events))) {
@@ -773,18 +833,18 @@ function event_format_export ($events, $format = 'ical', $timezone) {
 }
 
 /**
- * @brief Get all events for a user ID
- *
- *    The query for events is done permission sensitive
+ * @brief Get all events for a user ID.
+ * 
+ *    The query for events is done permission sensitive.
  *    If the user is the owner of the calendar he/she
  *    will get all of his/her available events.
  *    If the user is only a visitor only the public events will
- *    be available
+ *    be available.
  *
- * @param int $uid The user ID
- * @param int $sql_extra Additional sql conditions for permission
+ * @param int $uid The user ID.
+ * @param int $sql_extra Additional sql conditions for permission.
  *
- * @return array Query results
+ * @return array Query results.
  */
 function events_by_uid($uid = 0, $sql_extra = '') {
 	if ($uid == 0) {
@@ -818,15 +878,15 @@ function events_by_uid($uid = 0, $sql_extra = '') {
 
 /**
  *
- * @param int $uid The user ID
- * @param string $format Output format (ical/csv)
- * @return array With the results
- *	bool 'success' => True if the processing was successful
- *	string 'format' => The output format
- *	string 'extension' => The file extension of the output format
- *	string 'content' => The formatted output content
+ * @param int $uid The user ID.
+ * @param string $format Output format (ical/csv).
+ * @return array With the results:
+ *	bool 'success' => True if the processing was successful,<br>
+ *	string 'format' => The output format,<br>
+ *	string 'extension' => The file extension of the output format,<br>
+ *	string 'content' => The formatted output content.<br>
  *
- * @todo Respect authenticated users with events_by_uid()
+ * @todo Respect authenticated users with events_by_uid().
  */
 function event_export($uid, $format = 'ical') {
 
@@ -878,9 +938,9 @@ function event_export($uid, $format = 'ical') {
 }
 
 /**
- * @brief Get the events widget
+ * @brief Get the events widget.
  *
- * @return string Formated html of the evens widget
+ * @return string Formated html of the evens widget.
  */
 function widget_events() {
 	$a = get_app();
@@ -927,90 +987,200 @@ function widget_events() {
 }
 
 /**
- * Generate a string with an event XML object from an array
+ * Generate a XML string from an event object array.
  * 
- * @param array $arr The array with the event data
- * @return string A string with the XML event object
+ * @param array $arr The array with the event data.
+ * @return string A string with the XML event object.
  */
 function build_event_object($arr) {
-	if (!((is_array($arr)) && count($arr))) {
-		return "";
+
+	// Remove emtpy event values.
+	$arr = array_filter($arr);
+
+	if ($arr['endTime'] == "0001-01-01 00:00:00") {
+		unset($arr['endTime']);
 	}
 
-	$obj = '<object>';
-
-	$obj .= '<type>' . xmlify(ACTIVITY_OBJ_EVENT) . '</type>';
-	$obj .= '<title>' . xmlify($arr['title']) . '</title>';
-
-	if (isset($arr['id'])) {
-		$obj .= '<id>' . xmlify($arr['id']) . '</id>';
-	}
-	$obj .= '<startTime>' . xmlify($arr['start']) . '</startTime>';
-	if (isset($arr['endTime']) && $arr['endTime'] != "0000-00-00 00:00:00") {
-		$obj .= '<endTime>' . xmlify($arr['finish']) . '</endTime>';
-	}
-	if (isset($arr['nofinish']) && intval($arr['nofinish']) > 0) {
-		$obj .= '<nofinish>' . xmlify($arr['nofinish']) . '</nofinish>';
-	}
-	if (isset($arr['description']) && $arr['description'] != "") {
-		$obj .= '<description>' . xmlify($arr['description']) . '</description>';
-	}
-	if (isset($arr['location']) && $arr['location'] != "") {
-		$obj .= '<location>' . xmlify($arr['location']) . '</location>';
-	}
-	if (isset($arr['adjust']) && intval($arr['adjust']) > 0) {
-		$obj .= '<adjust>' . xmlify($arr['adjust']) . '</adjust>';
-	}
-	$obj .= '<content>' . xmlify($arr['content']) . '</content>';
-	if (is_array($arr['link'])) {
-		$obj .= build_obj_links($arr['link']);
+	// Next to some text (e.g. the address) the location data can also contain 
+	// some map data in the bbcode format. We try to serperate this data.
+	if (array_key_exists('location', $arr)) {
+		$location = event_location2array($arr['location']);
+		$arr['location'] = $location;
 	}
 
-	// Add author information
-	if (count($arr['author'])) {
-		$obj .= '<author>';
-		if (isset($arr['author']['name']) && $arr['author']['name'] != "") {
-			$obj .= '<name>' . xmlify($arr['author']['name']) . '</name>';
-		}
-		if (isset($arr['author']['address']) && $arr['author']['address'] != "") {
-			$obj .= '<address>' . xmlify($arr['author']['address']) . '</address>';
-		}
-		if (isset($arr['author']['link']) && count($arr['author']['link'])) {
-			$obj .= build_obj_links($arr['author']['link']);
-		}
+	// Add object type at the beginning.
+	$arr = array('type' => ACTIVITY_OBJ_EVENT) + $arr;
 
-		$obj .= '</author>';
-	}
-
-	$obj .= '</object>' . "\n";
+	$obj = xml::from_array(array('object' => $arr), $xml, true);
 
 	return $obj;
 }
 
-
 /**
- * Build a XML <link> element
+ * @brief Format an array with event object information to html.
  * 
- * @param array $arr The array wiht the link attributes
- * @return string A string with the XML Element as content
+ * @param arr $object Array with event information from the event object.
+ * @param string $body_html HTML string which replaces the event description.
+ *     If this string is empty the original event description from the array
+ *     is used.
+ * 
+ * @return string HTML output.
  */
-function build_obj_links($arr) {
-	if (!((is_array($arr)) && count($arr))) {
-		return "";
-	}
-	$l = "";
+function format_event_obj($object, $body_html = "") {
+	$event = "";
 
-	foreach ($arr as $link) {
-		$attr = "";
-		// Take every array key as link attribute name
-		// and add the attribute value
-		foreach ($link as $k => $v) {
-			$attr .= ' ' . $k . '="' . $v . '"';
+	//Ensure compatibility with older items - this check can be removed at a later point.
+	if (array_key_exists('author', $object)) {
+		$same_date = false;
+		$finish = false;
+
+		// Loop through the links and find the source link of the element.
+		foreach ($object['link'] as $link) {
+			switch ($link['@attributes']['rel']) {
+				case "alternate":
+					$plink = $link['@attributes']['href'];
+					break;
+			}
 		}
 
-		$l .= '<link'. $attr . ' />';
-	}
-	$s = '<link>' . xmlify($l) . '</link>';
+		// Loop through the author links and find the avatar picture and the author url.
+		foreach ($object['author']['link'] as $link) {
+			switch ($link['@attributes']['rel']) {
+				case "alternate":
+					$author_link = $link['@attributes']['href'];
+					break;
 
-	return $s;
+				case "photo":
+					$author_avatar = $link['@attributes']['href'];
+					break;
+			}
+		}
+
+		// Set the different time formats.
+		$dformat = t('l F d, Y \@ g:i A'); // Friday January 18, 2011 @ 8:01 AM
+		$dformat_short = t('D g:i A'); // Fri 8:01 AM
+		$tformat = t('g:i A'); // 8:01 AM
+
+		$now = datetime_convert('UTC', 'UTC', $object['startTime'], (($object['adjust']) ? ATOM_TIME : 'Y-m-d\TH:i:s'));
+
+		$dtstart_dt = (($object['adjust']) ? day_translate(datetime_convert('UTC', date_default_timezone_get(), $object['startTime'], $dformat)) : day_translate(datetime_convert('UTC', 'UTC', $object['startTime'], $dformat)));
+		$dtstart_title = datetime_convert('UTC', 'UTC', $object['startTime'], (($object['adjust']) ? ATOM_TIME : 'Y-m-d\TH:i:s'));
+
+		// Format: Jan till Dec.
+		$month_short = (($object['adjust']) ? day_translate(datetime_convert('UTC', date_default_timezone_get(), $object['startTime'], 'M')) : day_translate(datetime_convert('UTC', 'UTC', $object['startTime'], 'M')));
+		// Format: 1 till 31.
+		$date_short = (($object['adjust']) ? datetime_convert('UTC', date_default_timezone_get(), $object['startTime'], 'j') : datetime_convert('UTC', 'UTC', $object['startTime'], 'j'));
+		$start_time = (($object['adjust']) ? datetime_convert('UTC', date_default_timezone_get(), $object['startTime'], $tformat) : datetime_convert('UTC', 'UTC', $object['startTime'], $tformat));
+		$start_short = (($object['adjust']) ? day_translate(datetime_convert('UTC', date_default_timezone_get(), $object['startTime'], $dformat_short)) : day_translate(datetime_convert('UTC', 'UTC', $object['startTime'], $dformat_short)));
+
+		if (isset($object['endTime']) || !isset($object['nofinish'])) {
+			$finish = true;
+			$dtend_dt  = (($object['adjust']) ? day_translate(datetime_convert('UTC', date_default_timezone_get(), $object['endTime'], $dformat)) : day_translate(datetime_convert('UTC', 'UTC', $object['endTime'], $dformat)));
+			$dtend_title = datetime_convert('UTC', 'UTC', $object['endTime'], (($object['adjust'])   ? ATOM_TIME : 'Y-m-d\TH:i:s'));
+			$end_short = (($object['adjust']) ? day_translate(datetime_convert('UTC', date_default_timezone_get(), $object['endTime'], $dformat_short)) : day_translate(datetime_convert('UTC', 'UTC', $object['endTime'], $dformat_short)));
+			$end_time = (($object['adjust']) ? datetime_convert('UTC', date_default_timezone_get(), $object['endTime'], $tformat) : datetime_convert('UTC', 'UTC', $object['endTime'], $tformat));
+
+			// Check if start and finish is at the same day.
+			if (substr($dtstart_title, 0, 10) === substr($dtend_title, 0, 10)) {
+				$same_date = true;
+			}
+		}
+
+		// Format the event location.
+		if (array_key_exists('location', $object)) {
+			$location = array(
+				'name' => prepare_text($object['location']['name'])
+			);
+
+			// Construct the map
+			if (isset($object['location']['address'])) {
+				$location['map'] = '<div class="map">' . generate_named_map($object['location']['address']) . '</div>';
+			} elseif (isset($object['location']['coordinates'])) {
+				$location['map'] = '<div class="map">' . generate_map(str_replace('/', ' ', $object['location']['coordinates'])) . '</div>';
+			}
+		}
+
+		$event_body =(($body_html == "") ? prepare_text($object['description']) : $body_html);
+
+		// Construct guid.
+		// We explode the guid from the uri to have an identifier
+		// (e.g. for javascript element manipulation).
+		$uriparts = explode(':', $object['id']);
+		if (count($uriparts)) {
+			$guid = end($uriparts);
+		}
+
+		$event = replace_macros(get_markup_template('event_item_content.tpl'), array(
+			'$guid'           => $guid,
+			'$title'          => prepare_text($object['title']),
+			'$dtstart_label'  => t('Starts:'),
+			'$dtstart_title'  => $dtstart_title,
+			'$dtstart_dt'     => $dtstart_dt,
+			'$finish'         => $finish,
+			'$dtend_label'    => t('Finishes:'),
+			'$dtend_title'    => $dtend_title,
+			'$dtend_dt'       => $dtend_dt,
+			'$month_short'    => $month_short,
+			'$date_short'     => $date_short,
+			'$same_date'      => $same_date,
+			'$start_time'     => $start_time,
+			'$start_short'    => $start_short,
+			'$end_time'       => $end_time,
+			'$end_short'      => $end_short,
+			'$author_name'    => $object['author']['name'],
+			'$author_link'    => $author_link,
+			'$author_avatar'  => $author_avatar,
+			'$description'	  => $event_body,
+			'$location_label' => t('Location:'),
+			'$show_map_label' => t('Show map'),
+			'$hide_map_label' => t('Hide map'),
+			'$map_btn_label'  => t('Show map'),
+			'$location'       => $location
+		));
+	}
+
+	return $event;
+}
+
+/**
+ * @brief Format a string with map bbcode to an array with location information.
+ * 
+ * Note: The string must onlny contain location information. Unformatted will be
+ * handled as location name.
+ * 
+ * @param string $s The string with the bbcode formatted location information.
+ * 
+ * @return array The array with the location information.
+ *  'name' => The name of the location,<br>
+ * 'address' => The address of the location,<br>
+ * 'coordinates' => Latitude‎ and longitude‎ (e.g. '48.864716,2.349014').<br>
+ */
+function event_location2array($s = '') {
+	if ($s == '') {
+		return;
+	}
+
+	$location = array('name' => $s);
+
+	// Map tag with location name - e.g. [map]Paris[/map].
+	if (strpos($s, '[/map]') !== false) {
+		$found = preg_match("/\[map\](.*?)\[\/map\]/ism", $s, $match);
+		if (intval($found) > 0 && array_key_exists(1, $match)) {
+			$location['address'] =  $match[1];
+			// Remove the map bbcode from the location name.
+			$location['name'] = str_replace($match[0], "", $s);
+		}
+
+	// Map tag with coordinates - e.g. [map=48.864716,2.349014].
+	} elseif (strpos($s, '[map=') !== false) {
+		$found = preg_match("/\[map=(.*?)\]/ism", $s, $match);
+		if (intval($found) > 0 && array_key_exists(1, $match)) {
+			$location['coordinates'] =  $match[1];
+			// Remove the map bbcode from the location name.
+			$location['name'] = str_replace($match[0], "", $s);
+		}
+	}
+
+	return $location;
+
 }
