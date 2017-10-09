@@ -1067,17 +1067,17 @@ function format_event_obj($object, $body_html = "") {
 		$dtstart_title = datetime_convert('UTC', 'UTC', $object['startTime'], (($object['adjust']) ? ATOM_TIME : 'Y-m-d\TH:i:s'));
 
 		// Format: Jan till Dec.
-		$month_short = (($object['adjust']) ? day_translate(datetime_convert('UTC', date_default_timezone_get(), $object['startTime'], 'M')) : day_translate(datetime_convert('UTC', 'UTC', $object['startTime'], 'M')));
+		$month_short = (($object['adjust']) ? day_short_translate(datetime_convert('UTC', date_default_timezone_get(), $object['startTime'], 'M')) : day_short_translate(datetime_convert('UTC', 'UTC', $object['startTime'], 'M')));
 		// Format: 1 till 31.
 		$date_short = (($object['adjust']) ? datetime_convert('UTC', date_default_timezone_get(), $object['startTime'], 'j') : datetime_convert('UTC', 'UTC', $object['startTime'], 'j'));
 		$start_time = (($object['adjust']) ? datetime_convert('UTC', date_default_timezone_get(), $object['startTime'], $tformat) : datetime_convert('UTC', 'UTC', $object['startTime'], $tformat));
-		$start_short = (($object['adjust']) ? day_translate(datetime_convert('UTC', date_default_timezone_get(), $object['startTime'], $dformat_short)) : day_translate(datetime_convert('UTC', 'UTC', $object['startTime'], $dformat_short)));
+		$start_short = (($object['adjust']) ? day_short_translate(datetime_convert('UTC', date_default_timezone_get(), $object['startTime'], $dformat_short)) : day_short_translate(datetime_convert('UTC', 'UTC', $object['startTime'], $dformat_short)));
 
 		if (isset($object['endTime']) || !isset($object['nofinish'])) {
 			$finish = true;
 			$dtend_dt  = (($object['adjust']) ? day_translate(datetime_convert('UTC', date_default_timezone_get(), $object['endTime'], $dformat)) : day_translate(datetime_convert('UTC', 'UTC', $object['endTime'], $dformat)));
 			$dtend_title = datetime_convert('UTC', 'UTC', $object['endTime'], (($object['adjust'])   ? ATOM_TIME : 'Y-m-d\TH:i:s'));
-			$end_short = (($object['adjust']) ? day_translate(datetime_convert('UTC', date_default_timezone_get(), $object['endTime'], $dformat_short)) : day_translate(datetime_convert('UTC', 'UTC', $object['endTime'], $dformat_short)));
+			$end_short = (($object['adjust']) ? day_short_translate(datetime_convert('UTC', date_default_timezone_get(), $object['endTime'], $dformat_short)) : day_short_translate(datetime_convert('UTC', 'UTC', $object['endTime'], $dformat_short)));
 			$end_time = (($object['adjust']) ? datetime_convert('UTC', date_default_timezone_get(), $object['endTime'], $tformat) : datetime_convert('UTC', 'UTC', $object['endTime'], $tformat));
 
 			// Check if start and finish is at the same day.

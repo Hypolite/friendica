@@ -1197,22 +1197,40 @@ function get_mood_verbs() {
 
 if (! function_exists('day_translate')) {
 /**
- * Translate days and months names
- *
- * @param string $s
- * @return string
+ * @brief Translate days and months names.
+ * 
+ * @param string $s String with day or month name.
+ * @return string Translated string.
  */
 function day_translate($s) {
 	$ret = str_replace(array('Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'),
-		array( t('Monday'), t('Tuesday'), t('Wednesday'), t('Thursday'), t('Friday'), t('Saturday'), t('Sunday')),
+		array(t('Monday'), t('Tuesday'), t('Wednesday'), t('Thursday'), t('Friday'), t('Saturday'), t('Sunday')),
 		$s);
 
 	$ret = str_replace(array('January','February','March','April','May','June','July','August','September','October','November','December'),
-		array( t('January'), t('February'), t('March'), t('April'), t('May'), t('June'), t('July'), t('August'), t('September'), t('October'), t('November'), t('December')),
+		array(t('January'), t('February'), t('March'), t('April'), t('May'), t('June'), t('July'), t('August'), t('September'), t('October'), t('November'), t('December')),
 		$ret);
 
 	return $ret;
 }}
+
+/**
+ * @brief Translate short days and months names.
+ * 
+ * @param string $s String with short day or month name.
+ * @return string Translated string.
+ */
+function day_short_translate($s) {
+	$ret = str_replace(array('Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'),
+		array(t('Mon'), t('Tue'), t('Wed'), t('Thu'), t('Fri'), t('Sat'), t('Sund')),
+		$s);
+
+	$ret = str_replace(array('Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov','Dec'),
+		array(t('Jan'), t('Feb'), t('Mar'), t('Apr'), t('May'), ('Jun'), t('Jul'), t('Aug'), t('Sep'), t('Oct'), t('Nov'), t('Dec')),
+		$ret);
+
+	return $ret;
+}
 
 
 if (! function_exists('normalise_link')) {
