@@ -10,7 +10,7 @@ Not every PHP/MySQL hosting provider will be able to support Friendica.
 Many will.
 But **please** review the requirements and confirm these with your hosting provider prior to installation.
 
-Also if you encounter installation issues, please let us know via the [helper](http://helpers.pyxis.uberspace.de/profile/helpers) or the [developer](https://helpers.pyxis.uberspace.de/profile/developers) forum or [file an issue](https://github.com/friendica/friendica/issues).
+Also if you encounter installation issues, please let us know via the [helper](http://forum.friendi.ca/profile/helpers) or the [developer](https://forum.friendi.ca/profile/developers) forum or [file an issue](https://github.com/friendica/friendica/issues).
 Please be as clear as you can about your operating environment and provide as much detail as possible about any error messages you may see, so that we can prevent it from happening in the future.
 Due to the large variety of operating systems and PHP platforms in existence we may have only limited ability to debug your PHP installation or acquire any missing modules - but we will do our best to solve any general code issues.
 If you do not have a Friendica account yet, you can register a temporary one at [tryfriendica.de](https://tryfriendica.de) and join the forums mentioned above from there.
@@ -28,7 +28,7 @@ Requirements
 * Apache with mod-rewrite enabled and "Options All" so you can use a local .htaccess file
 * PHP 5.4+.
 * PHP *command line* access with register_argc_argv set to true in the php.ini file
-* Curl, GD, PDO, MySQLi, hash and OpenSSL extensions
+* Curl, GD, PDO, MySQLi, hash, xml and OpenSSL extensions
 * some form of email server or email gateway such that PHP mail() works
 * Mysql 5.5.3+ or an equivalant alternative for MySQL (MariaDB, Percona Server etc.)
 * the ability to schedule jobs with cron (Linux/Mac) or Scheduled Tasks (Windows) (Note: other options are presented in Section 7 of this document.)
@@ -112,19 +112,7 @@ You can generally find the location of PHP by executing "which php".
 If you run into trouble with this section please contact your hosting provider for assistance.
 Friendica will not work correctly if you cannot perform this step.
 
-Alternative: You may be able to use the 'poormancron' plugin to perform this step.
-To do this, edit the file ".htconfig.php" and look for a line describing your plugins.
-On a fresh installation, it will look like this:
-
-    $a->config['system']['addon'] = 'js_upload';
-
-It indicates the "js_upload" addon module is enabled.
-You may add additional addons/plugins using this same line in the configuration file.
-Change it to read
-
-    $a->config['system']['addon'] = 'js_upload,poormancron';
-
-and save your changes.
+If it is not possible to set up a cron job then please activate the "frontend worker" in the administration interface.
 
 Once you have installed Friendica and created an admin account as part of the process, you can access the admin panel of your installation and do most of the server wide configuration from there
 

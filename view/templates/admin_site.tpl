@@ -85,7 +85,6 @@
 
 	{{if $thread_allow.2}}
 		{{include file="field_checkbox.tpl" field=$ostatus_disabled}}
-		{{include file="field_select.tpl" field=$ostatus_poll_interval}}
 		{{include file="field_checkbox.tpl" field=$ostatus_full_threads}}
 	{{else}}
 		<div class='field checkbox' id='div_id_{{$ostatus_disabled.0}}'>
@@ -104,6 +103,7 @@
 	{{/if}}
 	{{include file="field_checkbox.tpl" field=$dfrn_only}}
 	{{include file="field_input.tpl" field=$global_directory}}
+	<div class="submit"><input type="submit" name="republish_directory" value="{{$republish|escape:'html'}}" /></div>
 	{{include file="field_checkbox.tpl" field=$thread_allow}}
 	{{include file="field_checkbox.tpl" field=$newuser_private}}
 	{{include file="field_checkbox.tpl" field=$enotify_no_content}}

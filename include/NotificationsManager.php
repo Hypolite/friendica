@@ -6,6 +6,8 @@
  * @todo move to proper folder
  */
 
+use Friendica\Core\System;
+
 require_once 'include/html2plain.php';
 require_once 'include/probe.php';
 require_once 'include/datetime.php';
@@ -226,7 +228,7 @@ class NotificationsManager {
 				switch ($ident) {
 					case 'system':
 						$default_item_label = 'notify';
-						$default_item_link = $this->a->get_baseurl(true).'/notify/view/'. $it['id'];
+						$default_item_link = System::baseUrl(true).'/notify/view/'. $it['id'];
 						$default_item_image = proxy_url($it['photo'], false, PROXY_SIZE_MICRO);
 						$default_item_url = $it['url'];
 						$default_item_text = strip_tags(bbcode($it['msg']));
@@ -236,7 +238,7 @@ class NotificationsManager {
 
 					case 'home':
 						$default_item_label = 'comment';
-						$default_item_link = $this->a->get_baseurl(true).'/display/'.$it['pguid'];
+						$default_item_link = System::baseUrl(true).'/display/'.$it['pguid'];
 						$default_item_image = proxy_url($it['author-avatar'], false, PROXY_SIZE_MICRO);
 						$default_item_url = $it['author-link'];
 						$default_item_text = sprintf(t("%s commented on %s's post"), $it['author-name'], $it['pname']);
@@ -246,7 +248,7 @@ class NotificationsManager {
 
 					default:
 						$default_item_label = (($it['id'] == $it['parent']) ? 'post' : 'comment');
-						$default_item_link = $this->a->get_baseurl(true).'/display/'.$it['pguid'];
+						$default_item_link = System::baseUrl(true).'/display/'.$it['pguid'];
 						$default_item_image = proxy_url($it['author-avatar'], false, PROXY_SIZE_MICRO);
 						$default_item_url = $it['author-link'];
 						$default_item_text = (($it['id'] == $it['parent'])
@@ -262,7 +264,7 @@ class NotificationsManager {
 					case ACTIVITY_LIKE:
 						$notif = array(
 							'label' => 'like',
-							'link' => $this->a->get_baseurl(true).'/display/'.$it['pguid'],
+							'link' => System::baseUrl(true).'/display/'.$it['pguid'],
 							'image' => proxy_url($it['author-avatar'], false, PROXY_SIZE_MICRO),
 							'url' => $it['author-link'],
 							'text' => sprintf(t("%s liked %s's post"), $it['author-name'], $it['pname']),
@@ -275,7 +277,7 @@ class NotificationsManager {
 					case ACTIVITY_DISLIKE:
 						$notif = array(
 							'label' => 'dislike',
-							'link' => $this->a->get_baseurl(true).'/display/'.$it['pguid'],
+							'link' => System::baseUrl(true).'/display/'.$it['pguid'],
 							'image' => proxy_url($it['author-avatar'], false, PROXY_SIZE_MICRO),
 							'url' => $it['author-link'],
 							'text' => sprintf(t("%s disliked %s's post"), $it['author-name'], $it['pname']),
@@ -288,7 +290,7 @@ class NotificationsManager {
 					case ACTIVITY_ATTEND:
 						$notif = array(
 							'label' => 'attend',
-							'link' => $this->a->get_baseurl(true).'/display/'.$it['pguid'],
+							'link' => System::baseUrl(true).'/display/'.$it['pguid'],
 							'image' => proxy_url($it['author-avatar'], false, PROXY_SIZE_MICRO),
 							'url' => $it['author-link'],
 							'text' => sprintf(t("%s is attending %s's event"), $it['author-name'], $it['pname']),
@@ -301,7 +303,7 @@ class NotificationsManager {
 					case ACTIVITY_ATTENDNO:
 						$notif = array(
 							'label' => 'attendno',
-							'link' => $this->a->get_baseurl(true).'/display/'.$it['pguid'],
+							'link' => System::baseUrl(true).'/display/'.$it['pguid'],
 							'image' => proxy_url($it['author-avatar'], false, PROXY_SIZE_MICRO),
 							'url' => $it['author-link'],
 							'text' => sprintf( t("%s is not attending %s's event"), $it['author-name'], $it['pname']),
@@ -314,7 +316,7 @@ class NotificationsManager {
 					case ACTIVITY_ATTENDMAYBE:
 						$notif = array(
 							'label' => 'attendmaybe',
-							'link' => $this->a->get_baseurl(true).'/display/'.$it['pguid'],
+							'link' => System::baseUrl(true).'/display/'.$it['pguid'],
 							'image' => proxy_url($it['author-avatar'], false, PROXY_SIZE_MICRO),
 							'url' => $it['author-link'],
 							'text' => sprintf(t("%s may attend %s's event"), $it['author-name'], $it['pname']),
@@ -331,7 +333,7 @@ class NotificationsManager {
 
 						$notif = array(
 							'label' => 'friend',
-							'link' => $this->a->get_baseurl(true).'/display/'.$it['pguid'],
+							'link' => System::baseUrl(true).'/display/'.$it['pguid'],
 							'image' => proxy_url($it['author-avatar'], false, PROXY_SIZE_MICRO),
 							'url' => $it['author-link'],
 							'text' => sprintf(t("%s is now friends with %s"), $it['author-name'], $it['fname']),
@@ -509,7 +511,7 @@ class NotificationsManager {
 	 * @return string The additional sql query
 	 */
 	private function _personal_sql_extra() {
-		$myurl = $this->a->get_baseurl(true) . '/profile/'. $this->a->user['nickname'];
+		$myurl = System::baseUrl(true) . '/profile/'. $this->a->user['nickname'];
 		$myurl = substr($myurl,strpos($myurl,'://')+3);
 		$myurl = str_replace(array('www.','.'),array('','\\.'),$myurl);
 		$diasp_url = str_replace('/profile/','/u/',$myurl);

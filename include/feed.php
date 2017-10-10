@@ -28,7 +28,7 @@ function feed_import($xml,$importer,&$contact, &$hub, $simulate = false) {
 	}
 
 	$doc = new DOMDocument();
-	@$doc->loadXML($xml);
+	@$doc->loadXML(trim($xml));
 	$xpath = new DomXPath($doc);
 	$xpath->registerNamespace('atom', NAMESPACE_ATOM1);
 	$xpath->registerNamespace('dc', "http://purl.org/dc/elements/1.1/");
@@ -107,6 +107,14 @@ function feed_import($xml,$importer,&$contact, &$hub, $simulate = false) {
 			$value = $xpath->evaluate('atom:author/poco:note/text()')->item(0)->nodeValue;
 			if ($value != "") {
 				$author["author-about"] = $value;
+			}
+			$avatar = $xpath->evaluate("atom:author/atom:link[@rel='avatar']")->item(0)->attributes;
+			if (is_object($avatar)) {
+				foreach ($avatar AS $attributes) {
+					if ($attributes->name == "href") {
+						$author["author-avatar"] = $attributes->textContent;
+					}
+				}
 			}
 		}
 
@@ -330,6 +338,7 @@ function feed_import($xml,$importer,&$contact, &$hub, $simulate = false) {
 			if ($body == "") {
 				$body = trim($xpath->evaluate('atom:summary/text()', $entry)->item(0)->nodeValue);
 			}
+
 			// remove the content of the title if it is identically to the body
 			// This helps with auto generated titles e.g. from tumblr
 			if (title_is_body($item["title"], $body)) {
@@ -337,6 +346,15 @@ function feed_import($xml,$importer,&$contact, &$hub, $simulate = false) {
 			}
 
 			$item["body"] = html2bbcode($body);
+
+			if (($item["body"] == '') && ($item["title"] != '')) {
+				$item["body"] = $item["title"];
+				$item["title"] = '';
+			}
+
+			if (!strstr($item["body"], '[url') && ($item['plink'] != '')) {
+				$item["body"] .= "[hr][url]".$item['plink']."[/url]";
+			}
 		}
 
 		if (!$simulate) {

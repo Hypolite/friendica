@@ -3,15 +3,18 @@
 // send a private message
 
 use Friendica\App;
+use Friendica\Core\System;
 
 function send_message($recipient=0, $body='', $subject='', $replyto=''){
 
 	$a = get_app();
 
-	if (! $recipient) return -1;
+	if (! $recipient) {
+		return -1;
 
-	if (! strlen($subject))
+	if (! strlen($subject)) {
 		$subject = t('[no subject]');
+	}
 
 	$me = q("SELECT * FROM `contact` WHERE `uid` = %d AND `self` = 1 LIMIT 1",
 		intval(local_user())
@@ -26,7 +29,7 @@ function send_message($recipient=0, $body='', $subject='', $replyto=''){
 	}
 
 	$guid = get_guid(32);
- 	$uri = 'urn:X-dfrn:' . App::get_baseurl() . ':' . local_user() . ':' . $guid;
+	$uri = 'urn:X-dfrn:' . System::baseUrl() . ':' . local_user() . ':' . $guid;
 
 	$convid = 0;
 	$reply = false;
@@ -52,29 +55,21 @@ function send_message($recipient=0, $body='', $subject='', $replyto=''){
 		$recip_host = substr($recip_host,0,strpos($recip_host,'/'));
 
 		$recip_handle = (($contact[0]['addr']) ? $contact[0]['addr'] : $contact[0]['nick'] . '@' . $recip_host);
-		$sender_handle = $a->user['nickname'] . '@' . substr(App::get_baseurl(), strpos(App::get_baseurl(),'://') + 3);
+		$sender_handle = $a->user['nickname'] . '@' . substr(System::baseUrl(), strpos(System::baseUrl(),'://') + 3);
 
 		$conv_guid = get_guid(32);
 		$convuri = $recip_handle.':'.$conv_guid;
 
 		$handles = $recip_handle . ';' . $sender_handle;
 
-		$r = q("insert into conv (uid,guid,creator,created,updated,subject,recips) values(%d, '%s', '%s', '%s', '%s', '%s', '%s') ",
-			intval(local_user()),
-			dbesc($conv_guid),
-			dbesc($sender_handle),
-			dbesc(datetime_convert()),
-			dbesc(datetime_convert()),
-			dbesc($subject),
-			dbesc($handles)
-		);
+		$fields = array('uid' => local_user(), 'guid' => $conv_guid, 'creator' => $sender_handle,
+				'created' => datetime_convert(), 'updated' => datetime_convert(),
+				'subject' => $subject, 'recips' => $handles);
+		$r = dba::insert('conv', $fields);
 
-		$r = q("select * from conv where guid = '%s' and uid = %d limit 1",
-			dbesc($conv_guid),
-			intval(local_user())
-		);
+		$r = dba::select('conv', array('id'), array('guid' => $conv_guid, 'uid' => local_user()), array('limit' => 1));
 		if (dbm::is_result($r))
-			$convid = $r[0]['id'];
+			$convid = $r['id'];
 	}
 
 	if (! $convid) {
@@ -133,7 +128,7 @@ function send_message($recipient=0, $body='', $subject='', $replyto=''){
 		$images = $match[1];
 		if (count($images)) {
 			foreach ($images as $image) {
-				if (! stristr($image,App::get_baseurl() . '/photo/')) {
+				if (! stristr($image,System::baseUrl() . '/photo/')) {
 					continue;
 				}
 				$image_uri = substr($image,strrpos($image,'/') + 1);
@@ -169,7 +164,7 @@ function send_wallmessage($recipient='', $body='', $subject='', $replyto=''){
 	}
 
 	$guid = get_guid(32);
- 	$uri = 'urn:X-dfrn:' . App::get_baseurl() . ':' . local_user() . ':' . $guid;
+	$uri = 'urn:X-dfrn:' . System::baseUrl() . ':' . local_user() . ':' . $guid;
 
 	$convid = 0;
 	$reply = false;
@@ -184,7 +179,7 @@ function send_wallmessage($recipient='', $body='', $subject='', $replyto=''){
 
 	$conv_guid = get_guid(32);
 
-	$recip_handle = $recipient['nickname'] . '@' . substr(App::get_baseurl(), strpos(App::get_baseurl(),'://') + 3);
+	$recip_handle = $recipient['nickname'] . '@' . substr(System::baseUrl(), strpos(System::baseUrl(),'://') + 3);
 
 	$sender_nick = basename($replyto);
 	$sender_host = substr($replyto,strpos($replyto,'://')+3);
@@ -193,28 +188,18 @@ function send_wallmessage($recipient='', $body='', $subject='', $replyto=''){
 
 	$handles = $recip_handle . ';' . $sender_handle;
 
-	$r = q("INSERT INTO `conv` (`uid`,`guid`,`creator`,`created`,`updated`,`subject`,`recips`) values(%d, '%s', '%s', '%s', '%s', '%s', '%s') ",
-		intval($recipient['uid']),
-		dbesc($conv_guid),
-		dbesc($sender_handle),
-		dbesc(datetime_convert()),
-		dbesc(datetime_convert()),
-		dbesc($subject),
-		dbesc($handles)
-	);
+	$fields = array('uid' => $recipient['uid'], 'guid' => $conv_guid, 'creator' => $sender_handle,
+			'created' => datetime_convert(), 'updated' => datetime_convert(),
+			'subject' => $subject, 'recips' => $handles);
+	$r = dba::insert('conv', $fields);
 
-	$r = q("SELECT * FROM `conv` WHERE `guid` = '%s' AND `uid` = %d LIMIT 1",
-		dbesc($conv_guid),
-		intval($recipient['uid'])
-	);
-
-
-	if (! dbm::is_result($r)) {
+	$r = dba::select('conv', array('id'), array('guid' => $conv_guid, 'uid' => $recipient['uid']), array('limit' => 1));
+	if (!dbm::is_result($r)) {
 		logger('send message: conversation not found.');
 		return -4;
 	}
 
-	$convid = $r[0]['id'];
+	$convid = $r['id'];
 
 	$r = q("INSERT INTO `mail` ( `uid`, `guid`, `convid`, `from-name`, `from-photo`, `from-url`,
 		`contact-id`, `title`, `body`, `seen`, `reply`, `replied`, `uri`, `parent-uri`, `created`, `unknown`)

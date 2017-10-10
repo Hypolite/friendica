@@ -5,6 +5,7 @@
  */
 
 use Friendica\App;
+use Friendica\Core\System;
 use Friendica\ParseUrl;
 use Friendica\Util\Lock;
 use Friendica\Core\Config;
@@ -222,7 +223,7 @@ function add_page_info_data($data) {
 			/// @todo make a positive list of allowed characters
 			$hashtag = str_replace(array(" ", "+", "/", ".", "#", "'", "’", "`", "(", ")", "„", "“"),
 						array("", "", "", "", "", "", "", "", "", "", "", ""), $keyword);
-			$hashtags .= "#[url=" . App::get_baseurl() . "/search?tag=" . rawurlencode($hashtag) . "]" . $hashtag . "[/url] ";
+			$hashtags .= "#[url=" . System::baseUrl() . "/search?tag=" . rawurlencode($hashtag) . "]" . $hashtag . "[/url] ";
 		}
 	}
 
@@ -270,7 +271,7 @@ function add_page_keywords($url, $no_photos = false, $photo = "", $keywords = fa
 				$tags .= ", ";
 			}
 
-			$tags .= "#[url=" . App::get_baseurl() . "/search?tag=" . rawurlencode($hashtag) . "]" . $hashtag . "[/url]";
+			$tags .= "#[url=" . System::baseUrl() . "/search?tag=" . rawurlencode($hashtag) . "]" . $hashtag . "[/url]";
 		}
 	}
 
@@ -396,15 +397,24 @@ function uri_to_guid($uri, $host = "") {
 	// We have to avoid that different routines could accidentally create the same value
 	$parsed = parse_url($uri);
 
+	// When the hostname isn't given, we take it from the uri
 	if ($host == "") {
-		$host = $parsed["host"];
+		// Is it in the format data@host.tld?
+		if ((count($parsed) == 1) && strstr($uri, '@')) {
+			$mailparts = explode('@', $uri);
+			$host = array_pop($mailparts);
+		} else {
+			$host = $parsed["host"];
+		}
 	}
 
+	// We use a hash of the hostname as prefix for the guid
 	$guid_prefix = hash("crc32", $host);
 
 	// Remove the scheme to make sure that "https" and "http" doesn't make a difference
 	unset($parsed["scheme"]);
 
+	// Glue it together to be able to make a hash from it
 	$host_id = implode("/", $parsed);
 
 	// We could use any hash algorithm since it isn't a security issue
@@ -446,15 +456,6 @@ function store_conversation($arr) {
 			$conversation['source'] = $arr['source'];
 		}
 
-		if (!Lock::set('store_conversation')) {
-			// When using semaphores, this case never can't happen
-			unset($arr['conversation-uri']);
-			unset($arr['conversation-href']);
-			unset($arr['protocol']);
-			unset($arr['source']);
-			return $arr;
-		}
-
 		$old_conv = dba::fetch_first("SELECT `item-uri`, `reply-to-uri`, `conversation-uri`, `conversation-href`, `protocol`, `source`
 				FROM `conversation` WHERE `item-uri` = ?", $conversation['item-uri']);
 		if (dbm::is_result($old_conv)) {
@@ -472,11 +473,10 @@ function store_conversation($arr) {
 				logger('Conversation: update for '.$conversation['item-uri'].' from '.$conv['protocol'].' to '.$conversation['protocol'].' failed', LOGGER_DEBUG);
 			}
 		} else {
-			if (!dba::insert('conversation', $conversation)) {
+			if (!dba::insert('conversation', $conversation, true)) {
 				logger('Conversation: insert for '.$conversation['item-uri'].' (protocol '.$conversation['protocol'].') failed', LOGGER_DEBUG);
 			}
 		}
-		Lock::remove('store_conversation');
 	}
 
 	unset($arr['conversation-uri']);
@@ -543,6 +543,7 @@ function item_store($arr, $force_parent = false, $notify = false, $dontcache = f
 	}
 
 	// Converting the plink
+	/// @todo Check if this is really still needed
 	if ($arr['network'] == NETWORK_OSTATUS) {
 		if (isset($arr['plink'])) {
 			$arr['plink'] = ostatus::convert_href($arr['plink']);
@@ -623,11 +624,11 @@ function item_store($arr, $force_parent = false, $notify = false, $dontcache = f
 	$arr['owner-name']    = ((x($arr, 'owner-name'))    ? trim($arr['owner-name'])    : '');
 	$arr['owner-link']    = ((x($arr, 'owner-link'))    ? notags(trim($arr['owner-link']))    : '');
 	$arr['owner-avatar']  = ((x($arr, 'owner-avatar'))  ? notags(trim($arr['owner-avatar']))  : '');
-	$arr['created']       = ((x($arr, 'created') !== false) ? datetime_convert('UTC','UTC', $arr['created']) : datetime_convert());
-	$arr['edited']        = ((x($arr, 'edited')  !== false) ? datetime_convert('UTC','UTC', $arr['edited'])  : datetime_convert());
-	$arr['commented']     = ((x($arr, 'commented')  !== false) ? datetime_convert('UTC','UTC', $arr['commented'])  : datetime_convert());
-	$arr['received']      = ((x($arr, 'received')  !== false) ? datetime_convert('UTC','UTC', $arr['received'])  : datetime_convert());
-	$arr['changed']       = ((x($arr, 'changed')  !== false) ? datetime_convert('UTC','UTC', $arr['changed'])  : datetime_convert());
+	$arr['received']      = ((x($arr, 'received') !== false) ? datetime_convert('UTC','UTC', $arr['received']) : datetime_convert());
+	$arr['created']       = ((x($arr, 'created') !== false) ? datetime_convert('UTC','UTC', $arr['created']) : $arr['received']);
+	$arr['edited']        = ((x($arr, 'edited') !== false) ? datetime_convert('UTC','UTC', $arr['edited']) : $arr['created']);
+	$arr['changed']       = ((x($arr, 'changed') !== false) ? datetime_convert('UTC','UTC', $arr['changed']) : $arr['created']);
+	$arr['commented']     = ((x($arr, 'commented') !== false) ? datetime_convert('UTC','UTC', $arr['commented']) : $arr['created']);
 	$arr['title']         = ((x($arr, 'title'))         ? trim($arr['title'])         : '');
 	$arr['location']      = ((x($arr, 'location'))      ? trim($arr['location'])      : '');
 	$arr['coord']         = ((x($arr, 'coord'))         ? notags(trim($arr['coord']))         : '');
@@ -675,11 +676,11 @@ function item_store($arr, $force_parent = false, $notify = false, $dontcache = f
 	}
 
 	if (($arr['author-link'] == "") && ($arr['owner-link'] == "")) {
-		logger("Both author-link and owner-link are empty. Called by: " . App::callstack(), LOGGER_DEBUG);
+		logger("Both author-link and owner-link are empty. Called by: " . System::callstack(), LOGGER_DEBUG);
 	}
 
 	if ($arr['plink'] == "") {
-		$arr['plink'] = App::get_baseurl() . '/display/' . urlencode($arr['guid']);
+		$arr['plink'] = System::baseUrl() . '/display/' . urlencode($arr['guid']);
 	}
 
 	if ($arr['network'] == "") {
@@ -760,8 +761,18 @@ function item_store($arr, $force_parent = false, $notify = false, $dontcache = f
 		$arr["author-id"] = get_contact($arr["author-link"], 0);
 	}
 
+	if (blockedContact($arr["author-id"])) {
+		logger('Contact '.$arr["author-id"].' is blocked, item '.$arr["uri"].' will not be stored');
+		return 0;
+	}
+
 	if ($arr["owner-id"] == 0) {
 		$arr["owner-id"] = get_contact($arr["owner-link"], 0);
+	}
+
+	if (blockedContact($arr["owner-id"])) {
+		logger('Contact '.$arr["owner-id"].' is blocked, item '.$arr["uri"].' will not be stored');
+		return 0;
 	}
 
 	if ($arr['guid'] != "") {
@@ -851,10 +862,10 @@ function item_store($arr, $force_parent = false, $notify = false, $dontcache = f
 			$u = q("SELECT `nickname` FROM `user` WHERE `uid` = %d", intval($arr['uid']));
 			if (dbm::is_result($u)) {
 				$a = get_app();
-				$self = normalise_link(App::get_baseurl() . '/profile/' . $u[0]['nickname']);
+				$self = normalise_link(System::baseUrl() . '/profile/' . $u[0]['nickname']);
 				logger("item_store: 'myself' is ".$self." for parent ".$parent_id." checking against ".$arr['author-link']." and ".$arr['owner-link'], LOGGER_DEBUG);
 				if ((normalise_link($arr['author-link']) == $self) || (normalise_link($arr['owner-link']) == $self)) {
-					q("UPDATE `thread` SET `mention` = 1 WHERE `iid` = %d", intval($parent_id));
+					dba::update('thread', array('mention' => true), array('iid' => $parent_id));
 					logger("item_store: tagged thread ".$parent_id." as mention for user ".$self, LOGGER_DEBUG);
 				}
 			}
@@ -918,7 +929,7 @@ function item_store($arr, $force_parent = false, $notify = false, $dontcache = f
 		$arr["global"] = true;
 
 		// Set the global flag on all items if this was a global item entry
-		q("UPDATE `item` SET `global` = 1 WHERE `uri` = '%s'", dbesc($arr["uri"]));
+		dba::update('item', array('global' => true), array('uri' => $arr["uri"]));
 	} else {
 		$isglobal = q("SELECT `global` FROM `item` WHERE `uid` = 0 AND `uri` = '%s'", dbesc($arr["uri"]));
 
@@ -948,6 +959,10 @@ function item_store($arr, $force_parent = false, $notify = false, $dontcache = f
 		call_hooks('post_remote', $arr);
 	}
 
+	// This array field is used to trigger some automatic reactions
+	// It is mainly used in the "post_local" hook.
+	unset($arr['api_source']);
+
 	if (x($arr, 'cancel')) {
 		logger('item_store: post cancelled by plugin.');
 		return 0;
@@ -959,40 +974,21 @@ function item_store($arr, $force_parent = false, $notify = false, $dontcache = f
 	 * An unique index would help - but the limitations of MySQL (maximum size of index values) prevent this.
 	 */
 	if ($arr["uid"] == 0) {
-		$r = qu("SELECT `id` FROM `item` WHERE `uri` = '%s' AND `uid` = 0 LIMIT 1", dbesc(trim($arr['uri'])));
+		$r = q("SELECT `id` FROM `item` WHERE `uri` = '%s' AND `uid` = 0 LIMIT 1", dbesc(trim($arr['uri'])));
 		if (dbm::is_result($r)) {
 			logger('Global item already stored. URI: '.$arr['uri'].' on network '.$arr['network'], LOGGER_DEBUG);
 			return 0;
 		}
 	}
 
-	// Store the unescaped version
-	$unescaped = $arr;
-
-	dbm::esc_array($arr, true);
-
 	logger('item_store: ' . print_r($arr,true), LOGGER_DATA);
 
 	dba::transaction();
-
-	$r = dbq("INSERT INTO `item` (`"
-			. implode("`, `", array_keys($arr))
-			. "`) VALUES ("
-			. implode(", ", array_values($arr))
-			. ")");
-
-	// And restore it
-	$arr = $unescaped;
+	$r = dba::insert('item', $arr);
 
 	// When the item was successfully stored we fetch the ID of the item.
 	if (dbm::is_result($r)) {
-		$r = q("SELECT LAST_INSERT_ID() AS `item-id`");
-		if (dbm::is_result($r)) {
-			$current_post = $r[0]['item-id'];
-		} else {
-			// This shouldn't happen
-			$current_post = 0;
-		}
+		$current_post = dba::lastInsertId();
 	} else {
 		// This can happen - for example - if there are locking timeouts.
 		dba::rollback();
@@ -1062,10 +1058,7 @@ function item_store($arr, $force_parent = false, $notify = false, $dontcache = f
 	}
 
 	// Set parent id
-	$r = q("UPDATE `item` SET `parent` = %d WHERE `id` = %d",
-		intval($parent_id),
-		intval($current_post)
-	);
+	$r = dba::update('item', array('parent' => $parent_id), array('id' => $current_post));
 
 	$arr['id'] = $current_post;
 	$arr['parent'] = $parent_id;
@@ -1073,16 +1066,9 @@ function item_store($arr, $force_parent = false, $notify = false, $dontcache = f
 	// update the commented timestamp on the parent
 	// Only update "commented" if it is really a comment
 	if (($arr['verb'] == ACTIVITY_POST) || !get_config("system", "like_no_comment")) {
-		q("UPDATE `item` SET `commented` = '%s', `changed` = '%s' WHERE `id` = %d",
-			dbesc(datetime_convert()),
-			dbesc(datetime_convert()),
-			intval($parent_id)
-		);
+		dba::update('item', array('commented' => datetime_convert(), 'changed' => datetime_convert()), array('id' => $parent_id));
 	} else {
-		q("UPDATE `item` SET `changed` = '%s' WHERE `id` = %d",
-			dbesc(datetime_convert()),
-			intval($parent_id)
-		);
+		dba::update('item', array('changed' => datetime_convert()), array('id' => $parent_id));
 	}
 
 	if ($dsprsig) {
@@ -1096,12 +1082,8 @@ function item_store($arr, $force_parent = false, $notify = false, $dontcache = f
 			logger("Repaired double encoded signature from handle ".$dsprsig->signer, LOGGER_DEBUG);
 		}
 
-		q("INSERT INTO `sign` (`iid`,`signed_text`,`signature`,`signer`) values (%d,'%s','%s','%s') ",
-			intval($current_post),
-			dbesc($dsprsig->signed_text),
-			dbesc($dsprsig->signature),
-			dbesc($dsprsig->signer)
-		);
+		dba::insert('sign', array('iid' => $current_post, 'signed_text' => $dsprsig->signed_text,
+					'signature' => $dsprsig->signature, 'signer' => $dsprsig->signer));
 	}
 
 	$deleted = tag_deliver($arr['uid'], $current_post);
@@ -1189,26 +1171,17 @@ function item_set_last_item($arr) {
 	}
 
 	if ($update) {
-		q("UPDATE `contact` SET `success_update` = '%s', `last-item` = '%s' WHERE `id` = %d",
-			dbesc($arr['received']),
-			dbesc($arr['received']),
-			intval($arr['contact-id'])
-		);
+		dba::update('contact', array('success_update' => $arr['received'], 'last-item' => $arr['received']),
+			array('id' => $arr['contact-id']));
 	}
 	// Now do the same for the system wide contacts with uid=0
 	if (!$arr['private']) {
-		q("UPDATE `contact` SET `success_update` = '%s', `last-item` = '%s' WHERE `id` = %d",
-			dbesc($arr['received']),
-			dbesc($arr['received']),
-			intval($arr['owner-id'])
-		);
+		dba::update('contact', array('success_update' => $arr['received'], 'last-item' => $arr['received']),
+			array('id' => $arr['owner-id']));
 
 		if ($arr['owner-id'] != $arr['author-id']) {
-			q("UPDATE `contact` SET `success_update` = '%s', `last-item` = '%s' WHERE `id` = %d",
-				dbesc($arr['received']),
-				dbesc($arr['received']),
-				intval($arr['author-id'])
-			);
+			dba::update('contact', array('success_update' => $arr['received'], 'last-item' => $arr['received']),
+				array('id' => $arr['author-id']));
 		}
 	}
 }
@@ -1230,13 +1203,14 @@ function item_body_set_hashtags(&$item) {
 
 	$URLSearchString = "^\[\]";
 
-	/// @TODO old-lost code?
-	// All hashtags should point to the home server
-	//$item["body"] = preg_replace("/#\[url\=([$URLSearchString]*)\](.*?)\[\/url\]/ism",
-	//		"#[url=".App::get_baseurl()."/search?tag=$2]$2[/url]", $item["body"]);
+	// All hashtags should point to the home server if "local_tags" is activated
+	if (Config::get('system', 'local_tags')) {
+		$item["body"] = preg_replace("/#\[url\=([$URLSearchString]*)\](.*?)\[\/url\]/ism",
+				"#[url=".System::baseUrl()."/search?tag=$2]$2[/url]", $item["body"]);
 
-	//$item["tag"] = preg_replace("/#\[url\=([$URLSearchString]*)\](.*?)\[\/url\]/ism",
-	//		"#[url=".App::get_baseurl()."/search?tag=$2]$2[/url]", $item["tag"]);
+		$item["tag"] = preg_replace("/#\[url\=([$URLSearchString]*)\](.*?)\[\/url\]/ism",
+				"#[url=".System::baseUrl()."/search?tag=$2]$2[/url]", $item["tag"]);
+	}
 
 	// mask hashtags inside of url, bookmarks and attachments to avoid urls in urls
 	$item["body"] = preg_replace_callback("/\[url\=([$URLSearchString]*)\](.*?)\[\/url\]/ism",
@@ -1265,7 +1239,7 @@ function item_body_set_hashtags(&$item) {
 
 		$basetag = str_replace('_',' ',substr($tag,1));
 
-		$newtag = '#[url=' . App::get_baseurl() . '/search?tag=' . rawurlencode($basetag) . ']' . $basetag . '[/url]';
+		$newtag = '#[url=' . System::baseUrl() . '/search?tag=' . rawurlencode($basetag) . ']' . $basetag . '[/url]';
 
 		$item["body"] = str_replace($tag, $newtag, $item["body"]);
 
@@ -1375,13 +1349,13 @@ function tag_deliver($uid, $item_id) {
 
 	$item = $i[0];
 
-	$link = normalise_link(App::get_baseurl() . '/profile/' . $u[0]['nickname']);
+	$link = normalise_link(System::baseUrl() . '/profile/' . $u[0]['nickname']);
 
 	/*
 	 * Diaspora uses their own hardwired link URL in @-tags
 	 * instead of the one we supply with webfinger
 	 */
-	$dlink = normalise_link(App::get_baseurl() . '/u/' . $u[0]['nickname']);
+	$dlink = normalise_link(System::baseUrl() . '/u/' . $u[0]['nickname']);
 
 	$cnt = preg_match_all('/[\@\!]\[url\=(.*?)\](.*?)\[\/url\]/ism', $item['body'], $matches, PREG_SET_ORDER);
 	if ($cnt) {
@@ -1478,13 +1452,13 @@ function tgroup_check($uid, $item) {
 	$community_page = (($u[0]['page-flags'] == PAGE_COMMUNITY) ? true : false);
 	$prvgroup = (($u[0]['page-flags'] == PAGE_PRVGROUP) ? true : false);
 
-	$link = normalise_link(App::get_baseurl() . '/profile/' . $u[0]['nickname']);
+	$link = normalise_link(System::baseUrl() . '/profile/' . $u[0]['nickname']);
 
 	/*
 	 * Diaspora uses their own hardwired link URL in @-tags
 	 * instead of the one we supply with webfinger
 	 */
-	$dlink = normalise_link(App::get_baseurl() . '/u/' . $u[0]['nickname']);
+	$dlink = normalise_link(System::baseUrl() . '/u/' . $u[0]['nickname']);
 
 	$cnt = preg_match_all('/[\@\!]\[url\=(.*?)\](.*?)\[\/url\]/ism', $item['body'], $matches, PREG_SET_ORDER);
 	if ($cnt) {
@@ -1514,7 +1488,7 @@ function tgroup_check($uid, $item) {
  *
  * @todo fix type-hints (both array)
  */
-function edited_timestamp_is_newer ($existing, $update) {
+function edited_timestamp_is_newer($existing, $update) {
 	if (!x($existing, 'edited') || !$existing['edited']) {
 		return true;
 	}
@@ -1640,6 +1614,9 @@ function item_is_remote_self($contact, &$datarray) {
 			$datarray['author-name']   = $datarray['owner-name'];
 			$datarray['author-link']   = $datarray['owner-link'];
 			$datarray['author-avatar'] = $datarray['owner-avatar'];
+
+			unset($datarray['created']);
+			unset($datarray['edited']);
 		}
 
 		if ($contact['network'] != NETWORK_FEED) {
@@ -1663,6 +1640,13 @@ function item_is_remote_self($contact, &$datarray) {
 		$datarray["app"] = "Feed";
 	}
 
+	// Trigger automatic reactions for addons
+	$datarray['api_source'] = true;
+
+	// We have to tell the hooks who we are - this really should be improved
+	$_SESSION["authenticated"] = true;
+	$_SESSION["uid"] = $contact['uid'];
+
 	return true;
 }
 
@@ -1684,11 +1668,8 @@ function new_follower($importer, $contact, $datarray, $item, $sharing = false) {
 	if (is_array($contact)) {
 		if (($contact['network'] == NETWORK_OSTATUS && $contact['rel'] == CONTACT_IS_SHARING)
 			|| ($sharing && $contact['rel'] == CONTACT_IS_FOLLOWER)) {
-			$r = q("UPDATE `contact` SET `rel` = %d, `writable` = 1 WHERE `id` = %d AND `uid` = %d",
-				intval(CONTACT_IS_FRIEND),
-				intval($contact['id']),
-				intval($importer['uid'])
-			);
+			$r = dba::update('contact', array('rel' => CONTACT_IS_FRIEND, 'writable' => true),
+					array('id' => $contact['id'], 'uid' => $importer['uid']));
 		}
 		// send email notification to owner?
 	} else {
@@ -1728,13 +1709,9 @@ function new_follower($importer, $contact, $datarray, $item, $sharing = false) {
 			$hash = random_string();
 
 			if (is_array($contact_record)) {
-				$ret = q("INSERT INTO `intro` ( `uid`, `contact-id`, `blocked`, `knowyou`, `hash`, `datetime`)
-					VALUES ( %d, %d, 0, 0, '%s', '%s' )",
-					intval($importer['uid']),
-					intval($contact_record['id']),
-					dbesc($hash),
-					dbesc(datetime_convert())
-				);
+				dba::insert('intro', array('uid' => $importer['uid'], 'contact-id' => $contact_record['id'],
+							'blocked' => false, 'knowyou' => false,
+							'hash' => $hash, 'datetime' => datetime_convert()));
 			}
 
 			$def_gid = get_default_group($importer['uid'], $contact_record["network"]);
@@ -1753,7 +1730,7 @@ function new_follower($importer, $contact, $datarray, $item, $sharing = false) {
 					'to_name'      => $r[0]['username'],
 					'to_email'     => $r[0]['email'],
 					'uid'          => $r[0]['uid'],
-					'link'		   => App::get_baseurl() . '/notifications/intro',
+					'link'		   => System::baseUrl() . '/notifications/intro',
 					'source_name'  => ((strlen(stripslashes($contact_record['name']))) ? stripslashes($contact_record['name']) : t('[Name Withheld]')),
 					'source_link'  => $contact_record['url'],
 					'source_photo' => $contact_record['photo'],
@@ -1775,10 +1752,7 @@ function new_follower($importer, $contact, $datarray, $item, $sharing = false) {
 function lose_follower($importer, $contact, array $datarray = array(), $item = "") {
 
 	if (($contact['rel'] == CONTACT_IS_FRIEND) || ($contact['rel'] == CONTACT_IS_SHARING)) {
-		q("UPDATE `contact` SET `rel` = %d WHERE `id` = %d",
-			intval(CONTACT_IS_SHARING),
-			intval($contact['id'])
-		);
+		dba::update('contact', array('rel' => CONTACT_IS_SHARING), array('id' => $contact['id']));
 	} else {
 		contact_remove($contact['id']);
 	}
@@ -1787,10 +1761,7 @@ function lose_follower($importer, $contact, array $datarray = array(), $item = "
 function lose_sharer($importer, $contact, array $datarray = array(), $item = "") {
 
 	if (($contact['rel'] == CONTACT_IS_FRIEND) || ($contact['rel'] == CONTACT_IS_FOLLOWER)) {
-		q("UPDATE `contact` SET `rel` = %d WHERE `id` = %d",
-			intval(CONTACT_IS_FOLLOWER),
-			intval($contact['id'])
-		);
+		dba::update('contact', array('rel' => CONTACT_IS_FOLLOWER), array('id' => $contact['id']));
 	} else {
 		contact_remove($contact['id']);
 	}
@@ -1825,10 +1796,7 @@ function subscribe_to_hub($url, $importer, $contact, $hubmode = 'subscribe') {
 	logger('subscribe_to_hub: ' . $hubmode . ' ' . $contact['name'] . ' to hub ' . $url . ' endpoint: '  . $push_url . ' with verifier ' . $verify_token);
 
 	if (!strlen($contact['hub-verify']) || ($contact['hub-verify'] != $verify_token)) {
-		$r = q("UPDATE `contact` SET `hub-verify` = '%s' WHERE `id` = %d",
-			dbesc($verify_token),
-			intval($contact['id'])
-		);
+		$r = dba::update('contact', array('hub-verify' => $verify_token), array('id' => $contact['id']));
 	}
 
 	post_url($url, $params);
@@ -1848,7 +1816,7 @@ function fix_private_photos($s, $uid, $item = null, $cid = 0) {
 	$a = get_app();
 
 	logger('fix_private_photos: check for photos', LOGGER_DEBUG);
-	$site = substr(App::get_baseurl(),strpos(App::get_baseurl(),'://'));
+	$site = substr(System::baseUrl(),strpos(System::baseUrl(),'://'));
 
 	$orig_body = $s;
 	$new_body = '';
@@ -2140,7 +2108,7 @@ function drop_item($id, $interactive = true) {
 			return 0;
 		}
 		notice( t('Item not found.') . EOL);
-		goaway(App::get_baseurl() . '/' . $_SESSION['return_url']);
+		goaway(System::baseUrl() . '/' . $_SESSION['return_url']);
 	}
 
 	$item = $r[0];
@@ -2192,17 +2160,16 @@ function drop_item($id, $interactive = true) {
 		}
 		// Now check how the user responded to the confirmation query
 		if ($_REQUEST['canceled']) {
-			goaway(App::get_baseurl() . '/' . $_SESSION['return_url']);
+			goaway(System::baseUrl() . '/' . $_SESSION['return_url']);
 		}
 
 		logger('delete item: ' . $item['id'], LOGGER_DEBUG);
-		// delete the item
 
-		$r = q("UPDATE `item` SET `deleted` = 1, `title` = '', `body` = '', `edited` = '%s', `changed` = '%s' WHERE `id` = %d",
-			dbesc(datetime_convert()),
-			dbesc(datetime_convert()),
-			intval($item['id'])
-		);
+		// delete the item
+		$r = dba::update('item', array('deleted' => true, 'title' => '', 'body' => '',
+					'edited' => datetime_convert(), 'changed' => datetime_convert()),
+				array('id' => $item['id']));
+
 		create_tags_from_item($item['id']);
 		create_files_from_item($item['id']);
 		delete_thread($item['id'], $item['parent-uri']);
@@ -2285,33 +2252,26 @@ function drop_item($id, $interactive = true) {
 
 		// If it's the parent of a comment thread, kill all the kids
 		if ($item['uri'] == $item['parent-uri']) {
-			$r = q("UPDATE `item` SET `deleted` = 1, `edited` = '%s', `changed` = '%s', `body` = '' , `title` = ''
-				WHERE `parent-uri` = '%s' AND `uid` = %d ",
-				dbesc(datetime_convert()),
-				dbesc(datetime_convert()),
-				dbesc($item['parent-uri']),
-				intval($item['uid'])
-			);
+			$r = dba::update('item', array('deleted' => true, 'title' => '', 'body' => '',
+					'edited' => datetime_convert(), 'changed' => datetime_convert()),
+				array('parent-uri' => $item['parent-uri'], 'uid' => $item['uid']));
+
 			create_tags_from_itemuri($item['parent-uri'], $item['uid']);
 			create_files_from_itemuri($item['parent-uri'], $item['uid']);
 			delete_thread_uri($item['parent-uri'], $item['uid']);
 			// ignore the result
 		} else {
 			// ensure that last-child is set in case the comment that had it just got wiped.
-			q("UPDATE `item` SET `last-child` = 0, `changed` = '%s' WHERE `parent-uri` = '%s' AND `uid` = %d ",
-				dbesc(datetime_convert()),
-				dbesc($item['parent-uri']),
-				intval($item['uid'])
-			);
+			dba::update('item', array('last-child' => false, 'changed' => datetime_convert()),
+					array('parent-uri' => $item['parent-uri'], 'uid' => $item['uid']));
+
 			// who is the last child now?
 			$r = q("SELECT `id` FROM `item` WHERE `parent-uri` = '%s' AND `type` != 'activity' AND `deleted` = 0 AND `uid` = %d ORDER BY `edited` DESC LIMIT 1",
 				dbesc($item['parent-uri']),
 				intval($item['uid'])
 			);
 			if (dbm::is_result($r)) {
-				q("UPDATE `item` SET `last-child` = 1 WHERE `id` = %d",
-					intval($r[0]['id'])
-				);
+				dba::update('item', array('last-child' => true), array('id' => $r[0]['id']));
 			}
 		}
 
@@ -2325,14 +2285,14 @@ function drop_item($id, $interactive = true) {
 		if (! $interactive) {
 			return $owner;
 		}
-		goaway(App::get_baseurl() . '/' . $_SESSION['return_url']);
+		goaway(System::baseUrl() . '/' . $_SESSION['return_url']);
 		//NOTREACHED
 	} else {
 		if (! $interactive) {
 			return 0;
 		}
 		notice( t('Permission denied.') . EOL);
-		goaway(App::get_baseurl() . '/' . $_SESSION['return_url']);
+		goaway(System::baseUrl() . '/' . $_SESSION['return_url']);
 		//NOTREACHED
 	}
 

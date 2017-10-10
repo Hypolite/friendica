@@ -53,10 +53,11 @@ Friendica - Dokumentation und Ressourcen
 * [Using Composer](help/Composer) (EN)
 * [Code-Referenz (mit doxygen generiert - setzt Cookies)](doc/html/)
 * [Twitter/GNU Social API Functions](help/api) (EN)
+* [Translation of Friendica](help/translations) (EN)
 
 **Externe Ressourcen**
 
-* [Haupt-Webseite](http://friendica.com)
+* [Haupt-Webseite](https://friendi.ca)
 * [Mailing Liste](http://librelist.com/browser/friendica/)
 * [Deutsches Friendica-Wiki](http://wiki.toktan.org/doku.php)
 

@@ -4,15 +4,43 @@
  * @file include/Smilies.php
  * @brief This file contains the Smilies class which contains functions to handle smiles
  * @todo move to proper folder
+ * @todo Use the shortcodes from here:
+ * https://github.com/iamcal/emoji-data/blob/master/emoji_pretty.json?raw=true
+ * https://raw.githubusercontent.com/emojione/emojione/master/extras/alpha-codes/eac.json?raw=true
+ * https://github.com/johannhof/emoji-helper/blob/master/data/emoji.json?raw=true
+ *
+ * Have also a look here:
+ * https://www.webpagefx.com/tools/emoji-cheat-sheet/
  */
 
 use Friendica\App;
+use Friendica\Core\System;
 
 /**
  * This class contains functions to handle smiles
  */
 
 class Smilies {
+
+	/**
+	 * @brief Replaces/adds the emoticon list
+	 *
+	 * This function should be used whenever emoticons are added
+	 *
+	 * @param array $b Array of emoticons
+	 * @param string $smiley The text smilie
+	 * @param string $representation The replacement
+	 */
+	public static function add(&$b, $smiley, $representation) {
+		$found = array_search($smiley, $b['texts']);
+
+		if (!is_int($found)) {
+			$b['texts'][] = $smiley;
+			$b['icons'][] = $representation;
+		} else {
+			$b['icons'][$found] = $representation;
+		}
+	}
 
 	/**
 	 * @brief Function to list all smilies
@@ -67,48 +95,47 @@ class Smilies {
 		);
 
 		$icons = array(
-		'<img class="smiley" src="' . App::get_baseurl() . '/images/smiley-heart.gif" alt="&lt;3" title="&lt;3" />',
-		'<img class="smiley" src="' . App::get_baseurl() . '/images/smiley-brokenheart.gif" alt="&lt;/3" title="&lt;/3" />',
-		'<img class="smiley" src="' . App::get_baseurl() . '/images/smiley-brokenheart.gif" alt="&lt;\\3" title="&lt;\\3" />',
-		'<img class="smiley" src="' . App::get_baseurl() . '/images/smiley-smile.gif" alt=":-)" title=":-)" />',
-		'<img class="smiley" src="' . App::get_baseurl() . '/images/smiley-wink.gif" alt=";-)" title=";-)" />',
-		'<img class="smiley" src="' . App::get_baseurl() . '/images/smiley-frown.gif" alt=":-(" title=":-(" />',
-		'<img class="smiley" src="' . App::get_baseurl() . '/images/smiley-tongue-out.gif" alt=":-P" title=":-P" />',
-		'<img class="smiley" src="' . App::get_baseurl() . '/images/smiley-tongue-out.gif" alt=":-p" title=":-P" />',
-		'<img class="smiley" src="' . App::get_baseurl() . '/images/smiley-kiss.gif" alt=":-\" title=":-\" />',
-		'<img class="smiley" src="' . App::get_baseurl() . '/images/smiley-kiss.gif" alt=":-\" title=":-\" />',
-		'<img class="smiley" src="' . App::get_baseurl() . '/images/smiley-kiss.gif" alt=":-x" title=":-x" />',
-		'<img class="smiley" src="' . App::get_baseurl() . '/images/smiley-kiss.gif" alt=":-X" title=":-X" />',
-		'<img class="smiley" src="' . App::get_baseurl() . '/images/smiley-laughing.gif" alt=":-D" title=":-D"  />',
-		'<img class="smiley" src="' . App::get_baseurl() . '/images/smiley-surprised.gif" alt="8-|" title="8-|" />',
-		'<img class="smiley" src="' . App::get_baseurl() . '/images/smiley-surprised.gif" alt="8-O" title="8-O" />',
-		'<img class="smiley" src="' . App::get_baseurl() . '/images/smiley-surprised.gif" alt=":-O" title="8-O" />',
-		'<img class="smiley" src="' . App::get_baseurl() . '/images/smiley-thumbsup.gif" alt="\\o/" title="\\o/" />',
-		'<img class="smiley" src="' . App::get_baseurl() . '/images/smiley-Oo.gif" alt="o.O" title="o.O" />',
-		'<img class="smiley" src="' . App::get_baseurl() . '/images/smiley-Oo.gif" alt="O.o" title="O.o" />',
-		'<img class="smiley" src="' . App::get_baseurl() . '/images/smiley-Oo.gif" alt="o_O" title="o_O" />',
-		'<img class="smiley" src="' . App::get_baseurl() . '/images/smiley-Oo.gif" alt="O_o" title="O_o" />',
-		'<img class="smiley" src="' . App::get_baseurl() . '/images/smiley-cry.gif" alt=":\'(" title=":\'("/>',
-		'<img class="smiley" src="' . App::get_baseurl() . '/images/smiley-foot-in-mouth.gif" alt=":-!" title=":-!" />',
-		'<img class="smiley" src="' . App::get_baseurl() . '/images/smiley-undecided.gif" alt=":-/" title=":-/" />',
-		'<img class="smiley" src="' . App::get_baseurl() . '/images/smiley-embarassed.gif" alt=":-[" title=":-[" />',
-		'<img class="smiley" src="' . App::get_baseurl() . '/images/smiley-cool.gif" alt="8-)" title="8-)" />',
-		'<img class="smiley" src="' . App::get_baseurl() . '/images/beer_mug.gif" alt=":beer" title=":beer" />',
-		'<img class="smiley" src="' . App::get_baseurl() . '/images/beer_mug.gif" alt=":homebrew" title=":homebrew" />',
-		'<img class="smiley" src="' . App::get_baseurl() . '/images/coffee.gif" alt=":coffee" title=":coffee" />',
-		'<img class="smiley" src="' . App::get_baseurl() . '/images/smiley-facepalm.gif" alt=":facepalm" title=":facepalm" />',
-		'<img class="smiley" src="' . App::get_baseurl() . '/images/like.gif" alt=":like" title=":like" />',
-		'<img class="smiley" src="' . App::get_baseurl() . '/images/dislike.gif" alt=":dislike" title=":dislike" />',
-		'<a href="http://friendica.com">~friendica <img class="smiley" src="' . App::get_baseurl() . '/images/friendica-16.png" alt="~friendica" title="~friendica" /></a>',
-		'<a href="http://redmatrix.me/">red<img class="smiley" src="' . App::get_baseurl() . '/images/rm-16.png" alt="red#" title="red#" />matrix</a>',
-		'<a href="http://redmatrix.me/">red<img class="smiley" src="' . App::get_baseurl() . '/images/rm-16.png" alt="red#matrix" title="red#matrix" />matrix</a>'
+		'<img class="smiley" src="' . System::baseUrl() . '/images/smiley-heart.gif" alt="&lt;3" title="&lt;3" />',
+		'<img class="smiley" src="' . System::baseUrl() . '/images/smiley-brokenheart.gif" alt="&lt;/3" title="&lt;/3" />',
+		'<img class="smiley" src="' . System::baseUrl() . '/images/smiley-brokenheart.gif" alt="&lt;\\3" title="&lt;\\3" />',
+		'<img class="smiley" src="' . System::baseUrl() . '/images/smiley-smile.gif" alt=":-)" title=":-)" />',
+		'<img class="smiley" src="' . System::baseUrl() . '/images/smiley-wink.gif" alt=";-)" title=";-)" />',
+		'<img class="smiley" src="' . System::baseUrl() . '/images/smiley-frown.gif" alt=":-(" title=":-(" />',
+		'<img class="smiley" src="' . System::baseUrl() . '/images/smiley-tongue-out.gif" alt=":-P" title=":-P" />',
+		'<img class="smiley" src="' . System::baseUrl() . '/images/smiley-tongue-out.gif" alt=":-p" title=":-P" />',
+		'<img class="smiley" src="' . System::baseUrl() . '/images/smiley-kiss.gif" alt=":-\" title=":-\" />',
+		'<img class="smiley" src="' . System::baseUrl() . '/images/smiley-kiss.gif" alt=":-\" title=":-\" />',
+		'<img class="smiley" src="' . System::baseUrl() . '/images/smiley-kiss.gif" alt=":-x" title=":-x" />',
+		'<img class="smiley" src="' . System::baseUrl() . '/images/smiley-kiss.gif" alt=":-X" title=":-X" />',
+		'<img class="smiley" src="' . System::baseUrl() . '/images/smiley-laughing.gif" alt=":-D" title=":-D"  />',
+		'<img class="smiley" src="' . System::baseUrl() . '/images/smiley-surprised.gif" alt="8-|" title="8-|" />',
+		'<img class="smiley" src="' . System::baseUrl() . '/images/smiley-surprised.gif" alt="8-O" title="8-O" />',
+		'<img class="smiley" src="' . System::baseUrl() . '/images/smiley-surprised.gif" alt=":-O" title="8-O" />',
+		'<img class="smiley" src="' . System::baseUrl() . '/images/smiley-thumbsup.gif" alt="\\o/" title="\\o/" />',
+		'<img class="smiley" src="' . System::baseUrl() . '/images/smiley-Oo.gif" alt="o.O" title="o.O" />',
+		'<img class="smiley" src="' . System::baseUrl() . '/images/smiley-Oo.gif" alt="O.o" title="O.o" />',
+		'<img class="smiley" src="' . System::baseUrl() . '/images/smiley-Oo.gif" alt="o_O" title="o_O" />',
+		'<img class="smiley" src="' . System::baseUrl() . '/images/smiley-Oo.gif" alt="O_o" title="O_o" />',
+		'<img class="smiley" src="' . System::baseUrl() . '/images/smiley-cry.gif" alt=":\'(" title=":\'("/>',
+		'<img class="smiley" src="' . System::baseUrl() . '/images/smiley-foot-in-mouth.gif" alt=":-!" title=":-!" />',
+		'<img class="smiley" src="' . System::baseUrl() . '/images/smiley-undecided.gif" alt=":-/" title=":-/" />',
+		'<img class="smiley" src="' . System::baseUrl() . '/images/smiley-embarassed.gif" alt=":-[" title=":-[" />',
+		'<img class="smiley" src="' . System::baseUrl() . '/images/smiley-cool.gif" alt="8-)" title="8-)" />',
+		'<img class="smiley" src="' . System::baseUrl() . '/images/beer_mug.gif" alt=":beer" title=":beer" />',
+		'<img class="smiley" src="' . System::baseUrl() . '/images/beer_mug.gif" alt=":homebrew" title=":homebrew" />',
+		'<img class="smiley" src="' . System::baseUrl() . '/images/coffee.gif" alt=":coffee" title=":coffee" />',
+		'<img class="smiley" src="' . System::baseUrl() . '/images/smiley-facepalm.gif" alt=":facepalm" title=":facepalm" />',
+		'<img class="smiley" src="' . System::baseUrl() . '/images/like.gif" alt=":like" title=":like" />',
+		'<img class="smiley" src="' . System::baseUrl() . '/images/dislike.gif" alt=":dislike" title=":dislike" />',
+		'<a href="https://friendi.ca">~friendica <img class="smiley" src="' . System::baseUrl() . '/images/friendica-16.png" alt="~friendica" title="~friendica" /></a>',
+		'<a href="http://redmatrix.me/">red<img class="smiley" src="' . System::baseUrl() . '/images/rm-16.png" alt="red#" title="red#" />matrix</a>',
+		'<a href="http://redmatrix.me/">red<img class="smiley" src="' . System::baseUrl() . '/images/rm-16.png" alt="red#matrix" title="red#matrix" />matrix</a>'
 		);
 
 		$params = array('texts' => $texts, 'icons' => $icons);
 		call_hooks('smilie', $params);
 
 		return $params;
-
 	}
 
 	/**
@@ -122,12 +149,13 @@ class Smilies {
 	 * function from being executed by the prepare_text() routine when preparing
 	 * bbcode source for HTML display
 	 *
-	 * @param string $s
+	 * @param string $s Text that should be replaced
 	 * @param boolean $sample
+	 * @param boolean $no_images Only replace emoticons without images
 	 *
 	 * @return string HML Output of the Smilie
 	 */
-	public static function replace($s, $sample = false) {
+	public static function replace($s, $sample = false, $no_images = false) {
 		if(intval(get_config('system','no_smilies'))
 			|| (local_user() && intval(get_pconfig(local_user(),'system','no_smilies'))))
 			return $s;
@@ -136,6 +164,19 @@ class Smilies {
 		$s = preg_replace_callback('/<code>(.*?)<\/code>/ism','self::encode',$s);
 
 		$params = self::get_list();
+
+		if ($no_images) {
+			$cleaned = array('texts' => array(), 'icons' => array());
+			$icons = $params['icons'];
+			foreach ($icons AS $key => $icon) {
+				if (!strstr($icon, '<img ')) {
+					$cleaned['texts'][] = $params['texts'][$key];
+					$cleaned['icons'][] = $params['icons'][$key];
+				}
+			}
+			$params = $cleaned;
+		}
+
 		$params['string'] = $s;
 
 		if($sample) {
@@ -154,11 +195,11 @@ class Smilies {
 		return $s;
 	}
 
-	private function encode($m) {
+	private static function encode($m) {
 		return(str_replace($m[1],base64url_encode($m[1]),$m[0]));
 	}
 
-	private function decode($m) {
+	private static function decode($m) {
 		return(str_replace($m[1],base64url_decode($m[1]),$m[0]));
 	}
 
@@ -171,14 +212,13 @@ class Smilies {
 	 *
 	 * @todo: Rework because it doesn't work correctly
 	 */
-	private function preg_heart($x) {
+	private static function preg_heart($x) {
 		if(strlen($x[1]) == 1)
 			return $x[0];
 		$t = '';
 		for($cnt = 0; $cnt < strlen($x[1]); $cnt ++)
-			$t .= '<img class="smiley" src="' . App::get_baseurl() . '/images/smiley-heart.gif" alt="&lt;3" />';
+			$t .= '<img class="smiley" src="' . System::baseUrl() . '/images/smiley-heart.gif" alt="&lt;3" />';
 		$r =  str_replace($x[0],$t,$x[0]);
 		return $r;
 	}
-
 }

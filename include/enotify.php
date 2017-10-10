@@ -1,6 +1,7 @@
 <?php
 
 use Friendica\App;
+use Friendica\Core\System;
 
 require_once('include/Emailer.php');
 require_once('include/email.php');
@@ -26,7 +27,7 @@ function notification($params) {
 
 	$banner = t('Friendica Notification');
 	$product = FRIENDICA_PLATFORM;
-	$siteurl = App::get_baseurl(true);
+	$siteurl = System::baseUrl(true);
 	$thanks = t('Thank You,');
 	$sitename = $a->config['sitename'];
 	if (!x($a->config['admin_name']))
@@ -45,9 +46,16 @@ function notification($params) {
 	if (empty($sender_email))
 		$sender_email = t('noreply').'@'.$hostname;
 
-	$user = q("SELECT `nickname` FROM `user` WHERE `uid` = %d", intval($params['uid']));
-	if ($user)
-		$nickname = $user[0]["nickname"];
+	if ($params['type'] != SYSTEM_EMAIL) {
+		$user = dba::select('user', array('nickname', 'page-flags'),
+			array('uid' => $params['uid']), array('limit' => 1));
+
+		// There is no need to create notifications for forum accounts
+		if (!dbm::is_result($user) || in_array($user["page-flags"], array(PAGE_COMMUNITY, PAGE_PRVGROUP))) {
+			return;
+		}
+	}
+	$nickname = $user["nickname"];
 
 	// with $params['show_in_notification_page'] == false, the notification isn't inserted into
 	// the database, and an email is sent if applicable.
@@ -61,7 +69,7 @@ function notification($params) {
 	$additional_mail_header .= "X-Friendica-Platform: ".FRIENDICA_PLATFORM."\n";
 	$additional_mail_header .= "X-Friendica-Version: ".FRIENDICA_VERSION."\n";
 	$additional_mail_header .= "List-ID: <notification.".$hostname.">\n";
-	$additional_mail_header .= "List-Archive: <".App::get_baseurl()."/notifications/system>\n";
+	$additional_mail_header .= "List-Archive: <".System::baseUrl()."/notifications/system>\n";
 
 	if (array_key_exists('item', $params)) {
 		$title = $params['item']['title'];
@@ -360,7 +368,7 @@ function notification($params) {
 		}
 	}
 
-	if ($params['type'] == "SYSTEM_EMAIL") {
+	if ($params['type'] == SYSTEM_EMAIL) {
 		// not part of the notifications.
 		// it just send a mail to the user.
 		// It will be used by the system to send emails to users (like
@@ -497,7 +505,7 @@ function notification($params) {
 		}
 
 
-		$itemlink = App::get_baseurl().'/notify/view/'.$notify_id;
+		$itemlink = System::baseUrl().'/notify/view/'.$notify_id;
 		$msg = replace_macros($epreamble, array('$itemlink' => $itemlink));
 		$msg_cache = format_notification_message($datarray['name_cache'], strip_tags(bbcode($msg)));
 		$r = q("UPDATE `notify` SET `msg` = '%s', `msg_cache` = '%s' WHERE `id` = %d AND `uid` = %d",
@@ -511,7 +519,7 @@ function notification($params) {
 	// send email notification if notification preferences permit
 	if ((intval($params['notify_flags']) & intval($params['type']))
 		|| $params['type'] == NOTIFY_SYSTEM
-		|| $params['type'] == "SYSTEM_EMAIL") {
+		|| $params['type'] == SYSTEM_EMAIL) {
 
 		logger('sending notification email');
 
@@ -580,8 +588,8 @@ function notification($params) {
 		call_hooks('enotify_mail', $datarray);
 
 		// check whether sending post content in email notifications is allowed
-		// always true for "SYSTEM_EMAIL"
-		$content_allowed = ((!get_config('system', 'enotify_no_content')) || ($params['type'] == "SYSTEM_EMAIL"));
+		// always true for SYSTEM_EMAIL
+		$content_allowed = ((!get_config('system', 'enotify_no_content')) || ($params['type'] == SYSTEM_EMAIL));
 
 		// load the template for private message notifications
 		$tpl = get_markup_template('email_notify_html.tpl');
@@ -668,7 +676,7 @@ function check_item_notification($itemid, $uid, $defaulttype = "") {
 	$profiles[] = $owner[0]["url"];
 
 	// Notifications from Diaspora are often with an URL in the Diaspora format
-	$profiles[] = App::get_baseurl()."/u/".$user[0]["nickname"];
+	$profiles[] = System::baseUrl()."/u/".$user[0]["nickname"];
 
 	$profiles2 = array();
 
@@ -722,7 +730,7 @@ function check_item_notification($itemid, $uid, $defaulttype = "") {
 	$params["to_email"] = $user[0]["email"];
 	$params["item"] = $item[0];
 	$params["parent"] = $item[0]["parent"];
-	$params["link"] = App::get_baseurl().'/display/'.urlencode($item[0]["guid"]);
+	$params["link"] = System::baseUrl().'/display/'.urlencode($item[0]["guid"]);
 	$params["otype"] = 'item';
 	$params["source_name"] = $item[0]["author-name"];
 	$params["source_link"] = $item[0]["author-link"];

@@ -6,6 +6,7 @@
  */
 
 use Friendica\App;
+use Friendica\Core\System;
 
 require_once "include/photos.php";
 
@@ -628,92 +629,24 @@ class Photo {
 
 	public function store($uid, $cid, $rid, $filename, $album, $scale, $profile = 0, $allow_cid = '', $allow_gid = '', $deny_cid = '', $deny_gid = '', $desc = '') {
 
-		$r = q("SELECT `guid` FROM `photo` WHERE `resource-id` = '%s' AND `guid` != '' LIMIT 1",
-			dbesc($rid)
-		);
+		$r = dba::select('photo', array('guid'), array("`resource-id` = ? AND `guid` != ?", $rid, ''), array('limit' => 1));
 		if (dbm::is_result($r)) {
-			$guid = $r[0]['guid'];
+			$guid = $r['guid'];
 		} else {
 			$guid = get_guid();
 		}
 
-		$x = q("SELECT `id` FROM `photo` WHERE `resource-id` = '%s' AND `uid` = %d AND `contact-id` = %d AND `scale` = %d LIMIT 1",
-			dbesc($rid),
-			intval($uid),
-			intval($cid),
-			intval($scale)
-		);
-		if (dbm::is_result($x)) {
-			$r = q("UPDATE `photo`
-				SET `uid` = %d,
-				`contact-id` = %d,
-				`guid` = '%s',
-				`resource-id` = '%s',
-				`created` = '%s',
-				`edited` = '%s',
-				`filename` = '%s',
-				`type` = '%s',
-				`album` = '%s',
-				`height` = %d,
-				`width` = %d,
-				`datasize` = %d,
-				`data` = '%s',
-				`scale` = %d,
-				`profile` = %d,
-				`allow_cid` = '%s',
-				`allow_gid` = '%s',
-				`deny_cid` = '%s',
-				`deny_gid` = '%s',
-				`desc` = '%s'
-				WHERE `id` = %d",
+		$x = dba::select('photo', array('id'), array('resource-id' => $rid, 'uid' => $uid, 'contact-id' => $cid, 'scale' => $scale), array('limit' => 1));
 
-				intval($uid),
-				intval($cid),
-				dbesc($guid),
-				dbesc($rid),
-				dbesc(datetime_convert()),
-				dbesc(datetime_convert()),
-				dbesc(basename($filename)),
-				dbesc($this->getType()),
-				dbesc($album),
-				intval($this->getHeight()),
-				intval($this->getWidth()),
-				dbesc(strlen($this->imageString())),
-				dbesc($this->imageString()),
-				intval($scale),
-				intval($profile),
-				dbesc($allow_cid),
-				dbesc($allow_gid),
-				dbesc($deny_cid),
-				dbesc($deny_gid),
-				dbesc($desc),
-				intval($x[0]['id'])
-			);
+		$fields = array('uid' => $uid, 'contact-id' => $cid, 'guid' => $guid, 'resource-id' => $rid, 'created' => datetime_convert(), 'edited' => datetime_convert(),
+				'filename' => basename($filename), 'type' => $this->getType(), 'album' => $album, 'height' => $this->getHeight(), 'width' => $this->getWidth(),
+				'datasize' => strlen($this->imageString()), 'data' => $this->imageString(), 'scale' => $scale, 'profile' => $profile,
+				'allow_cid' => $allow_cid, 'allow_gid' => $allow_gid, 'deny_cid' => $deny_cid, 'deny_gid' => $deny_gid, 'desc' => $desc);
+
+		if (dbm::is_result($x)) {
+			$r = dba::update('photo', $fields, array('id' => $x['id']));
 		} else {
-			$r = q("INSERT INTO `photo`
-				(`uid`, `contact-id`, `guid`, `resource-id`, `created`, `edited`, `filename`, type, `album`, `height`, `width`, `datasize`, `data`, `scale`, `profile`, `allow_cid`, `allow_gid`, `deny_cid`, `deny_gid`, `desc`)
-				VALUES (%d, %d, '%s', '%s', '%s', '%s', '%s', '%s', '%s', %d, %d, %d, '%s', %d, %d, '%s', '%s', '%s', '%s', '%s')",
-				intval($uid),
-				intval($cid),
-				dbesc($guid),
-				dbesc($rid),
-				dbesc(datetime_convert()),
-				dbesc(datetime_convert()),
-				dbesc(basename($filename)),
-				dbesc($this->getType()),
-				dbesc($album),
-				intval($this->getHeight()),
-				intval($this->getWidth()),
-				dbesc(strlen($this->imageString())),
-				dbesc($this->imageString()),
-				intval($scale),
-				intval($profile),
-				dbesc($allow_cid),
-				dbesc($allow_gid),
-				dbesc($deny_cid),
-				dbesc($deny_gid),
-				dbesc($desc)
-			);
+			$r = dba::insert('photo', $fields);
 		}
 
 		return $r;
@@ -858,9 +791,9 @@ function import_profile_photo($photo, $uid, $cid, $quit_on_error = false) {
 
 		$suffix = '?ts='.time();
 
-		$photo = App::get_baseurl() . '/photo/' . $hash . '-4.' . $img->getExt() . $suffix;
-		$thumb = App::get_baseurl() . '/photo/' . $hash . '-5.' . $img->getExt() . $suffix;
-		$micro = App::get_baseurl() . '/photo/' . $hash . '-6.' . $img->getExt() . $suffix;
+		$photo = System::baseUrl() . '/photo/' . $hash . '-4.' . $img->getExt() . $suffix;
+		$thumb = System::baseUrl() . '/photo/' . $hash . '-5.' . $img->getExt() . $suffix;
+		$micro = System::baseUrl() . '/photo/' . $hash . '-6.' . $img->getExt() . $suffix;
 
 		// Remove the cached photo
 		$a = get_app();
@@ -889,9 +822,9 @@ function import_profile_photo($photo, $uid, $cid, $quit_on_error = false) {
 	}
 
 	if ($photo_failure) {
-		$photo = App::get_baseurl() . '/images/person-175.jpg';
-		$thumb = App::get_baseurl() . '/images/person-80.jpg';
-		$micro = App::get_baseurl() . '/images/person-48.jpg';
+		$photo = System::baseUrl() . '/images/person-175.jpg';
+		$thumb = System::baseUrl() . '/images/person-80.jpg';
+		$micro = System::baseUrl() . '/images/person-48.jpg';
 	}
 
 	return(array($photo,$thumb,$micro));
@@ -1080,18 +1013,18 @@ function store_photo(App $a, $uid, $imagedata = "", $url = "") {
 		return(array());
 	}
 
-	$image = array("page" => App::get_baseurl().'/photos/'.$page_owner_nick.'/image/'.$hash,
-			"full" => App::get_baseurl()."/photo/{$hash}-0.".$ph->getExt());
+	$image = array("page" => System::baseUrl().'/photos/'.$page_owner_nick.'/image/'.$hash,
+			"full" => System::baseUrl()."/photo/{$hash}-0.".$ph->getExt());
 
 	if ($width > 800 || $height > 800) {
-		$image["large"] = App::get_baseurl()."/photo/{$hash}-0.".$ph->getExt();
+		$image["large"] = System::baseUrl()."/photo/{$hash}-0.".$ph->getExt();
 	}
 
 	if ($width > 640 || $height > 640) {
 		$ph->scaleImage(640);
 		$r = $ph->store($uid, $visitor, $hash, $tempfile, t('Wall Photos'), 1, 0, $defperm);
 		if ($r) {
-			$image["medium"] = App::get_baseurl()."/photo/{$hash}-1.".$ph->getExt();
+			$image["medium"] = System::baseUrl()."/photo/{$hash}-1.".$ph->getExt();
 		}
 	}
 
@@ -1099,7 +1032,7 @@ function store_photo(App $a, $uid, $imagedata = "", $url = "") {
 		$ph->scaleImage(320);
 		$r = $ph->store($uid, $visitor, $hash, $tempfile, t('Wall Photos'), 2, 0, $defperm);
 		if ($r) {
-			$image["small"] = App::get_baseurl()."/photo/{$hash}-2.".$ph->getExt();
+			$image["small"] = System::baseUrl()."/photo/{$hash}-2.".$ph->getExt();
 		}
 	}
 
@@ -1124,7 +1057,7 @@ function store_photo(App $a, $uid, $imagedata = "", $url = "") {
 
 		$r = $ph->store($uid, $visitor, $hash, $tempfile, t('Wall Photos'), 3, 0, $defperm);
 		if ($r) {
-			$image["thumb"] = App::get_baseurl()."/photo/{$hash}-3.".$ph->getExt();
+			$image["thumb"] = System::baseUrl()."/photo/{$hash}-3.".$ph->getExt();
 		}
 	}
 

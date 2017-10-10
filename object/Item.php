@@ -68,6 +68,11 @@ class Item extends BaseObject {
 					continue;
 				}
 
+				// You can always comment on Diaspora items
+				if (($item['network'] == NETWORK_DIASPORA) && (local_user() == $item['uid'])) {
+					$item['writable'] = true;
+				}
+
 				$item['pagedrop'] = $data['pagedrop'];
 				$child = new Item($item);
 				$this->add_child($child);
@@ -91,7 +96,12 @@ class Item extends BaseObject {
 
 		$item = $this->get_data();
 		$edited = false;
-		if (strcmp($item['created'], $item['edited'])<>0) {
+		// If the time between "created" and "edited" differs we add
+		// a notice that the post was edited.
+		// Note: In some networks reshared items seem to have (sometimes) a difference
+		// between creation time and edit time of a second. Thats why we add the notice
+		// only if the difference is more than 1 second.
+		if (strtotime($item['edited']) - strtotime($item['created']) > 1) {
 			$edited = array(
 				'label'    => t('This entry was edited'),
 				'date'     => datetime_convert('UTC', date_default_timezone_get(), $item['edited'], 'r'),
@@ -180,7 +190,6 @@ class Item extends BaseObject {
 		call_hooks('render_location',$locate);
 		$location = ((strlen($locate['html'])) ? $locate['html'] : render_location_dummy($locate));
 
-		$searchpath = "search?tag=";
 		$tags=array();
 		$hashtags = array();
 		$mentions = array();
@@ -320,18 +329,6 @@ class Item extends BaseObject {
 			unset($buttons["like"]);
 		}
 
- 		// Diaspora isn't able to do likes on comments - but Hubzilla does
-		/// @todo When Diaspora will pass this information we will remove these lines
-		if (($item["item_network"] == NETWORK_DIASPORA) && ($indent == 'comment') &&
-			!Diaspora::is_redmatrix($item["owner-link"]) && isset($buttons["like"])) {
-			unset($buttons["like"]);
-		}
-
-		// Facebook can like comments - but it isn't programmed in the connector yet.
-		if (($item["item_network"] == NETWORK_FACEBOOK) && ($indent == 'comment') && isset($buttons["like"])) {
-			unset($buttons["like"]);
-		}
-
 		$tmp_item = array(
 			'template'        => $this->get_template(),
 			'type'            => implode("",array_slice(explode("/",$item['verb']),-1)),
@@ -394,6 +391,9 @@ class Item extends BaseObject {
 			'edited'          => $edited,
 			'network'         => $item["item_network"],
 			'network_name'    => network_to_name($item['item_network'], $profile_link),
+			'received'        => $item['received'],
+			'commented'       => $item['commented'],
+			'created_date'    => $item['created'],
 		);
 
 		$arr = array('item' => $item, 'output' => $tmp_item);

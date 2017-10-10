@@ -1,6 +1,7 @@
 <?php
 
 use Friendica\App;
+use Friendica\Core\System;
 use Friendica\Network\Probe;
 
 require_once 'include/Contact.php';
@@ -84,16 +85,16 @@ function contacts_init(App $a) {
 		'$networks_widget' => $networks_widget
 	));
 
-	$base = z_root();
+	$base = System::baseUrl();
 	$tpl = get_markup_template("contacts-head.tpl");
 	$a->page['htmlhead'] .= replace_macros($tpl,array(
-		'$baseurl' => App::get_baseurl(true),
+		'$baseurl' => System::baseUrl(true),
 		'$base' => $base
 	));
 
 	$tpl = get_markup_template("contacts-end.tpl");
 	$a->page['end'] .= replace_macros($tpl,array(
-		'$baseurl' => App::get_baseurl(true),
+		'$baseurl' => System::baseUrl(true),
 		'$base' => $base
 	));
 
@@ -347,7 +348,16 @@ function _contact_archive($contact_id, $orig_record) {
 function _contact_drop($contact_id, $orig_record) {
 	$a = get_app();
 
-	terminate_friendship($a->user,$a->contact,$orig_record);
+	$r = q("SELECT `contact`.*, `user`.* FROM `contact` INNER JOIN `user` ON `contact`.`uid` = `user`.`uid`
+		WHERE `user`.`uid` = %d AND `contact`.`self` LIMIT 1",
+		intval($a->user['uid'])
+	);
+	if (!dbm::is_result($r)) {
+		return;
+	}
+
+	$self = ""; // Unused parameter
+	terminate_friendship($r[0], $self, $orig_record);
 	contact_remove($orig_record['id']);
 }
 
@@ -493,10 +503,10 @@ function contacts_content(App $a) {
 		$contact = $a->data['contact'];
 
 		$a->page['htmlhead'] .= replace_macros(get_markup_template('contact_head.tpl'), array(
-			'$baseurl' => App::get_baseurl(true),
+			'$baseurl' => System::baseUrl(true),
 		));
 		$a->page['end'] .= replace_macros(get_markup_template('contact_end.tpl'), array(
-			'$baseurl' => App::get_baseurl(true),
+			'$baseurl' => System::baseUrl(true),
 		));
 
 		require_once 'include/contact_selectors.php';
@@ -573,9 +583,15 @@ function contacts_content(App $a) {
 		if ($contact['network'] == NETWORK_DFRN)
 			$profile_select = contact_profile_assign($contact['profile-id'],(($contact['network'] !== NETWORK_DFRN) ? true : false));
 
-		if (in_array($contact['network'], array(NETWORK_DIASPORA, NETWORK_OSTATUS)) &&
-			($contact['rel'] == CONTACT_IS_FOLLOWER))
-			$follow = App::get_baseurl(true)."/follow?url=".urlencode($contact["url"]);
+		if (in_array($contact['network'], array(NETWORK_DIASPORA, NETWORK_OSTATUS))) {
+			if ($contact['rel'] == CONTACT_IS_FOLLOWER) {
+				$follow = System::baseUrl(true)."/follow?url=".urlencode($contact["url"]);
+				$follow_text = t("Connect/Follow");
+			} elseif ($contact['rel'] == CONTACT_IS_FRIEND) {
+				$follow = System::baseUrl(true)."/unfollow?url=".urlencode($contact["url"]);
+				$follow_text = t("Disconnect/Unfollow");
+			}
+		}
 
 		// Load contactact related actions like hide, suggest, delete and others
 		$contact_actions = contact_actions($contact);
@@ -589,6 +605,8 @@ function contacts_content(App $a) {
 			'$lbl_vis1' => t('Profile Visibility'),
 			'$lbl_vis2' => sprintf( t('Please choose the profile you would like to display to %s when viewing your profile securely.'), $contact['name']),
 			'$lbl_info1' => t('Contact Information / Notes'),
+			'$lbl_info2' => t('Their personal note'),
+			'$reason' => trim(notags($contact['reason'])),
 			'$infedit' => t('Edit contact notes'),
 			'$common_text' => $common_text,
 			'$common_link' => 'common/loc/' . local_user() . '/' . $contact['id'],
@@ -610,7 +628,7 @@ function contacts_content(App $a) {
 			'$last_update' => $last_update,
 			'$udnow' => t('Update now'),
 			'$follow' => $follow,
-			'$follow_text' => t("Connect/Follow"),
+			'$follow_text' => $follow_text,
 			'$profile_select' => $profile_select,
 			'$contact_id' => $contact['id'],
 			'$block_text' => (($contact['blocked']) ? t('Unblock') : t('Block') ),
@@ -799,7 +817,7 @@ function contacts_content(App $a) {
 
 	$tpl = get_markup_template("contacts-template.tpl");
 	$o .= replace_macros($tpl, array(
-		'$baseurl' => z_root(),
+		'$baseurl' => System::baseUrl(),
 		'$header' => t('Contacts') . (($nets) ? ' - ' . network_to_name($nets) : ''),
 		'$tabs' => $t,
 		'$total' => $total,

@@ -14,6 +14,7 @@
  */
 
 use Friendica\App;
+use Friendica\Core\System;
 use Friendica\Core\Config;
 
 require_once 'boot.php';
@@ -62,15 +63,15 @@ if (!$install) {
 	if ($a->max_processes_reached() || $a->maxload_reached()) {
 		header($_SERVER["SERVER_PROTOCOL"] . ' 503 Service Temporarily Unavailable');
 		header('Retry-After: 120');
-		header('Refresh: 120; url=' . App::get_baseurl() . "/" . $a->query_string);
+		header('Refresh: 120; url=' . System::baseUrl() . "/" . $a->query_string);
 		die("System is currently unavailable. Please try again later");
 	}
 
 	if (get_config('system', 'force_ssl') && ($a->get_scheme() == "http") &&
 		(intval(get_config('system', 'ssl_policy')) == SSL_POLICY_FULL) &&
-		(substr(App::get_baseurl(), 0, 8) == "https://")) {
+		(substr(System::baseUrl(), 0, 8) == "https://")) {
 		header("HTTP/1.1 302 Moved Temporarily");
-		header("Location: " . App::get_baseurl() . "/" . $a->query_string);
+		header("Location: " . System::baseUrl() . "/" . $a->query_string);
 		exit();
 	}
 
@@ -154,7 +155,7 @@ if ((x($_GET,'zrl')) && (!$install && !$maintenance)) {
  *
  */
 
-// header('Link: <' . App::get_baseurl() . '/amcd>; rel="acct-mgmt";');
+// header('Link: <' . System::baseUrl() . '/amcd>; rel="acct-mgmt";');
 
 if (x($_COOKIE["Friendica"]) || (x($_SESSION,'authenticated')) || (x($_POST,'auth-params')) || ($a->module === 'login')) {
 	require("include/auth.php");
@@ -195,7 +196,7 @@ if ($install && $a->module!="view") {
 	$a->module = 'maintenance';
 } else {
 	check_url($a);
-	check_db();
+	check_db(false);
 	check_plugins($a);
 }
 
@@ -294,7 +295,7 @@ if (strlen($a->module)) {
 
 		if ((x($_SERVER,'QUERY_STRING')) && ($_SERVER['QUERY_STRING'] === 'q=internal_error.html') && isset($dreamhost_error_hack)) {
 			logger('index.php: dreamhost_error_hack invoked. Original URI =' . $_SERVER['REQUEST_URI']);
-			goaway(App::get_baseurl() . $_SERVER['REQUEST_URI']);
+			goaway(System::baseUrl() . $_SERVER['REQUEST_URI']);
 		}
 
 		logger('index.php: page not found: ' . $_SERVER['REQUEST_URI'] . ' ADDRESS: ' . $_SERVER['REMOTE_ADDR'] . ' QUERY: ' . $_SERVER['QUERY_STRING'], LOGGER_DEBUG);
@@ -488,6 +489,19 @@ $profile = $a->profile;
 header("X-Friendica-Version: " . FRIENDICA_VERSION);
 header("Content-type: text/html; charset=utf-8");
 
+if (Config::get('system', 'hsts') && (Config::get('system', 'ssl_policy') == SSL_POLICY_FULL)) {
+	header("Strict-Transport-Security: max-age=31536000");
+}
+
+// Some security stuff
+header('X-Content-Type-Options: nosniff');
+header('X-XSS-Protection: 1; mode=block');
+header('X-Permitted-Cross-Domain-Policies: none');
+header('X-Frame-Options: sameorigin');
+
+// Things like embedded OSM maps don't work, when this is enabled
+// header("Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; connect-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' https: data:; media-src 'self' https:; child-src 'self' https:; object-src 'none'");
+
 /*
  * We use $_GET["mode"] for special page templates. So we will check if we have
  * to load another page template than the default one.
@@ -498,7 +512,7 @@ if (isset($_GET["mode"])) {
 }
 
 // If there is no page template use the default page template
-if (!$template) {
+if (empty($template)) {
 	$template = theme_include("default.php");
 }
 

@@ -1,6 +1,7 @@
 <?php
 
 use Friendica\App;
+use Friendica\Core\System;
 use Friendica\Network\Probe;
 
 require_once 'include/Contact.php';
@@ -107,13 +108,7 @@ function profiles_init(App $a) {
 		$r1[0]['net-publish'] = 0;
 		$r1[0]['profile-name'] = dbesc($name);
 
-		dbm::esc_array($r1[0], true);
-
-		$r2 = dbq("INSERT INTO `profile` (`"
-			. implode("`, `", array_keys($r1[0]))
-			. "`) VALUES ("
-			. implode(", ", array_values($r1[0]))
-			. ")" );
+		dba::insert('profile', $r1[0]);
 
 		$r3 = q("SELECT `id` FROM `profile` WHERE `uid` = %d AND `profile-name` = '%s' LIMIT 1",
 			intval(local_user()),
@@ -625,10 +620,10 @@ function profiles_content(App $a) {
 		require_once 'include/profile_selectors.php';
 
 		$a->page['htmlhead'] .= replace_macros(get_markup_template('profed_head.tpl'), array(
-			'$baseurl' => App::get_baseurl(true),
+			'$baseurl' => System::baseUrl(true),
 		));
 		$a->page['end'] .= replace_macros(get_markup_template('profed_end.tpl'), array(
-			'$baseurl' => App::get_baseurl(true),
+			'$baseurl' => System::baseUrl(true),
 		));
 
 		$opt_tpl = get_markup_template("profile-hide-friends.tpl");
@@ -705,7 +700,7 @@ function profiles_content(App $a) {
 			'$lbl_ex2' => t('Example: fishing photography software'),
 
 			'$disabled' => (($is_default) ? 'onclick="return false;" style="color: #BBBBFF;"' : ''),
-			'$baseurl' => App::get_baseurl(true),
+			'$baseurl' => System::baseUrl(true),
 			'$profile_id' => $r[0]['id'],
 			'$profile_name' => array('profile_name', t('Profile Name:'), $r[0]['profile-name'], t('Required'), '*'),
 			'$is_default'   => $is_default,

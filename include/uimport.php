@@ -1,18 +1,17 @@
 <?php
 
 use Friendica\App;
+use Friendica\Core\System;
 
 require_once("include/Photo.php");
 define("IMPORT_DEBUG", False);
 
 function last_insert_id() {
-	global $db;
-
 	if (IMPORT_DEBUG) {
 		return 1;
 	}
 
-	return $db->insert_id();
+	return dba::lastInsertId();
 }
 
 function last_error() {
@@ -125,7 +124,11 @@ function import_account(App $a, $file) {
 	}
 
 	$oldbaseurl = $account['baseurl'];
-	$newbaseurl = App::get_baseurl();
+	$newbaseurl = System::baseUrl();
+
+	$oldaddr = str_replace('http://', '@', normalise_link($oldbaseurl));
+	$newaddr = str_replace('http://', '@', normalise_link($newbaseurl));
+
 	$olduid = $account['user']['uid'];
 
 	unset($account['user']['uid']);
@@ -134,7 +137,7 @@ function import_account(App $a, $file) {
 	unset($account['user']['expire_notification_sent']);
 
 	foreach ($account['user'] as $k => &$v) {
-		$v = str_replace($oldbaseurl, $newbaseurl, $v);
+		$v = str_replace(array($oldbaseurl, $oldaddr), array($newbaseurl, $newaddr), $v);
 	}
 
 	// import user
@@ -154,7 +157,7 @@ function import_account(App $a, $file) {
 
 	foreach ($account['profile'] as &$profile) {
 		foreach ($profile as $k => &$v) {
-			$v = str_replace($oldbaseurl, $newbaseurl, $v);
+			$v = str_replace(array($oldbaseurl, $oldaddr), array($newbaseurl, $newaddr), $v);
 			foreach (array("profile", "avatar") as $k) {
 				$v = str_replace($oldbaseurl . "/photo/" . $k . "/" . $olduid . ".jpg", $newbaseurl . "/photo/" . $k . "/" . $newuid . ".jpg", $v);
 			}
@@ -173,7 +176,7 @@ function import_account(App $a, $file) {
 	foreach ($account['contact'] as &$contact) {
 		if ($contact['uid'] == $olduid && $contact['self'] == '1') {
 			foreach ($contact as $k => &$v) {
-				$v = str_replace($oldbaseurl, $newbaseurl, $v);
+				$v = str_replace(array($oldbaseurl, $oldaddr), array($newbaseurl, $newaddr), $v);
 				foreach (array("profile", "avatar", "micro") as $k) {
 					$v = str_replace($oldbaseurl . "/photo/" . $k . "/" . $olduid . ".jpg", $newbaseurl . "/photo/" . $k . "/" . $newuid . ".jpg", $v);
 				}
@@ -279,5 +282,5 @@ function import_account(App $a, $file) {
 	proc_run(PRIORITY_HIGH, 'include/notifier.php', 'relocate', $newuid);
 
 	info(t("Done. You can now login with your username and password"));
-	goaway(App::get_baseurl() . "/login");
+	goaway(System::baseUrl() . "/login");
 }

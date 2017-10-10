@@ -8,6 +8,7 @@
  */
 
 use Friendica\App;
+use Friendica\Core\System;
 use Friendica\Core\Config;
 use Friendica\Network\Probe;
 
@@ -243,7 +244,7 @@ function sanitize_gcontact($gcontact) {
 	$alternate = poco_alternate_ostatus_url($gcontact['url']);
 
 	// The global contacts should contain the original picture, not the cached one
-	if (($gcontact['generation'] != 1) && stristr(normalise_link($gcontact['photo']), normalise_link(App::get_baseurl()."/photo/"))) {
+	if (($gcontact['generation'] != 1) && stristr(normalise_link($gcontact['photo']), normalise_link(System::baseUrl()."/photo/"))) {
 		$gcontact['photo'] = "";
 	}
 
@@ -1025,7 +1026,7 @@ function poco_check_server($server_url, $network = "", $force = false) {
 	if (dbm::is_result($servers) && ($orig_server_url == $server_url) &&
 		($serverret['errno'] == CURLE_OPERATION_TIMEDOUT)) {
 		logger("Connection to server ".$server_url." timed out.", LOGGER_DEBUG);
-		dba::p("UPDATE `gserver` SET `last_failure` = ? WHERE `nurl` = ?", datetime_convert(), normalise_link($server_url));
+		dba::update('gserver', array('last_failure' => datetime_convert()), array('nurl' => normalise_link($server_url)));
 		return false;
 	}
 
@@ -1040,7 +1041,7 @@ function poco_check_server($server_url, $network = "", $force = false) {
 		// Quit if there is a timeout
 		if ($serverret['errno'] == CURLE_OPERATION_TIMEDOUT) {
 			logger("Connection to server ".$server_url." timed out.", LOGGER_DEBUG);
-			dba::p("UPDATE `gserver` SET `last_failure` = ? WHERE `nurl` = ?", datetime_convert(), normalise_link($server_url));
+			dba::update('gserver', array('last_failure' => datetime_convert()), array('nurl' => normalise_link($server_url)));
 			return false;
 		}
 
@@ -1145,6 +1146,7 @@ function poco_check_server($server_url, $network = "", $force = false) {
 		}
 
 		// Test for Mastodon
+		$orig_version = $version;
 		$serverret = z_fetch_url($server_url."/api/v1/instance");
 		if ($serverret["success"] && ($serverret["body"] != '')) {
 			$data = json_decode($serverret["body"]);
@@ -1155,6 +1157,10 @@ function poco_check_server($server_url, $network = "", $force = false) {
 				$info = $data->description;
 				$network = NETWORK_OSTATUS;
 			}
+		}
+		if (strstr($orig_version.$version, 'Pleroma')) {
+			$platform = 'Pleroma';
+			$version = trim(str_replace('Pleroma', '', $version));
 		}
 	}
 
@@ -1168,7 +1174,9 @@ function poco_check_server($server_url, $network = "", $force = false) {
 				$version = $data->version;
 				$network = NETWORK_DIASPORA;
 			}
-			$site_name = $data->site_name;
+			if (!empty($data->site_name)) {
+				$site_name = $data->site_name;
+			}
 			switch ($data->register_policy) {
 				case "REGISTER_OPEN":
 					$register_policy = REGISTER_OPEN;
@@ -1253,9 +1261,11 @@ function poco_check_server($server_url, $network = "", $force = false) {
 				$version = preg_replace("=(.+)-(.{4,})=ism", "$1", $version);
 			}
 
-			$site_name = $data->name;
+			if (!empty($data->name)) {
+				$site_name = $data->name;
+			}
 
-			if (isset($data->network)) {
+			if (!empty($data->network)) {
 				$platform = $data->network;
 			}
 
@@ -1639,9 +1649,9 @@ function update_suggestions() {
 	$done = array();
 
 	/// @TODO Check if it is really neccessary to poll the own server
-	poco_load(0, 0, 0, App::get_baseurl() . '/poco');
+	poco_load(0, 0, 0, System::baseUrl() . '/poco');
 
-	$done[] = App::get_baseurl() . '/poco';
+	$done[] = System::baseUrl() . '/poco';
 
 	if (strlen(get_config('system','directory'))) {
 		$x = fetch_url(get_server()."/pubsites");
@@ -2020,7 +2030,7 @@ function clean_contact_url($url) {
 	}
 
 	if ($new_url != $url) {
-		logger("Cleaned contact url ".$url." to ".$new_url." - Called by: ".App::callstack(), LOGGER_DEBUG);
+		logger("Cleaned contact url ".$url." to ".$new_url." - Called by: ".System::callstack(), LOGGER_DEBUG);
 	}
 
 	return $new_url;
@@ -2035,7 +2045,7 @@ function fix_alternate_contact_address(&$contact) {
 	if (($contact["network"] == NETWORK_OSTATUS) && poco_alternate_ostatus_url($contact["url"])) {
 		$data = probe_url($contact["url"]);
 		if ($contact["network"] == NETWORK_OSTATUS) {
-			logger("Fix primary url from ".$contact["url"]." to ".$data["url"]." - Called by: ".App::callstack(), LOGGER_DEBUG);
+			logger("Fix primary url from ".$contact["url"]." to ".$data["url"]." - Called by: ".System::callstack(), LOGGER_DEBUG);
 			$contact["url"] = $data["url"];
 			$contact["addr"] = $data["addr"];
 			$contact["alias"] = $data["alias"];
@@ -2056,7 +2066,7 @@ function get_gcontact_id($contact) {
 	$doprobing = false;
 
 	if (in_array($contact["network"], array(NETWORK_PHANTOM))) {
-		logger("Invalid network for contact url ".$contact["url"]." - Called by: ".App::callstack(), LOGGER_DEBUG);
+		logger("Invalid network for contact url ".$contact["url"]." - Called by: ".System::callstack(), LOGGER_DEBUG);
 		return false;
 	}
 
@@ -2200,22 +2210,14 @@ function update_gcontact($contact) {
 		$contact["updated"] = dbm::date();
 	}
 
+	if ($contact["network"] == NETWORK_TWITTER) {
+		$contact["server_url"] = 'http://twitter.com';
+	}
+
 	if ($contact["server_url"] == "") {
-		$server_url = $contact["url"];
-
-		$server_url = matching_url($server_url, $contact["alias"]);
-		if ($server_url != "") {
-			$contact["server_url"] = $server_url;
-		}
-
-		$server_url = matching_url($server_url, $contact["photo"]);
-		if ($server_url != "") {
-			$contact["server_url"] = $server_url;
-		}
-
-		$server_url = matching_url($server_url, $contact["notify"]);
-		if ($server_url != "") {
-			$contact["server_url"] = $server_url;
+		$data = Probe::uri($contact["url"]);
+		if ($data["network"] != NETWORK_PHANTOM) {
+			$contact["server_url"] = $data['baseurl'];
 		}
 	} else {
 		$contact["server_url"] = normalise_link($contact["server_url"]);
@@ -2246,22 +2248,22 @@ function update_gcontact($contact) {
 
 	if ($update) {
 		logger("Update gcontact for ".$contact["url"], LOGGER_DEBUG);
+		$condition = array('`nurl` = ? AND (`generation` = 0 OR `generation` >= ?)',
+				normalise_link($contact["url"]), $contact["generation"]);
+		$contact["updated"] = dbm::date($contact["updated"]);
 
-		q("UPDATE `gcontact` SET `photo` = '%s', `name` = '%s', `nick` = '%s', `addr` = '%s', `network` = '%s',
-					`birthday` = '%s', `gender` = '%s', `keywords` = '%s', `hide` = %d, `nsfw` = %d,
-					`contact-type` = %d, `alias` = '%s', `notify` = '%s', `url` = '%s',
-					`location` = '%s', `about` = '%s', `generation` = %d, `updated` = '%s',
-					`server_url` = '%s', `connect` = '%s'
-				WHERE `nurl` = '%s' AND (`generation` = 0 OR `generation` >= %d)",
-			dbesc($contact["photo"]), dbesc($contact["name"]), dbesc($contact["nick"]),
-			dbesc($contact["addr"]), dbesc($contact["network"]), dbesc($contact["birthday"]),
-			dbesc($contact["gender"]), dbesc($contact["keywords"]), intval($contact["hide"]),
-			intval($contact["nsfw"]), intval($contact["contact-type"]), dbesc($contact["alias"]),
-			dbesc($contact["notify"]), dbesc($contact["url"]), dbesc($contact["location"]),
-			dbesc($contact["about"]), intval($contact["generation"]), dbesc(dbm::date($contact["updated"])),
-			dbesc($contact["server_url"]), dbesc($contact["connect"]),
-			dbesc(normalise_link($contact["url"])), intval($contact["generation"]));
+		$updated = array('photo' => $contact['photo'], 'name' => $contact['name'],
+				'nick' => $contact['nick'], 'addr' => $contact['addr'],
+				'network' => $contact['network'], 'birthday' => $contact['birthday'],
+				'gender' => $contact['gender'], 'keywords' => $contact['keywords'],
+				'hide' => $contact['hide'], 'nsfw' => $contact['nsfw'],
+				'contact-type' => $contact['contact-type'], 'alias' => $contact['alias'],
+				'notify' => $contact['notify'], 'url' => $contact['url'],
+				'location' => $contact['location'], 'about' => $contact['about'],
+				'generation' => $contact['generation'], 'updated' => $contact['updated'],
+				'server_url' => $contact['server_url'], 'connect' => $contact['connect']);
 
+		dba::update('gcontact', $updated, $condition, $fields);
 
 		// Now update the contact entry with the user id "0" as well.
 		// This is used for the shadow copies of public items.
@@ -2269,20 +2271,25 @@ function update_gcontact($contact) {
 			dbesc(normalise_link($contact["url"])));
 
 		if (dbm::is_result($r)) {
-			logger("Update shadow contact ".$r[0]["id"], LOGGER_DEBUG);
+			logger("Update public contact ".$r[0]["id"], LOGGER_DEBUG);
 
 			update_contact_avatar($contact["photo"], 0, $r[0]["id"]);
 
-			q("UPDATE `contact` SET `name` = '%s', `nick` = '%s', `addr` = '%s',
-						`network` = '%s', `bd` = '%s', `gender` = '%s',
-						`keywords` = '%s', `alias` = '%s', `contact-type` = %d,
-						`url` = '%s', `location` = '%s', `about` = '%s'
-					WHERE `id` = %d",
-				dbesc($contact["name"]), dbesc($contact["nick"]), dbesc($contact["addr"]),
-				dbesc($contact["network"]), dbesc($contact["birthday"]), dbesc($contact["gender"]),
-				dbesc($contact["keywords"]), dbesc($contact["alias"]), intval($contact["contact-type"]),
-				dbesc($contact["url"]), dbesc($contact["location"]), dbesc($contact["about"]),
-				intval($r[0]["id"]));
+			$fields = array('name', 'nick', 'addr',
+					'network', 'bd', 'gender',
+					'keywords', 'alias', 'contact-type',
+					'url', 'location', 'about');
+			$old_contact = dba::select('contact', $fields, array('id' => $r[0]["id"]), array('limit' => 1));
+
+			// Update it with the current values
+			$fields = array('name' => $contact['name'], 'nick' => $contact['nick'],
+					'addr' => $contact['addr'], 'network' => $contact['network'],
+					'bd' => $contact['birthday'], 'gender' => $contact['gender'],
+					'keywords' => $contact['keywords'], 'alias' => $contact['alias'],
+					'contact-type' => $contact['contact-type'], 'url' => $contact['url'],
+					'location' => $contact['location'], 'about' => $contact['about']);
+
+			dba::update('contact', $fields, array('id' => $r[0]["id"]), $old_contact);
 		}
 	}
 
@@ -2298,7 +2305,7 @@ function update_gcontact_from_probe($url) {
 	$data = probe_url($url);
 
 	if (in_array($data["network"], array(NETWORK_PHANTOM))) {
-		logger("Invalid network for contact url ".$data["url"]." - Called by: ".App::callstack(), LOGGER_DEBUG);
+		logger("Invalid network for contact url ".$data["url"]." - Called by: ".System::callstack(), LOGGER_DEBUG);
 		return;
 	}
 
@@ -2332,7 +2339,7 @@ function update_gcontact_for_user($uid) {
 	// The "addr" field was added in 3.4.3 so it can be empty for older users
 	/// @TODO Huh? Maybe not != here?!
 	if ($r[0]["addr"] != "") {
-		$addr = $r[0]["nickname"].'@'.str_replace(array("http://", "https://"), "", App::get_baseurl());
+		$addr = $r[0]["nickname"].'@'.str_replace(array("http://", "https://"), "", System::baseUrl());
 	} else {
 		$addr = $r[0]["addr"];
 	}
@@ -2343,7 +2350,7 @@ function update_gcontact_for_user($uid) {
 			"notify" => $r[0]["notify"], "url" => $r[0]["url"],
 			"hide" => ($r[0]["hidewall"] || !$r[0]["net-publish"]),
 			"nick" => $r[0]["nickname"], "addr" => $addr,
-			"connect" => $addr, "server_url" => App::get_baseurl(),
+			"connect" => $addr, "server_url" => System::baseUrl(),
 			"generation" => 1, "network" => NETWORK_DFRN);
 
 	update_gcontact($gcontact);
@@ -2402,7 +2409,7 @@ function gs_fetch_users($server) {
 					"nick" => $user->nickname,
 					"about" => $user->bio,
 					"network" => NETWORK_OSTATUS,
-					"photo" => App::get_baseurl()."/images/person-175.jpg");
+					"photo" => System::baseUrl()."/images/person-175.jpg");
 			get_gcontact_id($contact);
 		}
 	}

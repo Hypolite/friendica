@@ -2,10 +2,12 @@
 
 namespace Friendica;
 
+use Friendica\Core\System;
 use Friendica\Core\Config;
 use Friendica\Core\PConfig;
 
 use Cache;
+use dba;
 use dbm;
 
 use Detection\MobileDetect;
@@ -369,11 +371,6 @@ class App {
 	 * @return string Friendica server base URL
 	 */
 	function get_baseurl($ssl = false) {
-		// Is the function called statically?
-		if (!(isset($this) && get_class($this) == __CLASS__)) {
-			return self::$a->get_baseurl($ssl);
-		}
-
 		$scheme = $this->scheme;
 
 		if (Config::get('system', 'ssl_policy') == SSL_POLICY_FULL) {
@@ -520,7 +517,7 @@ class App {
 
 		$tpl = get_markup_template('head.tpl');
 		$this->page['htmlhead'] = replace_macros($tpl, array(
-				'$baseurl' => $this->get_baseurl(), // FIXME for z_path!!!!
+				'$baseurl' => $this->get_baseurl(),
 				'$local_user' => local_user(),
 				'$generator' => 'Friendica' . ' ' . FRIENDICA_VERSION,
 				'$delitem' => t('Delete this item?'),
@@ -540,7 +537,7 @@ class App {
 		}
 		$tpl = get_markup_template('end.tpl');
 		$this->page['end'] = replace_macros($tpl, array(
-				'$baseurl' => $this->get_baseurl() // FIXME for z_path!!!!
+				'$baseurl' => $this->get_baseurl()
 			)) . $this->page['end'];
 	}
 
@@ -580,11 +577,6 @@ class App {
 	 * @return string The cleaned url
 	 */
 	function remove_baseurl($orig_url) {
-
-		// Is the function called statically?
-		if (!(isset($this) && get_class($this) == __CLASS__)) {
-			return self::$a->remove_baseurl($orig_url);
-		}
 
 		// Remove the hostname from the url if it is an internal link
 		$nurl = normalise_link($orig_url);
@@ -692,7 +684,7 @@ class App {
 		$this->performance[$value] += (float) $duration;
 		$this->performance['marktime'] += (float) $duration;
 
-		$callstack = $this->callstack();
+		$callstack = System::callstack();
 
 		if (!isset($this->callstack[$value][$callstack])) {
 			// Prevent ugly E_NOTICE
@@ -712,20 +704,20 @@ class App {
 
 		$this->remove_inactive_processes();
 
-		q('START TRANSACTION');
+		dba::transaction();
 
 		$r = q('SELECT `pid` FROM `process` WHERE `pid` = %d', intval(getmypid()));
 		if (!dbm::is_result($r)) {
-			q("INSERT INTO `process` (`pid`,`command`,`created`) VALUES (%d, '%s', '%s')", intval(getmypid()), dbesc($command), dbesc(datetime_convert()));
+			dba::insert('process', array('pid' => getmypid(), 'command' => $command, 'created' => datetime_convert()));
 		}
-		q('COMMIT');
+		dba::commit();
 	}
 
 	/**
 	 * @brief Remove inactive processes
 	 */
 	function remove_inactive_processes() {
-		q('START TRANSACTION');
+		dba::transaction();
 
 		$r = q('SELECT `pid` FROM `process`');
 		if (dbm::is_result($r)) {
@@ -735,7 +727,7 @@ class App {
 				}
 			}
 		}
-		q('COMMIT');
+		dba::commit();
 	}
 
 	/**
@@ -743,26 +735,6 @@ class App {
 	 */
 	function end_process() {
 		q('DELETE FROM `process` WHERE `pid` = %d', intval(getmypid()));
-	}
-
-	/**
-	 * @brief Returns a string with a callstack. Can be used for logging.
-	 *
-	 * @return string
-	 */
-	function callstack($depth = 4) {
-		$trace = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, $depth + 2);
-
-		// We remove the first two items from the list since they contain data that we don't need.
-		array_shift($trace);
-		array_shift($trace);
-
-		$callstack = array();
-		foreach ($trace AS $func) {
-			$callstack[] = $func['function'];
-		}
-
-		return implode(', ', $callstack);
 	}
 
 	function get_useragent() {

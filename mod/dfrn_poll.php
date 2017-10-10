@@ -1,10 +1,12 @@
 <?php
 
 use Friendica\App;
+use Friendica\Core\System;
 
 require_once('include/items.php');
 require_once('include/auth.php');
 require_once('include/dfrn.php');
+require_once('include/ostatus.php');
 
 function dfrn_poll_init(App $a) {
 	$dfrn_id         = ((x($_GET,'dfrn_id'))         ? $_GET['dfrn_id']              : '');
@@ -16,6 +18,14 @@ function dfrn_poll_init(App $a) {
 	$dfrn_version    = ((x($_GET,'dfrn_version'))    ? (float) $_GET['dfrn_version'] : 2.0);
 	$perm            = ((x($_GET,'perm'))            ? $_GET['perm']                 : 'r');
 	$quiet			 = ((x($_GET,'quiet'))			 ? true							 : false);
+
+	// Possibly it is an OStatus compatible server that requests a user feed
+	if (($a->argc > 1) && ($dfrn_id == '') && !strstr($_SERVER["HTTP_USER_AGENT"], 'Friendica')) {
+		$nickname = $a->argv[1];
+		header("Content-type: application/atom+xml");
+		echo ostatus::feed($a, $nickname, $last_update, 10);
+		killme();
+	}
 
 	$direction = (-1);
 
@@ -68,7 +78,7 @@ function dfrn_poll_init(App $a) {
 				$my_id = '0:' . $dfrn_id;
 				break;
 			default:
-				goaway(z_root());
+				goaway(System::baseUrl());
 				break; // NOTREACHED
 		}
 
@@ -112,9 +122,9 @@ function dfrn_poll_init(App $a) {
 				}
 			}
 			$profile = $r[0]['nickname'];
-			goaway((strlen($destination_url)) ? $destination_url : App::get_baseurl() . '/profile/' . $profile);
+			goaway((strlen($destination_url)) ? $destination_url : System::baseUrl() . '/profile/' . $profile);
 		}
-		goaway(z_root());
+		goaway(System::baseUrl());
 
 	}
 
@@ -312,7 +322,7 @@ function dfrn_poll_post(App $a) {
 			$my_id = '0:' . $dfrn_id;
 			break;
 		default:
-			goaway(z_root());
+			goaway(System::baseUrl());
 			break; // NOTREACHED
 	}
 
@@ -437,7 +447,7 @@ function dfrn_poll_content(App $a) {
 				$my_id = '0:' . $dfrn_id;
 				break;
 			default:
-				goaway(z_root());
+				goaway(System::baseUrl());
 				break; // NOTREACHED
 		}
 
@@ -501,17 +511,18 @@ function dfrn_poll_content(App $a) {
 
 			switch($destination_url) {
 				case 'profile':
-					$dest = App::get_baseurl() . '/profile/' . $profile . '?f=&tab=profile';
+					$dest = System::baseUrl() . '/profile/' . $profile . '?f=&tab=profile';
 					break;
 				case 'photos':
-					$dest = App::get_baseurl() . '/photos/' . $profile;
+					$dest = System::baseUrl() . '/photos/' . $profile;
 					break;
 				case 'status':
 				case '':
-					$dest = App::get_baseurl() . '/profile/' . $profile;
+					$dest = System::baseUrl() . '/profile/' . $profile;
 					break;
 				default:
-					$dest = $destination_url . '?f=&redir=1';
+					$appendix = (strstr($destination_url, '?') ? '&f=&redir=1' : '?f=&redir=1');
+					$dest = $destination_url . $appendix;
 					break;
 			}
 

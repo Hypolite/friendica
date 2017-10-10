@@ -8,6 +8,7 @@
  */
 
 use Friendica\App;
+use Friendica\Core\System;
 
 require_once "include/Contact.php";
 require_once "include/ostatus.php";
@@ -302,7 +303,7 @@ class dfrn {
 				AND (NOT `contact`.`blocked` OR `contact`.`pending`)
 			LEFT JOIN `sign` ON `sign`.`iid` = `item`.`id`
 			WHERE `item`.`id` = %d AND `item`.`visible` AND NOT `item`.`moderated` AND `item`.`parent` != 0
-			AND `item`.`wall` AND NOT `item`.`private`",
+			AND NOT `item`.`private`",
 			intval($item_id)
 		);
 
@@ -329,12 +330,9 @@ class dfrn {
 
 		$alternatelink = $owner['url'];
 
-		$root = self::add_header($doc, $owner, 'dfrn:owner', $alternatelink, true);
-
 		$type = 'html';
 
-		$entry = self::entry($doc, $type, $item, $owner, true);
-		$root->appendChild($entry);
+		$root = self::entry($doc, $type, $item, $owner, true, 0, true);
 
 		$atom = trim($doc->saveXML());
 		return $atom;
@@ -437,7 +435,7 @@ class dfrn {
 			$ext = Photo::supportedTypes();
 
 			foreach ($rp as $p) {
-				$photos[$p['scale']] = App::get_baseurl() . '/photo/' . $p['resource-id'] . '-' . $p['scale'] . '.' . $ext[$p['type']];
+				$photos[$p['scale']] = System::baseUrl().'/photo/'.$p['resource-id'].'-'.$p['scale'].'.'.$ext[$p['type']];
 			}
 
 			unset($rp, $ext);
@@ -502,7 +500,7 @@ class dfrn {
 		$root->setAttribute("xmlns:ostatus", NAMESPACE_OSTATUS);
 		$root->setAttribute("xmlns:statusnet", NAMESPACE_STATUSNET);
 
-		xml::add_element($doc, $root, "id", App::get_baseurl()."/profile/".$owner["nick"]);
+		xml::add_element($doc, $root, "id", System::baseUrl()."/profile/".$owner["nick"]);
 		xml::add_element($doc, $root, "title", $owner["name"]);
 
 		$attributes = array("uri" => "https://friendi.ca", "version" => FRIENDICA_VERSION."-".DB_UPDATE_VERSION);
@@ -517,15 +515,15 @@ class dfrn {
 
 		if ($public) {
 			// DFRN itself doesn't uses this. But maybe someone else wants to subscribe to the public feed.
-			ostatus::hublinks($doc, $root);
+			ostatus::hublinks($doc, $root, $owner["nick"]);
 
-			$attributes = array("rel" => "salmon", "href" => App::get_baseurl()."/salmon/".$owner["nick"]);
+			$attributes = array("rel" => "salmon", "href" => System::baseUrl()."/salmon/".$owner["nick"]);
 			xml::add_element($doc, $root, "link", "", $attributes);
 
-			$attributes = array("rel" => "http://salmon-protocol.org/ns/salmon-replies", "href" => App::get_baseurl()."/salmon/".$owner["nick"]);
+			$attributes = array("rel" => "http://salmon-protocol.org/ns/salmon-replies", "href" => System::baseUrl()."/salmon/".$owner["nick"]);
 			xml::add_element($doc, $root, "link", "", $attributes);
 
-			$attributes = array("rel" => "http://salmon-protocol.org/ns/salmon-mention", "href" => App::get_baseurl()."/salmon/".$owner["nick"]);
+			$attributes = array("rel" => "http://salmon-protocol.org/ns/salmon-mention", "href" => System::baseUrl()."/salmon/".$owner["nick"]);
 			xml::add_element($doc, $root, "link", "", $attributes);
 		}
 
@@ -583,7 +581,7 @@ class dfrn {
 		}
 
 		xml::add_element($doc, $author, "name", $owner["name"], $attributes);
-		xml::add_element($doc, $author, "uri", App::get_baseurl().'/profile/'.$owner["nickname"], $attributes);
+		xml::add_element($doc, $author, "uri", System::baseUrl().'/profile/'.$owner["nickname"], $attributes);
 		xml::add_element($doc, $author, "dfrn:handle", $owner["addr"], $attributes);
 
 		$attributes = array("rel" => "photo", "type" => "image/jpeg",
@@ -842,11 +840,12 @@ class dfrn {
 	 * @param array $owner Owner record
 	 * @param bool $comment Trigger the sending of the "comment" element
 	 * @param int $cid Contact ID of the recipient
+	 * @param bool $single If set, the entry is created as an XML document with a single "entry" element
 	 *
 	 * @return object XML entry object
 	 * @todo Find proper type-hints
 	 */
-	private static function entry($doc, $type, $item, $owner, $comment = false, $cid = 0) {
+	private static function entry($doc, $type, $item, $owner, $comment = false, $cid = 0, $single = false) {
 
 		$mentioned = array();
 
@@ -859,7 +858,22 @@ class dfrn {
 			return xml::create_element($doc, "at:deleted-entry", "", $attributes);
 		}
 
-		$entry = $doc->createElement("entry");
+		if (!$single) {
+			$entry = $doc->createElement("entry");
+		} else {
+			$entry = $doc->createElementNS(NAMESPACE_ATOM1, 'entry');
+			$doc->appendChild($entry);
+
+			$entry->setAttribute("xmlns:thr", NAMESPACE_THREAD);
+			$entry->setAttribute("xmlns:at", NAMESPACE_TOMB);
+			$entry->setAttribute("xmlns:media", NAMESPACE_MEDIA);
+			$entry->setAttribute("xmlns:dfrn", NAMESPACE_DFRN);
+			$entry->setAttribute("xmlns:activity", NAMESPACE_ACTIVITY);
+			$entry->setAttribute("xmlns:georss", NAMESPACE_GEORSS);
+			$entry->setAttribute("xmlns:poco", NAMESPACE_POCO);
+			$entry->setAttribute("xmlns:ostatus", NAMESPACE_OSTATUS);
+			$entry->setAttribute("xmlns:statusnet", NAMESPACE_STATUSNET);
+		}
 
 		if ($item['allow_cid'] || $item['allow_gid'] || $item['deny_cid'] || $item['deny_gid']) {
 			$body = fix_private_photos($item['body'],$owner['uid'],$item,$cid);
@@ -887,16 +901,16 @@ class dfrn {
 		$entry->appendChild($dfrnowner);
 
 		if (($item['parent'] != $item['id']) || ($item['parent-uri'] !== $item['uri']) || (($item['thr-parent'] !== '') && ($item['thr-parent'] !== $item['uri']))) {
-			$parent = q("SELECT `guid` FROM `item` WHERE `id` = %d", intval($item["parent"]));
 			$parent_item = (($item['thr-parent']) ? $item['thr-parent'] : $item['parent-uri']);
+			$parent = q("SELECT `guid`,`plink` FROM `item` WHERE `uri` = '%s' AND `uid` = %d", dbesc($parent_item), intval($item['uid']));
 			$attributes = array("ref" => $parent_item, "type" => "text/html",
-						"href" => App::get_baseurl() . '/display/' . $parent[0]['guid'],
+						"href" => $parent[0]['plink'],
 						"dfrn:diaspora_guid" => $parent[0]['guid']);
 			xml::add_element($doc, $entry, "thr:in-reply-to", "", $attributes);
 		}
 
 		// Add conversation data. This is used for OStatus
-		$conversation_href = App::get_baseurl() . "/display/" . $owner["nick"] . "/" . $item["parent"];
+		$conversation_href = System::baseUrl()."/display/".$owner["nick"]."/".$item["parent"];
 		$conversation_uri = $conversation_href;
 
 		if (isset($parent_item)) {
@@ -932,7 +946,7 @@ class dfrn {
 
 		// We save this value in "plink". Maybe we should read it from there as well?
 		xml::add_element($doc, $entry, "link", "", array("rel" => "alternate", "type" => "text/html",
-								"href" => App::get_baseurl()."/display/".$item["guid"]));
+								"href" => System::baseUrl()."/display/".$item["guid"]));
 
 		// "comment-allow" is some old fashioned stuff for old Friendica versions.
 		// It is included in the rewritten code for completeness
@@ -1301,7 +1315,15 @@ class dfrn {
 
 		$res = parse_xml_string($xml);
 
-		return $res->status;
+		if (!isset($res->status)) {
+			return -11;
+		}
+
+		if (!empty($res->message)) {
+			logger('Delivery returned status '.$res->status.' - '.$res->message, LOGGER_DEBUG);
+		}
+
+		return intval($res->status);
 	}
 
 	/**
@@ -1668,9 +1690,7 @@ class dfrn {
 		$msg["seen"] = 0;
 		$msg["replied"] = 0;
 
-		dbm::esc_array($msg, true);
-
-		$r = dbq("INSERT INTO `mail` (`".implode("`, `", array_keys($msg))."`) VALUES (".implode(", ", array_values($msg)).")");
+		dba::insert('mail', $msg);
 
 		// send notifications.
 		/// @TODO Arange this mess
@@ -1810,7 +1830,7 @@ class dfrn {
 			"to_email"     => $importer["email"],
 			"uid"          => $importer["importer_uid"],
 			"item"         => $suggest,
-			"link"         => App::get_baseurl()."/notifications/intros",
+			"link"         => System::baseUrl()."/notifications/intros",
 			"source_name"  => $importer["name"],
 			"source_link"  => $importer["url"],
 			"source_photo" => $importer["photo"],
@@ -2120,7 +2140,7 @@ class dfrn {
 				}
 			}
 
-			if ($Blink && link_compare($Blink, App::get_baseurl() . "/profile/" . $importer["nickname"])) {
+			if ($Blink && link_compare($Blink, System::baseUrl() . "/profile/" . $importer["nickname"])) {
 
 				// send a notification
 				notification(array(
@@ -2131,7 +2151,7 @@ class dfrn {
 					"to_email"     => $importer["email"],
 					"uid"          => $importer["importer_uid"],
 					"item"         => $item,
-					"link"         => App::get_baseurl()."/display/".urlencode(get_item_guid($posted_id)),
+					"link"         => System::baseUrl()."/display/".urlencode(get_item_guid($posted_id)),
 					"source_name"  => stripslashes($item["author-name"]),
 					"source_link"  => $item["author-link"],
 					"source_photo" => ((link_compare($item["author-link"],$importer["url"]))
@@ -2827,19 +2847,13 @@ class dfrn {
 	 * @param text $xml The DFRN message
 	 * @param array $importer Record of the importer user mixed with contact of the content
 	 * @param bool $sort_by_date Is used when feeds are polled
+	 * @return integer Import status
 	 * @todo set proper type-hints
 	 */
-	public static function import($xml,$importer, $sort_by_date = false) {
+	public static function import($xml, $importer, $sort_by_date = false) {
 
 		if ($xml == "") {
-			return;
-		}
-
-		if ($importer["readonly"]) {
-			// We aren't receiving stuff from this person. But we will quietly ignore them
-			// rather than a blatant "go away" message.
-			logger('ignoring contact '.$importer["id"]);
-			return;
+			return 400;
 		}
 
 		$doc = new DOMDocument();
@@ -2885,11 +2899,7 @@ class dfrn {
 			$accounttype = intval($xpath->evaluate("/atom:feed/dfrn:account_type/text()", $context)->item(0)->nodeValue);
 
 			if ($accounttype != $importer["contact-type"]) {
-				/// @TODO this way is the norm or putting ); at the end of the line?
-				q("UPDATE `contact` SET `contact-type` = %d WHERE `id` = %d",
-					intval($accounttype),
-					intval($importer["id"])
-				);
+				dba::update('contact', array('contact-type' => $accounttype), array('id' => $importer["id"]));
 			}
 		}
 
@@ -2898,10 +2908,21 @@ class dfrn {
 		$forum = intval($xpath->evaluate("/atom:feed/dfrn:community/text()", $context)->item(0)->nodeValue);
 
 		if ($forum != $importer["forum"]) {
-			q("UPDATE `contact` SET `forum` = %d WHERE `forum` != %d AND `id` = %d",
-				intval($forum), intval($forum),
-				intval($importer["id"])
-			);
+			$condition = array('`forum` != ? AND `id` = ?', $forum, $importer["id"]);
+			dba::update('contact', array('forum' => $forum), $condition);
+		}
+
+		// We are processing relocations even if we are ignoring a contact
+		$relocations = $xpath->query("/atom:feed/dfrn:relocate");
+		foreach ($relocations AS $relocation) {
+			self::process_relocation($xpath, $relocation, $importer);
+		}
+
+		if ($importer["readonly"]) {
+			// We aren't receiving stuff from this person. But we will quietly ignore them
+			// rather than a blatant "go away" message.
+			logger('ignoring contact '.$importer["id"]);
+			return 403;
 		}
 
 		$mails = $xpath->query("/atom:feed/dfrn:mail");
@@ -2912,11 +2933,6 @@ class dfrn {
 		$suggestions = $xpath->query("/atom:feed/dfrn:suggest");
 		foreach ($suggestions as $suggestion) {
 			self::process_suggestion($xpath, $suggestion, $importer);
-		}
-
-		$relocations = $xpath->query("/atom:feed/dfrn:relocate");
-		foreach ($relocations as $relocation) {
-			self::process_relocation($xpath, $relocation, $importer);
 		}
 
 		$deletions = $xpath->query("/atom:feed/at:deleted-entry");
@@ -2945,5 +2961,6 @@ class dfrn {
 			}
 		}
 		logger("Import done for user " . $importer["uid"] . " from contact " . $importer["id"], LOGGER_DEBUG);
+		return 200;
 	}
 }

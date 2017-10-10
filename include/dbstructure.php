@@ -1,6 +1,7 @@
 <?php
 
 use Friendica\App;
+use Friendica\Core\System;
 use Friendica\Core\Config;
 
 require_once "boot.php";
@@ -30,7 +31,7 @@ function convert_to_innodb() {
 		$sql = sprintf("ALTER TABLE `%s` engine=InnoDB;", dbesc($table['TABLE_NAME']));
 		echo $sql."\n";
 
-		$result = $db->q($sql);
+		$result = dba::e($sql);
 		if (!dbm::is_result($result)) {
 			print_update_error($db, $sql);
 		}
@@ -73,7 +74,7 @@ function update_fail($update_id, $error_message) {
 		$body = sprintf($body, $error_message);
 
 		notification(array(
-			'type' => "SYSTEM_EMAIL",
+			'type' => SYSTEM_EMAIL,
 			'to_email' => $admin['email'],
 			'preamble' => $preamble,
 			'body' => $body,
@@ -89,11 +90,11 @@ function update_fail($update_id, $error_message) {
 	$email_tpl = get_intltext_template("update_fail_eml.tpl");
 	$email_msg = replace_macros($email_tpl, array(
 		'$sitename' => $a->config['sitename'],
-		'$siteurl' =>  App::get_baseurl(),
+		'$siteurl' =>  System::baseUrl(),
 		'$update' => DB_UPDATE_VERSION,
 		'$error' => sprintf(t('Update %s failed. See error logs.'), DB_UPDATE_VERSION)
 	));
-	$subject=sprintf(t('Update Error at %s'), App::get_baseurl());
+	$subject=sprintf(t('Update Error at %s'), System::baseUrl());
 	require_once('include/email.php');
 	$subject = email_header_encode($subject,'UTF-8');
 	mail($a->config['admin_email'], $subject, $email_msg,
@@ -441,9 +442,9 @@ function update_structure($verbose, $action, $tables=null, $definition=null) {
 				// Ensure index conversion to unique removes duplicates
 				if ($is_unique) {
 					if ($ignore != "") {
-						$db->q("SET session old_alter_table=1;");
+						dba::e("SET session old_alter_table=1;");
 					} else {
-						$r = $db->q("CREATE TABLE `".$temp_name."` LIKE `".$name."`;");
+						$r = dba::e("CREATE TABLE `".$temp_name."` LIKE `".$name."`;");
 						if (!dbm::is_result($r)) {
 							$errors .= print_update_error($db, $sql3);
 							return $errors;
@@ -451,25 +452,25 @@ function update_structure($verbose, $action, $tables=null, $definition=null) {
 					}
 				}
 
-				$r = @$db->q($sql3);
+				$r = @dba::e($sql3);
 				if (!dbm::is_result($r)) {
 					$errors .= print_update_error($db, $sql3);
 				}
 				if ($is_unique) {
 					if ($ignore != "") {
-						$db->q("SET session old_alter_table=0;");
+						dba::e("SET session old_alter_table=0;");
 					} else {
-						$r = $db->q("INSERT INTO `".$temp_name."` SELECT ".$field_list." FROM `".$name."`".$group_by.";");
+						$r = dba::e("INSERT INTO `".$temp_name."` SELECT ".$field_list." FROM `".$name."`".$group_by.";");
 						if (!dbm::is_result($r)) {
 							$errors .= print_update_error($db, $sql3);
 							return $errors;
 						}
-						$r = $db->q("DROP TABLE `".$name."`;");
+						$r = dba::e("DROP TABLE `".$name."`;");
 						if (!dbm::is_result($r)) {
 							$errors .= print_update_error($db, $sql3);
 							return $errors;
 						}
-						$r = $db->q("RENAME TABLE `".$temp_name."` TO `".$name."`;");
+						$r = dba::e("RENAME TABLE `".$temp_name."` TO `".$name."`;");
 						if (!dbm::is_result($r)) {
 							$errors .= print_update_error($db, $sql3);
 							return $errors;
@@ -550,7 +551,7 @@ function db_create_table($name, $fields, $verbose, $action, $indexes=null) {
 		echo $sql.";\n";
 
 	if ($action)
-		$r = @$db->q($sql);
+		$r = @dba::e($sql);
 
 	return $r;
 }
@@ -1656,6 +1657,7 @@ function db_definition() {
 					"uid_created" => array("uid","created"),
 					"uid_commented" => array("uid","commented"),
 					"uid_wall_created" => array("uid","wall","created"),
+					"private_wall_received" => array("private","wall","received"),
 					)
 			);
 	$database["tokens"] = array(

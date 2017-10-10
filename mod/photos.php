@@ -1,6 +1,7 @@
 <?php
 
 use Friendica\App;
+use Friendica\Core\System;
 use Friendica\Core\Config;
 use Friendica\Network\Probe;
 
@@ -28,7 +29,7 @@ function photos_init(App $a) {
 
 	if ($a->argc > 1) {
 		$nick = $a->argv[1];
-		$user = qu("SELECT * FROM `user` WHERE `nickname` = '%s' AND `blocked` = 0 LIMIT 1",
+		$user = q("SELECT * FROM `user` WHERE `nickname` = '%s' AND `blocked` = 0 LIMIT 1",
 			dbesc($nick)
 		);
 
@@ -95,7 +96,7 @@ function photos_init(App $a) {
 				'$title'    => t('Photo Albums'),
 				'$recent'   => t('Recent Photos'),
 				'$albums'   => $albums['albums'],
-				'$baseurl'  => z_root(),
+				'$baseurl'  => System::baseUrl(),
 				'$upload'   => array(t('Upload New Photos'), 'photos/' . $a->data['user']['nickname'] . '/upload'),
 				'$can_post' => $can_post
 			));
@@ -152,7 +153,7 @@ function photos_post(App $a) {
 			}
 			if ($contact_id) {
 
-				$r = qu("SELECT `uid` FROM `contact` WHERE `blocked` = 0 AND `pending` = 0 AND `id` = %d AND `uid` = %d LIMIT 1",
+				$r = q("SELECT `uid` FROM `contact` WHERE `blocked` = 0 AND `pending` = 0 AND `id` = %d AND `uid` = %d LIMIT 1",
 					intval($contact_id),
 					intval($page_owner_uid)
 				);
@@ -169,7 +170,7 @@ function photos_post(App $a) {
 		killme();
 	}
 
-	$r = qu("SELECT `contact`.*, `user`.`nickname` FROM `contact` LEFT JOIN `user` ON `user`.`uid` = `contact`.`uid`
+	$r = q("SELECT `contact`.*, `user`.`nickname` FROM `contact` LEFT JOIN `user` ON `user`.`uid` = `contact`.`uid`
 		WHERE `user`.`uid` = %d AND `self` = 1 LIMIT 1",
 		intval($page_owner_uid)
 	);
@@ -191,7 +192,7 @@ function photos_post(App $a) {
 			return; // NOTREACHED
 		}
 
-		$r = qu("SELECT `album` FROM `photo` WHERE `album` = '%s' AND `uid` = %d",
+		$r = q("SELECT `album` FROM `photo` WHERE `album` = '%s' AND `uid` = %d",
 			dbesc($album),
 			intval($page_owner_uid)
 		);
@@ -373,7 +374,7 @@ function photos_post(App $a) {
 				create_tags_from_itemuri($i[0]['uri'], $page_owner_uid);
 				delete_thread_uri($i[0]['uri'], $page_owner_uid);
 
-				$url = App::get_baseurl();
+				$url = System::baseUrl();
 				$drop_id = intval($i[0]['id']);
 
 				// Update the photo albums cache
@@ -525,8 +526,8 @@ function photos_post(App $a) {
 			$arr['visible']       = $visibility;
 			$arr['origin']        = 1;
 
-			$arr['body']          = '[url=' . App::get_baseurl() . '/photos/' . $a->data['user']['nickname'] . '/image/' . $p[0]['resource-id'] . ']'
-						. '[img]' . App::get_baseurl() . '/photo/' . $p[0]['resource-id'] . '-' . $p[0]['scale'] . '.'. $ext . '[/img]'
+			$arr['body']          = '[url=' . System::baseUrl() . '/photos/' . $a->data['user']['nickname'] . '/image/' . $p[0]['resource-id'] . ']'
+						. '[img]' . System::baseUrl() . '/photo/' . $p[0]['resource-id'] . '-' . $p[0]['scale'] . '.'. $ext . '[/img]'
 						. '[/url]';
 
 			$item_id = item_store($arr);
@@ -640,7 +641,7 @@ function photos_post(App $a) {
 						}
 					} elseif (strpos($tag, '#') === 0) {
 						$tagname = substr($tag, 1);
-						$str_tags .= '#[url=' . App::get_baseurl() . "/search?tag=" . $tagname . ']' . $tagname . '[/url]';
+						$str_tags .= '#[url=' . System::baseUrl() . "/search?tag=" . $tagname . ']' . $tagname . '[/url]';
 					}
 				}
 			}
@@ -712,8 +713,8 @@ function photos_post(App $a) {
 					$arr['tag']           = $tagged[4];
 					$arr['inform']        = $tagged[2];
 					$arr['origin']        = 1;
-					$arr['body']          = sprintf( t('%1$s was tagged in %2$s by %3$s'), '[url=' . $tagged[1] . ']' . $tagged[0] . '[/url]', '[url=' . App::get_baseurl() . '/photos/' . $owner_record['nickname'] . '/image/' . $p[0]['resource-id'] . ']' . t('a photo') . '[/url]', '[url=' . $owner_record['url'] . ']' . $owner_record['name'] . '[/url]') ;
-					$arr['body'] .= "\n\n" . '[url=' . App::get_baseurl() . '/photos/' . $owner_record['nickname'] . '/image/' . $p[0]['resource-id'] . ']' . '[img]' . App::get_baseurl() . "/photo/" . $p[0]['resource-id'] . '-' . $best . '.' . $ext . '[/img][/url]' . "\n" ;
+					$arr['body']          = sprintf( t('%1$s was tagged in %2$s by %3$s'), '[url=' . $tagged[1] . ']' . $tagged[0] . '[/url]', '[url=' . System::baseUrl() . '/photos/' . $owner_record['nickname'] . '/image/' . $p[0]['resource-id'] . ']' . t('a photo') . '[/url]', '[url=' . $owner_record['url'] . ']' . $owner_record['name'] . '[/url]') ;
+					$arr['body'] .= "\n\n" . '[url=' . System::baseUrl() . '/photos/' . $owner_record['nickname'] . '/image/' . $p[0]['resource-id'] . ']' . '[img]' . System::baseUrl() . "/photo/" . $p[0]['resource-id'] . '-' . $best . '.' . $ext . '[/img][/url]' . "\n" ;
 
 					$arr['object'] = '<object><type>' . ACTIVITY_OBJ_PERSON . '</type><title>' . $tagged[0] . '</title><id>' . $tagged[1] . '/' . $tagged[0] . '</id>';
 					$arr['object'] .= '<link>' . xmlify('<link rel="alternate" type="text/html" href="' . $tagged[1] . '" />' . "\n");
@@ -723,8 +724,8 @@ function photos_post(App $a) {
 					$arr['object'] .= '</link></object>' . "\n";
 
 					$arr['target'] = '<target><type>' . ACTIVITY_OBJ_IMAGE . '</type><title>' . $p[0]['desc'] . '</title><id>'
-						. App::get_baseurl() . '/photos/' . $owner_record['nickname'] . '/image/' . $p[0]['resource-id'] . '</id>';
-					$arr['target'] .= '<link>' . xmlify('<link rel="alternate" type="text/html" href="' . App::get_baseurl() . '/photos/' . $owner_record['nickname'] . '/image/' . $p[0]['resource-id'] . '" />' . "\n" . '<link rel="preview" type="'.$p[0]['type'].'" href="' . App::get_baseurl() . "/photo/" . $p[0]['resource-id'] . '-' . $best . '.' . $ext . '" />') . '</link></target>';
+						. System::baseUrl() . '/photos/' . $owner_record['nickname'] . '/image/' . $p[0]['resource-id'] . '</id>';
+					$arr['target'] .= '<link>' . xmlify('<link rel="alternate" type="text/html" href="' . System::baseUrl() . '/photos/' . $owner_record['nickname'] . '/image/' . $p[0]['resource-id'] . '" />' . "\n" . '<link rel="preview" type="'.$p[0]['type'].'" href="' . System::baseUrl() . "/photo/" . $p[0]['resource-id'] . '-' . $best . '.' . $ext . '" />') . '</link></target>';
 
 					$item_id = item_store($arr);
 					if ($item_id) {
@@ -942,8 +943,8 @@ function photos_post(App $a) {
 	$arr['visible']       = $visible;
 	$arr['origin']        = 1;
 
-	$arr['body']          = '[url=' . App::get_baseurl() . '/photos/' . $owner_record['nickname'] . '/image/' . $photo_hash . ']'
-				. '[img]' . App::get_baseurl() . "/photo/{$photo_hash}-{$smallest}.".$ph->getExt() . '[/img]'
+	$arr['body']          = '[url=' . System::baseUrl() . '/photos/' . $owner_record['nickname'] . '/image/' . $photo_hash . ']'
+				. '[img]' . System::baseUrl() . "/photo/{$photo_hash}-{$smallest}.".$ph->getExt() . '[/img]'
 				. '[/url]';
 
 	$item_id = item_store($arr);
@@ -1378,7 +1379,7 @@ function photos_content(App $a) {
 				$order = 'DESC';
 			}
 
-			$prvnxt = qu("SELECT `resource-id` FROM `photo` WHERE `album` = '%s' AND `uid` = %d AND `scale` = 0
+			$prvnxt = q("SELECT `resource-id` FROM `photo` WHERE `album` = '%s' AND `uid` = %d AND `scale` = 0
 				$sql_extra ORDER BY `created` $order ",
 				dbesc($ph[0]['album']),
 				intval($owner_uid)
@@ -1481,7 +1482,7 @@ function photos_content(App $a) {
 		if (dbm::is_result($linked_items)) {
 			$link_item = $linked_items[0];
 
-			$r = qu("SELECT COUNT(*) AS `total`
+			$r = q("SELECT COUNT(*) AS `total`
 				FROM `item` LEFT JOIN `contact` ON `contact`.`id` = `item`.`contact-id`
 				WHERE `parent-uri` = '%s' AND `uri` != '%s' AND `item`.`deleted` = 0 and `item`.`moderated` = 0
 				AND `contact`.`blocked` = 0 AND `contact`.`pending` = 0
@@ -1498,7 +1499,7 @@ function photos_content(App $a) {
 			}
 
 
-			$r = qu("SELECT `item`.*, `item`.`id` AS `item_id`,
+			$r = q("SELECT `item`.*, `item`.`id` AS `item_id`,
 				`contact`.`name`, `contact`.`photo`, `contact`.`url`, `contact`.`network`,
 				`contact`.`rel`, `contact`.`thumb`, `contact`.`self`,
 				`contact`.`id` AS `cid`, `contact`.`uid` AS `contact-uid`
@@ -1838,7 +1839,7 @@ function photos_content(App $a) {
 	// Default - show recent photos with upload link (if applicable)
 	//$o = '';
 
-	$r = qu("SELECT `resource-id`, max(`scale`) AS `scale` FROM `photo` WHERE `uid` = %d AND `album` != '%s' AND `album` != '%s'
+	$r = q("SELECT `resource-id`, max(`scale`) AS `scale` FROM `photo` WHERE `uid` = %d AND `album` != '%s' AND `album` != '%s'
 		$sql_extra GROUP BY `resource-id`",
 		intval($a->data['user']['uid']),
 		dbesc('Contact Photos'),
@@ -1849,7 +1850,7 @@ function photos_content(App $a) {
 		$a->set_pager_itemspage(20);
 	}
 
-	$r = qu("SELECT `resource-id`, ANY_VALUE(`id`) AS `id`, ANY_VALUE(`filename`) AS `filename`,
+	$r = q("SELECT `resource-id`, ANY_VALUE(`id`) AS `id`, ANY_VALUE(`filename`) AS `filename`,
 		ANY_VALUE(`type`) AS `type`, ANY_VALUE(`album`) AS `album`, max(`scale`) AS `scale`,
 		ANY_VALUE(`created`) AS `created` FROM `photo`
 		WHERE `uid` = %d AND `album` != '%s' AND `album` != '%s'

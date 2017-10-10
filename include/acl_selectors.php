@@ -543,7 +543,7 @@ function acl_lookup(App $a, $out_type = 'json') {
 				"forum" => '0'
 			);
 		}
-		if (count($groups) > 0) {
+		if ((count($groups) > 0) && ($search == "")) {
 			$groups[] = array("separator" => true);
 		}
 	}
@@ -556,7 +556,7 @@ function acl_lookup(App $a, $out_type = 'json') {
 			WHERE `uid` = %d AND NOT `self` AND NOT `blocked` AND NOT `pending` AND NOT `archive` AND `notify` != ''
 			AND `success_update` >= `failure_update` AND NOT (`network` IN ('%s', '%s'))
 			$sql_extra2
-			ORDER BY `frm` DESC, `name` ASC ",
+			ORDER BY `name` ASC ",
 			intval(local_user()),
 			dbesc(NETWORK_OSTATUS), dbesc(NETWORK_STATUSNET)
 		);
@@ -637,7 +637,9 @@ function acl_lookup(App $a, $out_type = 'json') {
 			}
 		}
 		if (count($forums) > 0) {
-			$forums[] = array("separator" => true);
+			if ($search == "") {
+				$forums[] = array("separator" => true);
+			}
 			$contacts = array_merge($forums, $contacts);
 		}
 	}

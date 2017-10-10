@@ -9,6 +9,7 @@
  */
 
 use Friendica\App;
+use Friendica\Core\System;
 use Friendica\Core\Config;
 
 require_once 'include/items.php';
@@ -117,7 +118,7 @@ class Diaspora {
 	 */
 	private static function verify_magic_envelope($envelope) {
 
-		$basedom = parse_xml_string($envelope, false);
+		$basedom = parse_xml_string($envelope);
 
 		if (!is_object($basedom)) {
 			logger("Envelope is no XML file");
@@ -226,7 +227,7 @@ class Diaspora {
 		$basedom = parse_xml_string($xml);
 
 		if (!is_object($basedom)) {
-			logger('Received data does not seem to be an XML. Discarding.');
+			logger('Received data does not seem to be an XML. Discarding. '.$xml);
 			http_status_exit(400);
 		}
 
@@ -286,6 +287,11 @@ class Diaspora {
 			$public = true;
 			$author_link = str_replace('acct:','',$children->header->author_id);
 		} else {
+			// This happens with posts from a relais
+			if (!$importer) {
+				logger("This is no private post in the old format", LOGGER_DEBUG);
+				return false;
+			}
 
 			$encrypted_header = json_decode(base64_decode($children->encrypted_header));
 
@@ -303,7 +309,7 @@ class Diaspora {
 			$decrypted = self::aes_decrypt($outer_key, $outer_iv, $ciphertext);
 
 			logger('decrypted: '.$decrypted, LOGGER_DEBUG);
-			$idom = parse_xml_string($decrypted,false);
+			$idom = parse_xml_string($decrypted);
 
 			$inner_iv = base64_decode($idom->iv);
 			$inner_aes_key = base64_decode($idom->aes_key);
@@ -426,6 +432,18 @@ class Diaspora {
 			}
 		}
 
+		// Process item retractions. This has to be done separated from the other stuff,
+		// since retractions for comments could come even from non followers.
+		if (!empty($fields) && in_array($fields->getName(), array('retraction'))) {
+			$target = notags(unxmlify($fields->target_type));
+			if (in_array($target, array("Comment", "Like", "Post", "Reshare", "StatusMessage"))) {
+				logger('processing retraction for '.$target, LOGGER_DEBUG);
+				$importer = array("uid" => 0, "page-flags" => PAGE_FREELOVE);
+				$message_id = self::dispatch($importer, $msg, $fields);
+				return $message_id;
+			}
+		}
+
 		// Now distribute it to the followers
 		$r = q("SELECT `user`.* FROM `user` WHERE `user`.`uid` IN
 			(SELECT `contact`.`uid` FROM `contact` WHERE `contact`.`network` = '%s' AND `contact`.`addr` = '%s')
@@ -538,7 +556,7 @@ class Diaspora {
 	 */
 	private static function valid_posting($msg) {
 
-		$data = parse_xml_string($msg["message"], false);
+		$data = parse_xml_string($msg["message"]);
 
 		if (!is_object($data)) {
 			logger("No valid XML ".$msg["message"], LOGGER_DEBUG);
@@ -928,11 +946,9 @@ class Diaspora {
 		 * Normally this should have handled by getting a request - but this could get lost
 		 */
 		if ($contact["rel"] == CONTACT_IS_FOLLOWER && in_array($importer["page-flags"], array(PAGE_FREELOVE))) {
-			q("UPDATE `contact` SET `rel` = %d, `writable` = 1 WHERE `id` = %d AND `uid` = %d",
-				intval(CONTACT_IS_FRIEND),
-				intval($contact["id"]),
-				intval($importer["uid"])
-			);
+			dba::update('contact', array('rel' => CONTACT_IS_FRIEND, 'writable' => true),
+					array('id' => $contact["id"], 'uid' => $contact["uid"]));
+
 			$contact["rel"] = CONTACT_IS_FRIEND;
 			logger("defining user ".$contact["nick"]." as friend");
 		}
@@ -1014,10 +1030,16 @@ class Diaspora {
 	 * @param array $item The item array
 	 */
 	private static function fetch_guid($item) {
+		$expression = "=diaspora://.*?/post/([0-9A-Za-z\-_@.:]{15,254}[0-9A-Za-z])=ism";
+		preg_replace_callback($expression,
+			function ($match) use ($item) {
+				return self::fetch_guid_sub($match, $item);
+			}, $item["body"]);
+
 		preg_replace_callback("&\[url=/posts/([^\[\]]*)\](.*)\[\/url\]&Usi",
-			function ($match) use ($item){
-				return(self::fetch_guid_sub($match, $item));
-			},$item["body"]);
+			function ($match) use ($item) {
+				return self::fetch_guid_sub($match, $item);
+			}, $item["body"]);
 	}
 
 	/**
@@ -1029,7 +1051,7 @@ class Diaspora {
 	 *
 	 * @return the replaced string
 	 */
-	public function replace_people_guid($body, $author_link) {
+	public static function replace_people_guid($body, $author_link) {
 		$return = preg_replace_callback("&\[url=/people/([^\[\]]*)\](.*)\[\/url\]&Usi",
 			function ($match) use ($author_link) {
 				// $match
@@ -1131,7 +1153,7 @@ class Diaspora {
 				return false;
 		}
 
-		$source_xml = parse_xml_string($x, false);
+		$source_xml = parse_xml_string($x);
 
 		if (!is_object($source_xml))
 			return false;
@@ -1178,7 +1200,7 @@ class Diaspora {
 	 * @return array the item record
 	 */
 	private static function parent_item($uid, $guid, $author, $contact) {
-		$r = q("SELECT `id`, `body`, `wall`, `uri`, `private`, `origin`,
+		$r = q("SELECT `id`, `parent`, `body`, `wall`, `uri`, `guid`, `private`, `origin`,
 				`author-name`, `author-link`, `author-avatar`,
 				`owner-name`, `owner-link`, `owner-avatar`
 			FROM `item` WHERE `uid` = %d AND `guid` = '%s' LIMIT 1",
@@ -1261,26 +1283,38 @@ class Diaspora {
 	 *
 	 * @return string the post link
 	 */
-	private static function plink($addr, $guid) {
+	private static function plink($addr, $guid, $parent_guid = '') {
 		$r = q("SELECT `url`, `nick`, `network` FROM `fcontact` WHERE `addr`='%s' LIMIT 1", dbesc($addr));
 
 		// Fallback
-		if (!$r)
-			return "https://".substr($addr,strpos($addr,"@")+1)."/posts/".$guid;
+		if (!dbm::is_result($r)) {
+			if ($parent_guid != '') {
+				return "https://".substr($addr,strpos($addr,"@") + 1)."/posts/".$parent_guid."#".$guid;
+			} else {
+				return "https://".substr($addr,strpos($addr,"@") + 1)."/posts/".$guid;
+			}
+		}
 
 		// Friendica contacts are often detected as Diaspora contacts in the "fcontact" table
 		// So we try another way as well.
 		$s = q("SELECT `network` FROM `gcontact` WHERE `nurl`='%s' LIMIT 1", dbesc(normalise_link($r[0]["url"])));
-		if ($s)
+		if (dbm::is_result($s)) {
 			$r[0]["network"] = $s[0]["network"];
+		}
 
-		if ($r[0]["network"] == NETWORK_DFRN)
-			return(str_replace("/profile/".$r[0]["nick"]."/", "/display/".$guid, $r[0]["url"]."/"));
+		if ($r[0]["network"] == NETWORK_DFRN) {
+			return str_replace("/profile/".$r[0]["nick"]."/", "/display/".$guid, $r[0]["url"]."/");
+		}
 
-		if (self::is_redmatrix($r[0]["url"]))
+		if (self::is_redmatrix($r[0]["url"])) {
 			return $r[0]["url"]."/?f=&mid=".$guid;
+		}
 
-		return "https://".substr($addr,strpos($addr,"@")+1)."/posts/".$guid;
+		if ($parent_guid != '') {
+			return "https://".substr($addr,strpos($addr,"@")+1)."/posts/".$parent_guid."#".$guid;
+		} else {
+			return "https://".substr($addr,strpos($addr,"@")+1)."/posts/".$guid;
+		}
 	}
 
 	/**
@@ -1454,6 +1488,8 @@ class Diaspora {
 
 		$datarray["changed"] = $datarray["created"] = $datarray["edited"] = $created_at;
 
+		$datarray["plink"] = self::plink($author, $guid, $parent_item['guid']);
+
 		$body = diaspora2bb($text);
 
 		$datarray["body"] = self::replace_people_guid($body, $person["url"]);
@@ -1475,10 +1511,7 @@ class Diaspora {
 
 			// Formerly we stored the signed text, the signature and the author in different fields.
 			// We now store the raw data so that we are more flexible.
-			q("INSERT INTO `sign` (`iid`,`signed_text`) VALUES (%d,'%s')",
-				intval($message_id),
-				dbesc(json_encode($data))
-			);
+			dba::insert('sign', array('iid' => $message_id, 'signed_text' => json_encode($data)));
 
 			// notify others
 			proc_run(PRIORITY_HIGH, "include/notifier.php", "comment-import", $message_id);
@@ -1560,10 +1593,7 @@ class Diaspora {
 
 		dba::unlock();
 
-		q("UPDATE `conv` SET `updated` = '%s' WHERE `id` = %d",
-			dbesc(datetime_convert()),
-			intval($conversation["id"])
-		);
+		dba::update('conv', array('updated' => datetime_convert()), array('id' => $conversation["id"]));
 
 		notification(array(
 			"type" => NOTIFY_MAIL,
@@ -1662,7 +1692,7 @@ class Diaspora {
 
 		$ulink = "[url=".$contact["url"]."]".$contact["name"]."[/url]";
 		$alink = "[url=".$parent_item["author-link"]."]".$parent_item["author-name"]."[/url]";
-		$plink = "[url=".App::get_baseurl()."/display/".urlencode($guid)."]".t("status")."[/url]";
+		$plink = "[url=".System::baseUrl()."/display/".urlencode($guid)."]".t("status")."[/url]";
 
 		return sprintf($bodyverb, $ulink, $alink, $plink);
 	}
@@ -1677,7 +1707,7 @@ class Diaspora {
 	 */
 	private static function construct_like_object($importer, $parent_item) {
 		$objtype = ACTIVITY_OBJ_NOTE;
-		$link = '<link rel="alternate" type="text/html" href="'.App::get_baseurl()."/display/".$importer["nickname"]."/".$parent_item["id"].'" />';
+		$link = '<link rel="alternate" type="text/html" href="'.System::baseUrl()."/display/".$importer["nickname"]."/".$parent_item["id"].'" />';
 		$parent_body = $parent_item["body"];
 
 		$xmldata = array("object" => array("type" => $objtype,
@@ -1778,15 +1808,20 @@ class Diaspora {
 			logger("Stored like ".$datarray["guid"]." with message id ".$message_id, LOGGER_DEBUG);
 		}
 
+		// like on comments have the comment as parent. So we need to fetch the toplevel parent
+		if ($parent_item["id"] != $parent_item["parent"]) {
+			$toplevel = dba::select('item', array('origin'), array('id' => $parent_item["parent"]), array('limit' => 1));
+			$origin = $toplevel["origin"];
+		} else {
+			$origin = $parent_item["origin"];
+		}
+
 		// If we are the origin of the parent we store the original data and notify our followers
-		if ($message_id && $parent_item["origin"]) {
+		if ($message_id && $origin) {
 
 			// Formerly we stored the signed text, the signature and the author in different fields.
 			// We now store the raw data so that we are more flexible.
-			q("INSERT INTO `sign` (`iid`,`signed_text`) VALUES (%d,'%s')",
-				intval($message_id),
-				dbesc(json_encode($data))
-			);
+			dba::insert('sign', array('iid' => $message_id, 'signed_text' => json_encode($data)));
 
 			// notify others
 			proc_run(PRIORITY_HIGH, "include/notifier.php", "comment-import", $message_id);
@@ -1871,11 +1906,7 @@ class Diaspora {
 
 		dba::unlock();
 
-		q("UPDATE `conv` SET `updated` = '%s' WHERE `id` = %d",
-			dbesc(datetime_convert()),
-			intval($conversation["id"])
-		);
-
+		dba::update('conv', array('updated' => datetime_convert()), array('id' => $conversation["id"]));
 		return true;
 	}
 
@@ -2018,12 +2049,9 @@ class Diaspora {
 
 		$a = get_app();
 
-		if ($contact["rel"] == CONTACT_IS_FOLLOWER && in_array($importer["page-flags"], array(PAGE_FREELOVE))) {
-			q("UPDATE `contact` SET `rel` = %d, `writable` = 1 WHERE `id` = %d AND `uid` = %d",
-				intval(CONTACT_IS_FRIEND),
-				intval($contact["id"]),
-				intval($importer["uid"])
-			);
+		if ($contact["rel"] == CONTACT_IS_SHARING) {
+			dba::update('contact', array('rel' => CONTACT_IS_FRIEND, 'writable' => true),
+					array('id' => $contact["id"], 'uid' => $importer["uid"]));
 		}
 		// send notification
 
@@ -2132,8 +2160,8 @@ class Diaspora {
 		// perhaps we were already sharing with this person. Now they're sharing with us.
 		// That makes us friends.
 		if ($contact) {
-			if ($following && $sharing) {
-				logger("Author ".$author." (Contact ".$contact["id"].") wants to have a bidirectional conection.", LOGGER_DEBUG);
+			if ($following) {
+				logger("Author ".$author." (Contact ".$contact["id"].") wants to follow us.", LOGGER_DEBUG);
 				self::receive_request_make_friend($importer, $contact);
 
 				// refetch the contact array
@@ -2141,7 +2169,7 @@ class Diaspora {
 
 				// If we are now friends, we are sending a share message.
 				// Normally we needn't to do so, but the first message could have been vanished.
-				if (in_array($contact["rel"], array(CONTACT_IS_FRIEND, CONTACT_IS_FOLLOWER))) {
+				if (in_array($contact["rel"], array(CONTACT_IS_FRIEND))) {
 					$u = q("SELECT * FROM `user` WHERE `uid` = %d LIMIT 1", intval($importer["uid"]));
 					if ($u) {
 						logger("Sending share message to author ".$author." - Contact: ".$contact["id"]." - User: ".$importer["uid"], LOGGER_DEBUG);
@@ -2149,9 +2177,10 @@ class Diaspora {
 					}
 				}
 				return true;
-			} else { /// @todo Handle all possible variations of adding and retracting of permissions
-				logger("Author ".$author." (Contact ".$contact["id"].") wants to change the relationship: Following: ".$following." - sharing: ".$sharing. "(By now unsupported)", LOGGER_DEBUG);
-				return false;
+			} else {
+				logger("Author ".$author." doesn't want to follow us anymore.", LOGGER_DEBUG);
+				lose_follower($importer, $contact);
+				return true;
 			}
 		}
 
@@ -2302,7 +2331,7 @@ class Diaspora {
 			// If it is a reshared post from another network then reformat to avoid display problems with two share elements
 			if (self::is_reshare($r[0]["body"], true)) {
 				$r = array();
-			} elseif (self::is_reshare($r[0]["body"], false)) {
+			} elseif (self::is_reshare($r[0]["body"], false) || strstr($r[0]["body"], "[share")) {
 				$r[0]["body"] = diaspora2bb(bb2diaspora($r[0]["body"]));
 
 				$r[0]["body"] = self::replace_people_guid($r[0]["body"], $r[0]["author-link"]);
@@ -2381,7 +2410,7 @@ class Diaspora {
 			return false;
 		}
 
-		$orig_url = App::get_baseurl()."/display/".$original_item["guid"];
+		$orig_url = System::baseUrl()."/display/".$original_item["guid"];
 
 		$datarray = array();
 
@@ -2450,43 +2479,52 @@ class Diaspora {
 			return false;
 		}
 
-		if (!isset($contact["url"])) {
+		if (empty($contact["url"])) {
 			$contact["url"] = $person["url"];
 		}
 
-		$r = q("SELECT `id`, `parent`, `parent-uri`, `author-link` FROM `item` WHERE `guid` = '%s' AND `uid` = %d AND NOT `file` LIKE '%%[%%' LIMIT 1",
-			dbesc($target_guid),
-			intval($importer["uid"])
-		);
-		if (!$r) {
-			logger("Target guid ".$target_guid." was not found for user ".$importer["uid"]);
+		// Fetch items that are about to be deleted
+		$fields = array('uid', 'id', 'parent', 'parent-uri', 'author-link');
+
+		// When we receive a public retraction, we delete every item that we find.
+		if ($importer['uid'] == 0) {
+			$condition = array("`guid` = ? AND NOT `file` LIKE '%%[%%' AND NOT `deleted`", $target_guid);
+		} else {
+			$condition = array("`guid` = ? AND `uid` = ? AND NOT `file` LIKE '%%[%%' AND NOT `deleted`", $target_guid, $importer['uid']);
+		}
+		$r = dba::select('item', $fields, $condition);
+		if (!dbm::is_result($r)) {
+			logger("Target guid ".$target_guid." was not found on this system for user ".$importer['uid'].".");
 			return false;
 		}
 
-		// Check if the sender is the thread owner
-		$p = q("SELECT `id`, `author-link`, `origin` FROM `item` WHERE `id` = %d",
-			intval($r[0]["parent"]));
+		while ($item = dba::fetch($r)) {
+			// Fetch the parent item
+			$parent = dba::select('item', array('author-link', 'origin'), array('id' => $item["parent"]), array('limit' => 1));
 
-		// Only delete it if the parent author really fits
-		if (!link_compare($p[0]["author-link"], $contact["url"]) && !link_compare($r[0]["author-link"], $contact["url"])) {
-			logger("Thread author ".$p[0]["author-link"]." and item author ".$r[0]["author-link"]." don't fit to expected contact ".$contact["url"], LOGGER_DEBUG);
-			return false;
-		}
+			// Only delete it if the parent author really fits
+			if (!link_compare($parent["author-link"], $contact["url"]) && !link_compare($item["author-link"], $contact["url"])) {
+				logger("Thread author ".$parent["author-link"]." and item author ".$item["author-link"]." don't fit to expected contact ".$contact["url"], LOGGER_DEBUG);
+				continue;
+			}
 
-		// Currently we don't have a central deletion function that we could use in this case. The function "item_drop" doesn't work for that case
-		q("UPDATE `item` SET `deleted` = 1, `edited` = '%s', `changed` = '%s', `body` = '' , `title` = '' WHERE `id` = %d",
-			dbesc(datetime_convert()),
-			dbesc(datetime_convert()),
-			intval($r[0]["id"])
-		);
-		delete_thread($r[0]["id"], $r[0]["parent-uri"]);
+			// Currently we don't have a central deletion function that we could use in this case. The function "item_drop" doesn't work for that case
+			dba::update('item', array('deleted' => true, 'title' => '', 'body' => '',
+						'edited' => datetime_convert(), 'changed' => datetime_convert()),
+					array('id' => $item["id"]));
 
-		logger("Deleted target ".$target_guid." (".$r[0]["id"].") from user ".$importer["uid"]." parent: ".$p[0]["id"], LOGGER_DEBUG);
+			// Delete the thread - if it is a starting post and not a comment
+			if ($target_type != 'Comment') {
+				delete_thread($item["id"], $item["parent-uri"]);
+			}
 
-		// Now check if the retraction needs to be relayed by us
-		if ($p[0]["origin"]) {
-			// notify others
-			proc_run(PRIORITY_HIGH, "include/notifier.php", "drop", $r[0]["id"]);
+			logger("Deleted target ".$target_guid." (".$item["id"].") from user ".$item["uid"]." parent: ".$item["parent"], LOGGER_DEBUG);
+
+			// Now check if the retraction needs to be relayed by us
+			if ($parent["origin"]) {
+				// notify others
+				proc_run(PRIORITY_HIGH, "include/notifier.php", "drop", $item["id"]);
+			}
 		}
 
 		return true;
@@ -2672,7 +2710,7 @@ class Diaspora {
 			$nick = $contact["nick"];
 		}
 
-		return $nick."@".substr(App::get_baseurl(), strpos(App::get_baseurl(),"://") + 3);
+		return $nick."@".substr(System::baseUrl(), strpos(System::baseUrl(),"://") + 3);
 	}
 
 
@@ -3530,7 +3568,14 @@ class Diaspora {
 		$itemaddr = self::handle_from_contact($item["contact-id"], $item["gcontact-id"]);
 
 		$msg_type = "retraction";
-		$target_type = "Post";
+
+		if ($item['id'] == $item['parent']) {
+			$target_type = "Post";
+		} elseif ($item["verb"] == ACTIVITY_LIKE) {
+			$target_type = "Like";
+		} else {
+			$target_type = "Comment";
+		}
 
 		$message = array("author" => $itemaddr,
 				"target_guid" => $item['guid'],
@@ -3639,9 +3684,9 @@ class Diaspora {
 		$first = ((strpos($profile['name'],' ')
 			? trim(substr($profile['name'],0,strpos($profile['name'],' '))) : $profile['name']));
 		$last = (($first === $profile['name']) ? '' : trim(substr($profile['name'], strlen($first))));
-		$large = App::get_baseurl().'/photo/custom/300/'.$profile['uid'].'.jpg';
-		$medium = App::get_baseurl().'/photo/custom/100/'.$profile['uid'].'.jpg';
-		$small = App::get_baseurl().'/photo/custom/50/'  .$profile['uid'].'.jpg';
+		$large = System::baseUrl().'/photo/custom/300/'.$profile['uid'].'.jpg';
+		$medium = System::baseUrl().'/photo/custom/100/'.$profile['uid'].'.jpg';
+		$small = System::baseUrl().'/photo/custom/50/'  .$profile['uid'].'.jpg';
 		$searchable = (($profile['publish'] && $profile['net-publish']) ? 'true' : 'false');
 
 		if ($searchable === 'true') {
@@ -3728,10 +3773,7 @@ class Diaspora {
 		 * Now store the signature more flexible to dynamically support new fields.
 		 * This will break Diaspora compatibility with Friendica versions prior to 3.5.
 		 */
-		q("INSERT INTO `sign` (`iid`,`signed_text`) VALUES (%d,'%s')",
-			intval($post_id),
-			dbesc(json_encode($message))
-		);
+		dba::insert('sign', array('iid' => $post_id, 'signed_text' => json_encode($message)));
 
 		logger('Stored diaspora like signature');
 		return true;
@@ -3763,10 +3805,7 @@ class Diaspora {
 		 * Now store the signature more flexible to dynamically support new fields.
 		 * This will break Diaspora compatibility with Friendica versions prior to 3.5.
 		 */
-		q("INSERT INTO `sign` (`iid`, `signed_text`) VALUES (%d, '%s')",
-			intval($message_id),
-			dbesc(json_encode($message))
-		);
+		dba::insert('sign', array('iid' => $message_id, 'signed_text' => json_encode($message)));
 
 		logger('Stored diaspora comment signature');
 		return true;

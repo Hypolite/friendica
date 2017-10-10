@@ -2,6 +2,7 @@
 // Based upon "Privacy Image Cache" by Tobias Hößl <https://github.com/CatoTH/>
 
 use Friendica\App;
+use Friendica\Core\System;
 
 define('PROXY_DEFAULT_TIME', 86400); // 1 Day
 
@@ -141,10 +142,10 @@ function proxy_init(App $a) {
 	$r = array();
 
 	if (!$direct_cache && ($cachefile == '')) {
-		$r = qu("SELECT * FROM `photo` WHERE `resource-id` = '%s' LIMIT 1", $urlhash);
+		$r = dba::select('photo', array('data', 'desc'), array('resource-id' => $urlhash), array('limit' => 1));
 		if (dbm::is_result($r)) {
-			$img_str = $r[0]['data'];
-			$mime = $r[0]['desc'];
+			$img_str = $r['data'];
+			$mime = $r['desc'];
 			if ($mime == '') {
 				$mime = 'image/jpeg';
 			}
@@ -180,23 +181,11 @@ function proxy_init(App $a) {
 				die();
 			}
 
-			q("INSERT INTO `photo`
-			( `uid`, `contact-id`, `guid`, `resource-id`, `created`, `edited`, `filename`, `album`, `height`, `width`, `desc`, `data`, `scale`, `profile`, `allow_cid`, `allow_gid`, `deny_cid`, `deny_gid` )
-			VALUES ( %d, %d, '%s', '%s', '%s', '%s', '%s', '%s', %d, %d, '%s', '%s', %d, %d, '%s', '%s', '%s', '%s' )",
-				0, 0, get_guid(), dbesc($urlhash),
-				dbesc(datetime_convert()),
-				dbesc(datetime_convert()),
-				dbesc(basename(dbesc($_REQUEST['url']))),
-				dbesc(''),
-				intval(imagesy($image)),
-				intval(imagesx($image)),
-				$mime,
-				dbesc($img_str),
-				100,
-				intval(0),
-				dbesc(''), dbesc(''), dbesc(''), dbesc('')
-			);
-
+			$fields = array('uid' => 0, 'contact-id' => 0, 'guid' => get_guid(), 'resource-id' => $urlhash, 'created' => datetime_convert(), 'edited' => datetime_convert(),
+				'filename' => basename($_REQUEST['url']), 'type' => '', 'album' => '', 'height' => imagesy($image), 'width' => imagesx($image),
+				'datasize' => 0, 'data' => $img_str, 'scale' => 100, 'profile' => 0,
+				'allow_cid' => '', 'allow_gid' => '', 'deny_cid' => '', 'deny_gid' => '', 'desc' => $mime);
+			dba::insert('photo', $fields);
 		} else {
 			$img = new Photo($img_str, $mime);
 			if ($img->is_valid() && !$direct_cache && ($cachefile == '')) {
@@ -265,7 +254,7 @@ function proxy_url($url, $writemode = false, $size = '') {
 
 	// Only continue if it isn't a local image and the isn't deactivated
 	if (proxy_is_local_image($url)) {
-		$url = str_replace(normalise_link(App::get_baseurl()) . '/', App::get_baseurl() . '/', $url);
+		$url = str_replace(normalise_link(System::baseUrl()) . '/', System::baseUrl() . '/', $url);
 		return $url;
 	}
 
@@ -298,7 +287,7 @@ function proxy_url($url, $writemode = false, $size = '') {
 		$longpath .= '.' . $extension;
 	}
 
-	$proxypath = App::get_baseurl() . '/proxy/' . $longpath;
+	$proxypath = System::baseUrl() . '/proxy/' . $longpath;
 
 	if ($size != '') {
 		$size = ':' . $size;
@@ -309,7 +298,7 @@ function proxy_url($url, $writemode = false, $size = '') {
 	if ((strlen($proxypath) > 250) && $writemode) {
 		return $shortpath;
 	} elseif (strlen($proxypath) > 250) {
-		return App::get_baseurl() . '/proxy/' . $shortpath . '?url=' . urlencode($url);
+		return System::baseUrl() . '/proxy/' . $shortpath . '?url=' . urlencode($url);
 	} elseif ($writemode) {
 		return $longpath;
 	} else {
@@ -331,7 +320,7 @@ function proxy_is_local_image($url) {
 	}
 
 	// links normalised - bug #431
-	$baseurl = normalise_link(App::get_baseurl());
+	$baseurl = normalise_link(System::baseUrl());
 	$url = normalise_link($url);
 	return (substr($url, 0, strlen($baseurl)) == $baseurl);
 }
@@ -373,7 +362,7 @@ function proxy_img_cb($matches) {
 }
 
 function proxy_parse_html($html) {
-	$html = str_replace(normalise_link(App::get_baseurl()) . '/', App::get_baseurl() . '/', $html);
+	$html = str_replace(normalise_link(System::baseUrl()) . '/', System::baseUrl() . '/', $html);
 
 	return preg_replace_callback('/(<img [^>]*src *= *["\'])([^"\']+)(["\'][^>]*>)/siU', 'proxy_img_cb', $html);
 }

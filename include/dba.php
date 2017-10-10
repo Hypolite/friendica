@@ -1,14 +1,11 @@
 <?php
+use \Friendica\Core\System;
+
 require_once("dbm.php");
 require_once('include/datetime.php');
 
 /**
  * @class MySQL database class
- *
- * For debugging, insert 'dbg(1);' anywhere in the program flow.
- * dbg(0); will turn it off. Logging is performed at LOGGER_DATA level.
- * When logging, all binary info is converted to text and html entities are escaped so that
- * the debugging stream is safe to view within both terminals and web pages.
  *
  * This class is for the low level database stuff that does driver specific things.
  */
@@ -75,11 +72,15 @@ class dba {
 			if (isset($a->config["system"]["db_charset"])) {
 				$connect .= ";charset=".$a->config["system"]["db_charset"];
 			}
-			$this->db = @new PDO($connect, $user, $pass);
-			if (!$this->db->errorCode()) {
+			try {
+				$this->db = @new PDO($connect, $user, $pass);
 				$this->connected = true;
+			} catch (PDOException $e) {
+				$this->connected = false;
 			}
-		} elseif (class_exists('mysqli')) {
+		}
+
+		if (!$this->connected && class_exists('mysqli')) {
 			$this->driver = 'mysqli';
 			$this->db = @new mysqli($server, $user, $pass, $db, $port);
 			if (!mysqli_connect_errno()) {
@@ -89,7 +90,9 @@ class dba {
 					$this->db->set_charset($a->config["system"]["db_charset"]);
 				}
 			}
-		} elseif (function_exists('mysql_connect')) {
+		}
+
+		if (!$this->connected && function_exists('mysql_connect')) {
 			$this->driver = 'mysql';
 			$this->db = mysql_connect($serveraddr, $user, $pass);
 			if ($this->db && mysql_select_db($db, $this->db)) {
@@ -99,13 +102,9 @@ class dba {
 					mysql_set_charset($a->config["system"]["db_charset"], $this->db);
 				}
 			}
-		} else {
-			// No suitable SQL driver was found.
-			if (!$install) {
-				system_unavailable();
-			}
 		}
 
+		// No suitable SQL driver was found.
 		if (!$this->connected) {
 			$this->db = null;
 			if (!$install) {
@@ -161,7 +160,7 @@ class dba {
 	public function log_index($query) {
 		$a = get_app();
 
-		if ($a->config["system"]["db_log_index"] == "") {
+		if (empty($a->config["system"]["db_log_index"])) {
 			return;
 		}
 
@@ -210,175 +209,32 @@ class dba {
 		}
 	}
 
-	public function q($sql, $onlyquery = false) {
-		$a = get_app();
+	/**
+	 * @brief execute SQL query - deprecated
+	 *
+	 * Please use the dba:: functions instead:
+	 * dba::select, dba::exists, dba::insert
+	 * dba::delete, dba::update, dba::p, dba::e
+	 *
+	 * @param string $sql SQL query
+	 * @return array Query array
+	 */
+	public function q($sql) {
+		$ret = self::p($sql);
 
-		if (!$this->db || !$this->connected) {
-			return false;
+		if (is_bool($ret)) {
+			return $ret;
 		}
 
-		$this->error = '';
+		$columns = self::columnCount($ret);
 
-		$connstr = ($this->connected() ? "Connected" : "Disonnected");
+		$data = self::inArray($ret);
 
-		$stamp1 = microtime(true);
-
-		$orig_sql = $sql;
-
-		if (x($a->config,'system') && x($a->config['system'], 'db_callstack')) {
-			$sql = "/*".$a->callstack()." */ ".$sql;
-		}
-
-		$columns = 0;
-
-		switch ($this->driver) {
-			case 'pdo':
-				$result = @$this->db->query($sql);
-				// Is used to separate between queries that returning data - or not
-				if (!is_bool($result)) {
-					$columns = $result->columnCount();
-				}
-				break;
-			case 'mysqli':
-				$result = @$this->db->query($sql);
-				break;
-			case 'mysql':
-				$result = @mysql_query($sql,$this->db);
-				break;
-		}
-		$stamp2 = microtime(true);
-		$duration = (float)($stamp2 - $stamp1);
-
-		$a->save_timestamp($stamp1, "database");
-
-		if (strtolower(substr($orig_sql, 0, 6)) != "select") {
-			$a->save_timestamp($stamp1, "database_write");
-		}
-		if (x($a->config,'system') && x($a->config['system'],'db_log')) {
-			if (($duration > $a->config["system"]["db_loglimit"])) {
-				$duration = round($duration, 3);
-				$backtrace = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS);
-				@file_put_contents($a->config["system"]["db_log"], datetime_convert()."\t".$duration."\t".
-						basename($backtrace[1]["file"])."\t".
-						$backtrace[1]["line"]."\t".$backtrace[2]["function"]."\t".
-						substr($sql, 0, 2000)."\n", FILE_APPEND);
-			}
-		}
-
-		switch ($this->driver) {
-			case 'pdo':
-				$errorInfo = $this->db->errorInfo();
-				if ($errorInfo) {
-					$this->error = $errorInfo[2];
-					$this->errorno = $errorInfo[1];
-				}
-				break;
-			case 'mysqli':
-				if ($this->db->errno) {
-					$this->error = $this->db->error;
-					$this->errorno = $this->db->errno;
-				}
-				break;
-			case 'mysql':
-				if (mysql_errno($this->db)) {
-					$this->error = mysql_error($this->db);
-					$this->errorno = mysql_errno($this->db);
-				}
-				break;
-		}
-		if (strlen($this->error)) {
-			logger('DB Error ('.$connstr.') '.$this->errorno.': '.$this->error);
-		}
-
-		if ($this->debug) {
-
-			$mesg = '';
-
-			if ($result === false) {
-				$mesg = 'false';
-			} elseif ($result === true) {
-				$mesg = 'true';
-			} else {
-				switch ($this->driver) {
-					case 'pdo':
-						$mesg = $result->rowCount().' results'.EOL;
-						break;
-					case 'mysqli':
-						$mesg = $result->num_rows.' results'.EOL;
-						break;
-					case 'mysql':
-						$mesg = mysql_num_rows($result).' results'.EOL;
-						break;
-				}
-			}
-
-			$str =  'SQL = ' . printable($sql) . EOL . 'SQL returned ' . $mesg
-				. (($this->error) ? ' error: ' . $this->error : '')
-				. EOL;
-
-			logger('dba: ' . $str );
-		}
-
-		/**
-		 * If dbfail.out exists, we will write any failed calls directly to it,
-		 * regardless of any logging that may or may nor be in effect.
-		 * These usually indicate SQL syntax errors that need to be resolved.
-		 */
-
-		if ($result === false) {
-			logger('dba: ' . printable($sql) . ' returned false.' . "\n" . $this->error);
-			if (file_exists('dbfail.out')) {
-				file_put_contents('dbfail.out', datetime_convert() . "\n" . printable($sql) . ' returned false' . "\n" . $this->error . "\n", FILE_APPEND);
-			}
-		}
-
-		if (is_bool($result)) {
-			return $result;
-		}
-		if ($onlyquery) {
-			$this->result = $result;
+		if ((count($data) == 0) && ($columns == 0)) {
 			return true;
 		}
 
-		$r = array();
-		switch ($this->driver) {
-			case 'pdo':
-				while ($x = $result->fetch(PDO::FETCH_ASSOC)) {
-					$r[] = $x;
-				}
-				$result->closeCursor();
-				break;
-			case 'mysqli':
-				while ($x = $result->fetch_array(MYSQLI_ASSOC)) {
-					$r[] = $x;
-				}
-				$result->free_result();
-				break;
-			case 'mysql':
-				while ($x = mysql_fetch_array($result, MYSQL_ASSOC)) {
-					$r[] = $x;
-				}
-				mysql_free_result($result);
-				break;
-		}
-
-		// PDO doesn't return "true" on successful operations - like mysqli does
-		// Emulate this behaviour by checking if the query returned data and had columns
-		// This should be reliable enough
-		if (($this->driver == 'pdo') && (count($r) == 0) && ($columns == 0)) {
-			return true;
-		}
-
-		//$a->save_timestamp($stamp1, "database");
-
-		if ($this->debug) {
-			logger('dba: ' . printable(print_r($r, true)));
-		}
-		return($r);
-	}
-
-	public function dbg($dbg) {
-		$this->debug = $dbg;
+		return $data;
 	}
 
 	public function escape($str) {
@@ -408,21 +264,6 @@ class dba {
 				break;
 		}
 		return $connected;
-	}
-
-	function insert_id() {
-		switch ($this->driver) {
-			case 'pdo':
-				$id = $this->db->lastInsertId();
-				break;
-			case 'mysqli':
-				$id = $this->db->insert_id;
-				break;
-			case 'mysql':
-				$id = mysql_insert_id($this->db);
-				break;
-		}
-		return $id;
 	}
 
 	function __destruct() {
@@ -489,7 +330,7 @@ class dba {
 	 * @param array $args The parameters that are to replace the ? placeholders
 	 * @return string The replaced SQL query
 	 */
-	static private function replace_parameters($sql, $args) {
+	private static function replace_parameters($sql, $args) {
 		$offset = 0;
 		foreach ($args AS $param => $value) {
 			if (is_int($args[$param]) || is_float($args[$param])) {
@@ -508,30 +349,46 @@ class dba {
 	}
 
 	/**
-	 * @brief Executes a prepared statement that returns data
-	 * @usage Example: $r = p("SELECT * FROM `item` WHERE `guid` = ?", $guid);
-	 * @param string $sql SQL statement
-	 * @return object statement object
+	 * @brief Convert parameter array to an universal form
+	 * @param array $args Parameter array
+	 * @return array universalized parameter array
 	 */
-	static public function p($sql) {
-		$a = get_app();
-
-		$stamp1 = microtime(true);
-
-		$args = func_get_args();
+	private static function getParam($args) {
 		unset($args[0]);
 
 		// When the second function parameter is an array then use this as the parameter array
 		if ((count($args) > 0) && (is_array($args[1]))) {
-			$params = $args[1];
+			return $args[1];
 		} else {
-			$params = $args;
+			return $args;
 		}
+	}
+
+	/**
+	 * @brief Executes a prepared statement that returns data
+	 * @usage Example: $r = p("SELECT * FROM `item` WHERE `guid` = ?", $guid);
+	 *
+	 * Please only use it with complicated queries.
+	 * For all regular queries please use dba::select or dba::exists
+	 *
+	 * @param string $sql SQL statement
+	 * @return object statement object
+	 */
+	public static function p($sql) {
+		$a = get_app();
+
+		$stamp1 = microtime(true);
+
+		$params = self::getParam(func_get_args());
 
 		// Renumber the array keys to be sure that they fit
 		$i = 0;
 		$args = array();
 		foreach ($params AS $param) {
+			// Avoid problems with some MySQL servers and boolean values. See issue #3645
+			if (is_bool($param)) {
+				$param = (int)$param;
+			}
 			$args[++$i] = $param;
 		}
 
@@ -539,7 +396,7 @@ class dba {
 			return false;
 		}
 
-		if (substr_count($sql, '?') != count($args)) {
+		if ((substr_count($sql, '?') != count($args)) && (count($args) > 0)) {
 			// Question: Should we continue or stop the query here?
 			logger('Parameter mismatch. Query "'.$sql.'" - Parameters '.print_r($args, true), LOGGER_DEBUG);
 		}
@@ -547,16 +404,43 @@ class dba {
 		$sql = self::$dbo->clean_query($sql);
 		$sql = self::$dbo->any_value_fallback($sql);
 
+		$orig_sql = $sql;
+
 		if (x($a->config,'system') && x($a->config['system'], 'db_callstack')) {
-			$sql = "/*".$a->callstack()." */ ".$sql;
+			$sql = "/*".System::callstack()." */ ".$sql;
 		}
 
 		self::$dbo->error = '';
 		self::$dbo->errorno = 0;
 		self::$dbo->affected_rows = 0;
 
+		// We have to make some things different if this function is called from "e"
+		$trace = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 2);
+
+		if (isset($trace[1])) {
+			$called_from = $trace[1];
+		} else {
+			// We use just something that is defined to avoid warnings
+			$called_from = $trace[0];
+		}
+		// We are having an own error logging in the function "e"
+		$called_from_e = ($called_from['function'] == 'e');
+
 		switch (self::$dbo->driver) {
 			case 'pdo':
+				// If there are no arguments we use "query"
+				if (count($args) == 0) {
+					if (!$retval = self::$dbo->db->query($sql)) {
+						$errorInfo = self::$dbo->db->errorInfo();
+						self::$dbo->error = $errorInfo[2];
+						self::$dbo->errorno = $errorInfo[1];
+						$retval = false;
+						break;
+					}
+					self::$dbo->affected_rows = $retval->rowCount();
+					break;
+				}
+
 				if (!$stmt = self::$dbo->db->prepare($sql)) {
 					$errorInfo = self::$dbo->db->errorInfo();
 					self::$dbo->error = $errorInfo[2];
@@ -580,6 +464,28 @@ class dba {
 				}
 				break;
 			case 'mysqli':
+				// There are SQL statements that cannot be executed with a prepared statement
+				$parts = explode(' ', $orig_sql);
+				$command = strtolower($parts[0]);
+				$can_be_prepared = in_array($command, array('select', 'update', 'insert', 'delete'));
+
+				// The fallback routine is called as well when there are no arguments
+				if (!$can_be_prepared || (count($args) == 0)) {
+					$retval = self::$dbo->db->query(self::replace_parameters($sql, $args));
+					if (self::$dbo->db->errno) {
+						self::$dbo->error = self::$dbo->db->error;
+						self::$dbo->errorno = self::$dbo->db->errno;
+						$retval = false;
+					} else {
+						if (isset($retval->num_rows)) {
+							self::$dbo->affected_rows = $retval->num_rows;
+						} else {
+							self::$dbo->affected_rows = self::$dbo->db->affected_rows;
+						}
+					}
+					break;
+				}
+
 				$stmt = self::$dbo->db->stmt_init();
 
 				if (!$stmt->prepare($sql)) {
@@ -637,27 +543,17 @@ class dba {
 				break;
 		}
 
-		if (self::$dbo->errorno != 0) {
-			$trace = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 3);
+		// We are having an own error logging in the function "e"
+		if ((self::$dbo->errorno != 0) && !$called_from_e) {
+			// We have to preserve the error code, somewhere in the logging it get lost
+			$error = self::$dbo->error;
+			$errorno = self::$dbo->errorno;
 
-			if (isset($trace[2])) {
-				$called_from = $trace[2];
-			} else {
-				// We use just something that is defined to avoid warnings
-				$called_from = $trace[0];
-			}
-			// We are having an own error logging in the function "e"
-			if ($called_from['function'] != 'e') {
-				// We have to preserve the error code, somewhere in the logging it get lost
-				$error = self::$dbo->error;
-				$errorno = self::$dbo->errorno;
+			logger('DB Error '.self::$dbo->errorno.': '.self::$dbo->error."\n".
+				System::callstack(8)."\n".self::replace_parameters($sql, $params));
 
-				logger('DB Error '.self::$dbo->errorno.': '.self::$dbo->error."\n".
-					$a->callstack(8)."\n".self::replace_parameters($sql, $params));
-
-				self::$dbo->error = $error;
-				self::$dbo->errorno = $errorno;
-			}
+			self::$dbo->error = $error;
+			self::$dbo->errorno = $errorno;
 		}
 
 		$a->save_timestamp($stamp1, 'database');
@@ -683,21 +579,23 @@ class dba {
 	/**
 	 * @brief Executes a prepared statement like UPDATE or INSERT that doesn't return data
 	 *
+	 * Please use dba::delete, dba::insert, dba::update, ... instead
+	 *
 	 * @param string $sql SQL statement
 	 * @return boolean Was the query successfull? False is returned only if an error occurred
 	 */
-	static public function e($sql) {
+	public static function e($sql) {
 		$a = get_app();
 
 		$stamp = microtime(true);
 
-		$args = func_get_args();
+		$params = self::getParam(func_get_args());
 
 		// In a case of a deadlock we are repeating the query 20 times
 		$timeout = 20;
 
 		do {
-			$stmt = call_user_func_array('self::p', $args);
+			$stmt = self::p($sql, $params);
 
 			if (is_bool($stmt)) {
 				$retval = $stmt;
@@ -716,17 +614,8 @@ class dba {
 			$error = self::$dbo->error;
 			$errorno = self::$dbo->errorno;
 
-			array_shift($args);
-
-			// When the second function parameter is an array then use this as the parameter array
-			if ((count($args) > 0) && (is_array($args[0]))) {
-				$params = $args[0];
-			} else {
-				$params = $args;
-			}
-
 			logger('DB Error '.self::$dbo->errorno.': '.self::$dbo->error."\n".
-				$a->callstack(8)."\n".self::replace_parameters($sql, $params));
+				System::callstack(8)."\n".self::replace_parameters($sql, $params));
 
 			self::$dbo->error = $error;
 			self::$dbo->errorno = $errorno;
@@ -740,13 +629,25 @@ class dba {
 	/**
 	 * @brief Check if data exists
 	 *
-	 * @param string $sql SQL statement
-	 * @return boolean Are there rows for that query?
+	 * @param string $table Table name
+	 * @param array $condition array of fields for condition
+	 *
+	 * @return boolean Are there rows for that condition?
 	 */
-	static public function exists($sql) {
-		$args = func_get_args();
+	public static function exists($table, $condition) {
+		if (empty($table)) {
+			return false;
+		}
 
-		$stmt = call_user_func_array('self::p', $args);
+		$fields = array();
+
+		$array_element = each($condition);
+		$array_key = $array_element['key'];
+		if (!is_int($array_key)) {
+			$fields = array($array_key);
+		}
+
+		$stmt = self::select($table, $fields, $condition, array('limit' => 1, 'only_query' => true));
 
 		if (is_bool($stmt)) {
 			$retval = $stmt;
@@ -762,13 +663,15 @@ class dba {
 	/**
 	 * @brief Fetches the first row
 	 *
+	 * Please use dba::select or dba::exists whenever this is possible.
+	 *
 	 * @param string $sql SQL statement
 	 * @return array first row of query
 	 */
-	static public function fetch_first($sql) {
-		$args = func_get_args();
+	public static function fetch_first($sql) {
+		$params = self::getParam(func_get_args());
 
-		$stmt = call_user_func_array('self::p', $args);
+		$stmt = self::p($sql, $params);
 
 		if (is_bool($stmt)) {
 			$retval = $stmt;
@@ -786,17 +689,37 @@ class dba {
 	 *
 	 * @return int Number of rows
 	 */
-	static public function affected_rows() {
+	public static function affected_rows() {
 		return self::$dbo->affected_rows;
 	}
 
+	/**
+	 * @brief Returns the number of columns of a statement
+	 *
+	 * @param object Statement object
+	 * @return int Number of columns
+	 */
+	public static function columnCount($stmt) {
+		if (!is_object($stmt)) {
+			return 0;
+		}
+		switch (self::$dbo->driver) {
+			case 'pdo':
+				return $stmt->columnCount();
+			case 'mysqli':
+				return $stmt->field_count;
+			case 'mysql':
+				return mysql_affected_rows($stmt);
+		}
+		return 0;
+	}
 	/**
 	 * @brief Returns the number of rows of a statement
 	 *
 	 * @param object Statement object
 	 * @return int Number of rows
 	 */
-	static public function num_rows($stmt) {
+	public static function num_rows($stmt) {
 		if (!is_object($stmt)) {
 			return 0;
 		}
@@ -817,7 +740,7 @@ class dba {
 	 * @param object $stmt statement object
 	 * @return array current row
 	 */
-	static public function fetch($stmt) {
+	public static function fetch($stmt) {
 		if (!is_object($stmt)) {
 			return false;
 		}
@@ -826,6 +749,10 @@ class dba {
 			case 'pdo':
 				return $stmt->fetch(PDO::FETCH_ASSOC);
 			case 'mysqli':
+				if (get_class($stmt) == 'mysqli_result') {
+					return $stmt->fetch_assoc();
+				}
+
 				// This code works, but is slow
 
 				// Bind the result to a result array
@@ -863,14 +790,42 @@ class dba {
 	 *
 	 * @param string $table Table name
 	 * @param array $param parameter array
+	 * @param bool $on_duplicate_update Do an update on a duplicate entry
 	 *
 	 * @return boolean was the insert successfull?
 	 */
-	static public function insert($table, $param) {
+	public static function insert($table, $param, $on_duplicate_update = false) {
 		$sql = "INSERT INTO `".self::$dbo->escape($table)."` (`".implode("`, `", array_keys($param))."`) VALUES (".
-			substr(str_repeat("?, ", count($param)), 0, -2).");";
+			substr(str_repeat("?, ", count($param)), 0, -2).")";
+
+		if ($on_duplicate_update) {
+			$sql .= " ON DUPLICATE KEY UPDATE `".implode("` = ?, `", array_keys($param))."` = ?";
+
+			$values = array_values($param);
+			$param = array_merge_recursive($values, $values);
+		}
 
 		return self::e($sql, $param);
+	}
+
+	/**
+	 * @brief Fetch the id of the last insert command
+	 *
+	 * @return integer Last inserted id
+	 */
+	public static function lastInsertId() {
+		switch (self::$dbo->driver) {
+			case 'pdo':
+				$id = self::$dbo->db->lastInsertId();
+				break;
+			case 'mysqli':
+				$id = self::$dbo->db->insert_id;
+				break;
+			case 'mysql':
+				$id = mysql_insert_id(self::$dbo);
+				break;
+		}
+		return $id;
 	}
 
 	/**
@@ -882,7 +837,7 @@ class dba {
 	 *
 	 * @return boolean was the lock successful?
 	 */
-	static public function lock($table) {
+	public static function lock($table) {
 		// See here: https://dev.mysql.com/doc/refman/5.7/en/lock-tables-and-transactions.html
 		self::e("SET autocommit=0");
 		$success = self::e("LOCK TABLES `".self::$dbo->escape($table)."` WRITE");
@@ -899,7 +854,7 @@ class dba {
 	 *
 	 * @return boolean was the unlock successful?
 	 */
-	static public function unlock() {
+	public static function unlock() {
 		// See here: https://dev.mysql.com/doc/refman/5.7/en/lock-tables-and-transactions.html
 		self::e("COMMIT");
 		$success = self::e("UNLOCK TABLES");
@@ -913,7 +868,7 @@ class dba {
 	 *
 	 * @return boolean Was the command executed successfully?
 	 */
-	static public function transaction() {
+	public static function transaction() {
 		if (!self::e('COMMIT')) {
 			return false;
 		}
@@ -929,7 +884,7 @@ class dba {
 	 *
 	 * @return boolean Was the command executed successfully?
 	 */
-	static public function commit() {
+	public static function commit() {
 		if (!self::e('COMMIT')) {
 			return false;
 		}
@@ -942,7 +897,7 @@ class dba {
 	 *
 	 * @return boolean Was the command executed successfully?
 	 */
-	static public function rollback() {
+	public static function rollback() {
 		if (!self::e('ROLLBACK')) {
 			return false;
 		}
@@ -957,17 +912,17 @@ class dba {
 	 *
 	 * This process must only be started once, since the value is cached.
 	 */
-	static private function build_relation_data() {
+	private static function build_relation_data() {
 		$definition = db_definition();
 
 		foreach ($definition AS $table => $structure) {
-		        foreach ($structure['fields'] AS $field => $field_struct) {
-		                if (isset($field_struct['relation'])) {
-		                        foreach ($field_struct['relation'] AS $rel_table => $rel_field) {
-		                                self::$relation[$rel_table][$rel_field][$table][] = $field;
-		                        }
-		                }
-		        }
+			foreach ($structure['fields'] AS $field => $field_struct) {
+				if (isset($field_struct['relation'])) {
+					foreach ($field_struct['relation'] AS $rel_table => $rel_field) {
+						self::$relation[$rel_table][$rel_field][$table][] = $field;
+					}
+				}
+			}
 		}
 	}
 
@@ -981,7 +936,7 @@ class dba {
 	 *
 	 * @return boolean|array was the delete successfull? When $in_process is set: deletion data
 	 */
-	static public function delete($table, $param, $in_process = false, &$callstack = array()) {
+	public static function delete($table, $param, $in_process = false, &$callstack = array()) {
 
 		$commands = array();
 
@@ -1028,15 +983,15 @@ class dba {
 				$callstack[$qkey] = true;
 
 				// Fetch all rows that are to be deleted
-				$sql = "SELECT ".self::$dbo->escape($field)." FROM `".$table."` WHERE `".
-				implode("` = ? AND `", array_keys($param))."` = ?";
+				$data = self::select($table, array($field), $param);
 
-				$data = self::p($sql, $param);
 				while ($row = self::fetch($data)) {
 					// Now we accumulate the delete commands
 					$retval = self::delete($table, array($field => $row[$field]), true, $callstack);
 					$commands = array_merge($commands, $retval);
 				}
+
+				self::close($data);
 
 				// Since we had split the delete command we don't need the original command anymore
 				unset($commands[$key]);
@@ -1053,14 +1008,22 @@ class dba {
 
 			$compacted = array();
 			$counter = array();
+
 			foreach ($commands AS $command) {
-				if (count($command['param']) > 1) {
-					$sql = "DELETE FROM `".$command['table']."` WHERE `".
-						implode("` = ? AND `", array_keys($command['param']))."` = ?";
+				$condition = $command['param'];
+				$array_element = each($condition);
+				$array_key = $array_element['key'];
+				if (is_int($array_key)) {
+					$condition_string = " WHERE ".array_shift($condition);
+				} else {
+					$condition_string = " WHERE `".implode("` = ? AND `", array_keys($condition))."` = ?";
+				}
 
-					logger(self::replace_parameters($sql, $command['param']), LOGGER_DATA);
+				if ((count($command['param']) > 1) || is_int($array_key)) {
+					$sql = "DELETE FROM `".$command['table']."`".$condition_string;
+					logger(self::replace_parameters($sql, $condition), LOGGER_DATA);
 
-					if (!self::e($sql, $command['param'])) {
+					if (!self::e($sql, $condition)) {
 						if ($do_transaction) {
 							self::rollback();
 						}
@@ -1132,34 +1095,35 @@ class dba {
 	 * @param string $table Table name
 	 * @param array $fields contains the fields that are updated
 	 * @param array $condition condition array with the key values
-	 * @param array|boolean $old_fields array with the old field values that are about to be replaced
+	 * @param array|boolean $old_fields array with the old field values that are about to be replaced (true = update on duplicate)
 	 *
 	 * @return boolean was the update successfull?
 	 */
-	static public function update($table, $fields, $condition, $old_fields = array()) {
-
-		/** @todo We may use MySQL specific functions here:
-		 * INSERT INTO `config` (`cat`, `k`, `v`) VALUES ('%s', '%s', '%s') ON DUPLICATE KEY UPDATE `v` = '%s'"
-		 * But I think that it doesn't make sense here.
-		*/
+	public static function update($table, $fields, $condition, $old_fields = array()) {
 
 		$table = self::$dbo->escape($table);
 
-		if (is_bool($old_fields)) {
-			$sql = "SELECT * FROM `".$table."` WHERE `".
-			implode("` = ? AND `", array_keys($condition))."` = ? LIMIT 1";
-
-			$params = array();
-			foreach ($condition AS $value) {
-				$params[] = $value;
+		if (count($condition) > 0) {
+			$array_element = each($condition);
+			$array_key = $array_element['key'];
+			if (is_int($array_key)) {
+				$condition_string = " WHERE ".array_shift($condition);
+			} else {
+				$condition_string = " WHERE `".implode("` = ? AND `", array_keys($condition))."` = ?";
 			}
+		} else {
+			$condition_string = "";
+		}
 
+		if (is_bool($old_fields)) {
 			$do_insert = $old_fields;
 
-			$old_fields = self::fetch_first($sql, $params);
+			$old_fields = self::select($table, array(), $condition, array('limit' => 1));
+
 			if (is_bool($old_fields)) {
 				if ($do_insert) {
-					return self::insert($table, $fields);
+					$values = array_merge($condition, $fields);
+					return self::insert($table, $values, $do_insert);
 				}
 				$old_fields = array();
 			}
@@ -1182,16 +1146,11 @@ class dba {
 		}
 
 		$sql = "UPDATE `".$table."` SET `".
-			implode("` = ?, `", array_keys($fields))."` = ? WHERE `".
-			implode("` = ? AND `", array_keys($condition))."` = ?";
+			implode("` = ?, `", array_keys($fields))."` = ?".$condition_string;
 
-		$params = array();
-		foreach ($fields AS $value) {
-			$params[] = $value;
-		}
-		foreach ($condition AS $value) {
-			$params[] = $value;
-		}
+		$params1 = array_values($fields);
+		$params2 = array_values($condition);
+		$params = array_merge_recursive($params1, $params2);
 
 		return self::e($sql, $params);
 	}
@@ -1209,12 +1168,16 @@ class dba {
 	 * Example:
 	 * $table = "item";
 	 * $fields = array("id", "uri", "uid", "network");
+	 *
 	 * $condition = array("uid" => 1, "network" => 'dspr');
+	 * or:
+	 * $condition = array("`uid` = ? AND `network` IN (?, ?)", 1, 'dfrn', 'dspr');
+	 *
 	 * $params = array("order" => array("id", "received" => true), "limit" => 1);
 	 *
 	 * $data = dba::select($table, $fields, $condition, $params);
 	 */
-	static public function select($table, $fields = array(), $condition = array(), $params = array()) {
+	public static function select($table, $fields = array(), $condition = array(), $params = array()) {
 		if ($table == '') {
 			return false;
 		}
@@ -1226,7 +1189,13 @@ class dba {
 		}
 
 		if (count($condition) > 0) {
-			$condition_string = " WHERE `".implode("` = ? AND `", array_keys($condition))."` = ?";
+			$array_element = each($condition);
+			$array_key = $array_element['key'];
+			if (is_int($array_key)) {
+				$condition_string = " WHERE ".array_shift($condition);
+			} else {
+				$condition_string = " WHERE `".implode("` = ? AND `", array_keys($condition))."` = ?";
+			}
 		} else {
 			$condition_string = "";
 		}
@@ -1246,11 +1215,13 @@ class dba {
 			$param_string = substr($param_string, 0, -2);
 		}
 
-		if (isset($params['limit'])) {
-			if (is_int($params['limit'])) {
-				$param_string .= " LIMIT ".$params['limit'];
-				$single_row =($params['limit'] == 1);
-			}
+		if (isset($params['limit']) && is_int($params['limit'])) {
+			$param_string .= " LIMIT ".$params['limit'];
+			$single_row = ($params['limit'] == 1);
+		}
+
+		if (isset($params['only_query']) && $params['only_query']) {
+			$single_row = !$params['only_query'];
 		}
 
 		$sql = "SELECT ".$select_fields." FROM `".$table."`".$condition_string.$param_string;
@@ -1266,13 +1237,53 @@ class dba {
 		}
 	}
 
+
+	/**
+	 * @brief Fills an array with data from a query
+	 *
+	 * @param object $stmt statement object
+	 * @return array Data array
+	 */
+	public static function inArray($stmt, $do_close = true) {
+		if (is_bool($stmt)) {
+			return $stmt;
+		}
+
+		$data = array();
+		while ($row = self::fetch($stmt)) {
+			$data[] = $row;
+		}
+		if ($do_close) {
+			self::close($stmt);
+		}
+		return $data;
+	}
+
+	/**
+	 * @brief Returns the error number of the last query
+	 *
+	 * @return string Error number (0 if no error)
+	 */
+	public static function errorNo() {
+		return self::$dbo->errorno;
+	}
+
+	/**
+	 * @brief Returns the error message of the last query
+	 *
+	 * @return string Error message ('' if no error)
+	 */
+	public static function errorMessage() {
+		return self::$dbo->error;
+	}
+
 	/**
 	 * @brief Closes the current statement
 	 *
 	 * @param object $stmt statement object
 	 * @return boolean was the close successfull?
 	 */
-	static public function close($stmt) {
+	public static function close($stmt) {
 		if (!is_object($stmt)) {
 			return false;
 		}
@@ -1289,24 +1300,6 @@ class dba {
 	}
 }
 
-function printable($s) {
-	$s = preg_replace("~([\x01-\x08\x0E-\x0F\x10-\x1F\x7F-\xFF])~",".", $s);
-	$s = str_replace("\x00",'.',$s);
-	if (x($_SERVER,'SERVER_NAME')) {
-		$s = escape_tags($s);
-	}
-	return $s;
-}
-
-// Procedural functions
-function dbg($state) {
-	global $db;
-
-	if ($db) {
-		$db->dbg($state);
-	}
-}
-
 function dbesc($str) {
 	global $db;
 
@@ -1317,107 +1310,46 @@ function dbesc($str) {
 	}
 }
 
-// Function: q($sql,$args);
-// Description: execute SQL query with printf style args.
-// Example: $r = q("SELECT * FROM `%s` WHERE `uid` = %d",
-//                   'user', 1);
-function q($sql) {
-	global $db;
-	$args = func_get_args();
-	unset($args[0]);
-
-	if ($db && $db->connected) {
-		$sql = $db->clean_query($sql);
-		$sql = $db->any_value_fallback($sql);
-		$stmt = @vsprintf($sql,$args); // Disabled warnings
-		//logger("dba: q: $stmt", LOGGER_ALL);
-		if ($stmt === false)
-			logger('dba: vsprintf error: ' . print_r(debug_backtrace(),true), LOGGER_DEBUG);
-
-		$db->log_index($stmt);
-
-		return $db->q($stmt);
-	}
-
-	/**
-	 *
-	 * This will happen occasionally trying to store the
-	 * session data after abnormal program termination
-	 *
-	 */
-	logger('dba: no database: ' . print_r($args,true));
-	return false;
-}
-
 /**
- * @brief Performs a query with "dirty reads"
+ * @brief execute SQL query with printf style args - deprecated
  *
- * By doing dirty reads (reading uncommitted data) no locks are performed
- * This function can be used to fetch data that doesn't need to be reliable.
+ * Please use the dba:: functions instead:
+ * dba::select, dba::exists, dba::insert
+ * dba::delete, dba::update, dba::p, dba::e
  *
  * @param $args Query parameters (1 to N parameters of different types)
  * @return array Query array
  */
-function qu($sql) {
+function q($sql) {
 	global $db;
 
 	$args = func_get_args();
 	unset($args[0]);
 
-	if ($db && $db->connected) {
-		$sql = $db->clean_query($sql);
-		$sql = $db->any_value_fallback($sql);
-		$stmt = @vsprintf($sql,$args); // Disabled warnings
-		if ($stmt === false)
-			logger('dba: vsprintf error: ' . print_r(debug_backtrace(),true), LOGGER_DEBUG);
-
-		$db->log_index($stmt);
-
-		$db->q("SET SESSION TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;");
-		$retval = $db->q($stmt);
-		$db->q("SET SESSION TRANSACTION ISOLATION LEVEL REPEATABLE READ;");
-		return $retval;
+	if (!$db || !$db->connected) {
+		return false;
 	}
 
-	/**
-	 *
-	 * This will happen occasionally trying to store the
-	 * session data after abnormal program termination
-	 *
-	 */
-	logger('dba: no database: ' . print_r($args,true));
-	return false;
-}
+	$sql = $db->clean_query($sql);
+	$sql = $db->any_value_fallback($sql);
 
-/**
- *
- * Raw db query, no arguments
- *
- */
-function dbq($sql) {
-	global $db;
+	$stmt = @vsprintf($sql, $args);
 
-	if ($db && $db->connected) {
-		$ret = $db->q($sql);
-	} else {
-		$ret = false;
+	$ret = dba::p($stmt);
+
+	if (is_bool($ret)) {
+		return $ret;
 	}
-	return $ret;
-}
 
-// Caller is responsible for ensuring that any integer arguments to
-// dbesc_array are actually integers and not malformed strings containing
-// SQL injection vectors. All integer array elements should be specifically
-// cast to int to avoid trouble.
-function dbesc_array_cb(&$item, $key) {
-	if (is_string($item))
-		$item = dbesc($item);
-}
+	$columns = dba::columnCount($ret);
 
-function dbesc_array(&$arr) {
-	if (is_array($arr) && count($arr)) {
-		array_walk($arr,'dbesc_array_cb');
+	$data = dba::inArray($ret);
+
+	if ((count($data) == 0) && ($columns == 0)) {
+		return true;
 	}
+
+	return $data;
 }
 
 function dba_timer() {

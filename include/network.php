@@ -5,6 +5,7 @@
  */
 
 use Friendica\App;
+use Friendica\Core\System;
 use Friendica\Core\Config;
 use Friendica\Network\Probe;
 
@@ -107,6 +108,11 @@ function z_fetch_url($url, $binary = false, &$redirects = 0, $opts = array()) {
 		@curl_setopt($ch, CURLOPT_RANGE, '0-' . $range);
 	}
 
+	// Without this setting it seems as if some webservers send compressed content
+	// This seems to confuse curl so that it shows this uncompressed.
+	/// @todo  We could possibly set this value to "gzip" or something similar
+	curl_setopt($ch, CURLOPT_ENCODING, '');
+
 	if (x($opts, 'headers')) {
 		@curl_setopt($ch, CURLOPT_HTTPHEADER, $opts['headers']);
 	}
@@ -142,6 +148,10 @@ function z_fetch_url($url, $binary = false, &$redirects = 0, $opts = array()) {
 		if (strlen($proxyuser)) {
 			@curl_setopt($ch, CURLOPT_PROXYUSERPWD, $proxyuser);
 		}
+	}
+
+	if (Config::get('system', 'ipv4_resolve', false)) {
+		curl_setopt($ch, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_V4);
 	}
 
 	if ($binary) {
@@ -220,8 +230,8 @@ function z_fetch_url($url, $binary = false, &$redirects = 0, $opts = array()) {
 	if (!$ret['success']) {
 		$ret['error'] = curl_error($ch);
 		$ret['debug'] = $curl_info;
-		logger('z_fetch_url: error: ' . $url . ': ' . $ret['error'], LOGGER_DEBUG);
-		logger('z_fetch_url: debug: ' . print_r($curl_info, true), LOGGER_DATA);
+		logger('z_fetch_url: error: '.$url.': '.$ret['return_code'].' - '.$ret['error'], LOGGER_DEBUG);
+		logger('z_fetch_url: debug: '.print_r($curl_info, true), LOGGER_DATA);
 	}
 
 	$ret['body'] = substr($s, strlen($header));
@@ -271,6 +281,10 @@ function post_url($url, $params, $headers = null, &$redirects = 0, $timeout = 0)
 	curl_setopt($ch, CURLOPT_POST, 1);
 	curl_setopt($ch, CURLOPT_POSTFIELDS, $params);
 	curl_setopt($ch, CURLOPT_USERAGENT, $a->get_useragent());
+
+	if (Config::get('system', 'ipv4_resolve', false)) {
+		curl_setopt($ch, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_V4);
+	}
 
 	if (intval($timeout)) {
 		curl_setopt($ch, CURLOPT_TIMEOUT, $timeout);
@@ -372,14 +386,22 @@ function post_url($url, $params, $headers = null, &$redirects = 0, $timeout = 0)
 
 function xml_status($st, $message = '') {
 
-	$xml_message = ((strlen($message)) ? "\t<message>" . xmlify($message) . "</message>\r\n" : '');
+	$result = array('status' => $st);
 
-	if ($st)
+	if ($message != '') {
+		$result['message'] = $message;
+	}
+
+	if ($st) {
 		logger('xml_status returning non_zero: ' . $st . " message=" . $message);
+	}
 
-	header( "Content-type: text/xml" );
-	echo '<?xml version="1.0" encoding="UTF-8"?>'."\r\n";
-	echo "<result>\r\n\t<status>$st</status>\r\n$xml_message</result>\r\n";
+	header("Content-type: text/xml");
+
+	$xmldata = array("result" => $result);
+
+	echo xml::from_array($xmldata, $xml);
+
 	killme();
 }
 
@@ -598,7 +620,7 @@ function avatar_img($email) {
 	call_hooks('avatar_lookup', $avatar);
 
 	if (! $avatar['success']) {
-		$avatar['url'] = App::get_baseurl() . '/images/person-175.jpg';
+		$avatar['url'] = System::baseUrl() . '/images/person-175.jpg';
 	}
 
 	logger('Avatar: ' . $avatar['email'] . ' ' . $avatar['url'], LOGGER_DEBUG);
@@ -606,20 +628,15 @@ function avatar_img($email) {
 }
 
 
-function parse_xml_string($s,$strict = true) {
+function parse_xml_string($s, $strict = true) {
+	// the "strict" parameter is deactivated
+
 	/// @todo Move this function to the xml class
-	if ($strict) {
-		if (! strstr($s,'<?xml'))
-			return false;
-		$s2 = substr($s,strpos($s,'<?xml'));
-	}
-	else
-		$s2 = $s;
 	libxml_use_internal_errors(true);
 
-	$x = @simplexml_load_string($s2);
-	if (! $x) {
-		logger('libxml: parse: error: ' . $s2, LOGGER_DATA);
+	$x = @simplexml_load_string($s);
+	if (!$x) {
+		logger('libxml: parse: error: ' . $s, LOGGER_DATA);
 		foreach (libxml_get_errors() as $err) {
 			logger('libxml: parse: ' . $err->code." at ".$err->line.":".$err->column." : ".$err->message, LOGGER_DATA);
 		}
@@ -647,7 +664,7 @@ function scale_external_images($srctext, $include_link = true, $scale_replace = 
 		foreach ($matches as $mtch) {
 			logger('scale_external_image: ' . $mtch[1]);
 
-			$hostname = str_replace('www.','',substr(App::get_baseurl(),strpos(App::get_baseurl(),'://')+3));
+			$hostname = str_replace('www.','',substr(System::baseUrl(),strpos(System::baseUrl(),'://')+3));
 			if (stristr($mtch[1],$hostname)) {
 				continue;
 			}
@@ -723,7 +740,10 @@ function fix_contact_ssl_policy(&$contact,$new_policy) {
 	}
 
 	if ($ssl_changed) {
-		dba::update('contact', $contact, array('id' => $contact['id']));
+		$fields = array('url' => $contact['url'], 'request' => $contact['request'],
+				'notify' => $contact['notify'], 'poll' => $contact['poll'],
+				'confirm' => $contact['confirm'], 'poco' => $contact['poco']);
+		dba::update('contact', $fields, array('id' => $contact['id']));
 	}
 }
 

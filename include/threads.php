@@ -1,6 +1,7 @@
 <?php
 
 use Friendica\App;
+use Friendica\Core\System;
 
 function add_thread($itemid, $onlyshadow = false) {
 	$items = q("SELECT `uid`, `created`, `edited`, `commented`, `received`, `changed`, `wall`, `private`, `pubmail`,
@@ -15,11 +16,7 @@ function add_thread($itemid, $onlyshadow = false) {
 	$item['iid'] = $itemid;
 
 	if (!$onlyshadow) {
-		$result = dbq("INSERT INTO `thread` (`"
-				.implode("`, `", array_keys($item))
-				."`) VALUES ('"
-				.implode("', '", array_values($item))
-				."')");
+		$result = dba::insert('thread', $item);
 
 		logger("Add thread for item ".$itemid." - ".print_r($result, true), LOGGER_DEBUG);
 	}
@@ -35,7 +32,7 @@ function add_thread($itemid, $onlyshadow = false) {
  * @param integer $itemid Item ID that should be added
  */
 function add_shadow_thread($itemid) {
-	$items = q("SELECT `uid`, `wall`, `private`, `moderated`, `visible`, `contact-id`, `deleted`, `network`
+	$items = q("SELECT `uid`, `wall`, `private`, `moderated`, `visible`, `contact-id`, `deleted`, `network`, `author-id`, `owner-id`
 		FROM `item` WHERE `id` = %d AND (`parent` = %d OR `parent` = 0) LIMIT 1", intval($itemid), intval($itemid));
 
 	if (!dbm::is_result($items)) {
@@ -58,6 +55,11 @@ function add_shadow_thread($itemid) {
 	if (!in_array($item["network"], array(NETWORK_DFRN, NETWORK_DIASPORA, NETWORK_OSTATUS, ""))) {
 		return;
 	}
+
+	// Is the public contact configured as hidden?
+        if (hiddenContact($item["owner-id"]) || hiddenContact($item["author-id"])) {
+                return;
+        }
 
 	// Only do these checks if the post isn't a wall post
 	if (!$item["wall"]) {
@@ -243,18 +245,24 @@ function delete_thread_uri($itemuri, $uid) {
 function delete_thread($itemid, $itemuri = "") {
 	$item = q("SELECT `uid` FROM `thread` WHERE `iid` = %d", intval($itemid));
 
+	if (!dbm::is_result($item)) {
+		logger('No thread found for id '.$itemid, LOGGER_DEBUG);
+		return;
+	}
+
+	// Using dba::delete at this time could delete the associated item entries
 	$result = q("DELETE FROM `thread` WHERE `iid` = %d", intval($itemid));
 
 	logger("delete_thread: Deleted thread for item ".$itemid." - ".print_r($result, true), LOGGER_DEBUG);
 
 	if ($itemuri != "") {
-		$r = q("SELECT `id` FROM `item` WHERE `uri` = '%s' AND NOT (`uid` IN (%d, 0))",
+		$r = q("SELECT `id` FROM `item` WHERE `uri` = '%s' AND NOT `deleted` AND NOT (`uid` IN (%d, 0))",
 				dbesc($itemuri),
 				intval($item["uid"])
 			);
 		if (!dbm::is_result($r)) {
 			dba::delete('item', array('uri' => $itemuri, 'uid' => 0));
-			logger("delete_thread: Deleted shadow for item ".$itemuri." - ".print_r($result, true), LOGGER_DEBUG);
+			logger("delete_thread: Deleted shadow for item ".$itemuri, LOGGER_DEBUG);
 		}
 	}
 }
@@ -262,7 +270,7 @@ function delete_thread($itemid, $itemuri = "") {
 function update_threads() {
 	logger("update_threads: start");
 
-	$messages = dba::p("SELECT `id` FROM `item` WHERE `id` = `parent`");
+	$messages = dba::select('item', array('id'), array("`id` = `parent`"));
 
 	logger("update_threads: fetched messages: ".dba::num_rows($messages));
 
@@ -277,7 +285,7 @@ function update_threads_mention() {
 	$users = q("SELECT `uid`, `nickname` FROM `user` ORDER BY `uid`");
 
 	foreach ($users AS $user) {
-		$self = normalise_link(App::get_baseurl() . '/profile/' . $user['nickname']);
+		$self = normalise_link(System::baseUrl() . '/profile/' . $user['nickname']);
 		$selfhttps = str_replace("http://", "https://", $self);
 		$parents = q("SELECT DISTINCT(`parent`) FROM `item` WHERE `uid` = %d AND
 				((`owner-link` IN ('%s', '%s')) OR (`author-link` IN ('%s', '%s')))",
@@ -292,9 +300,9 @@ function update_threads_mention() {
 function update_shadow_copy() {
 	logger("start");
 
-	$messages = dba::p("SELECT `iid` FROM `thread` WHERE `uid` != 0 AND `network` IN ('', ?, ?, ?)
-				AND `visible` AND NOT `deleted` AND NOT `moderated` AND NOT `private` ORDER BY `created`",
-				NETWORK_DFRN, NETWORK_DIASPORA, NETWORK_OSTATUS);
+	$condition = "`uid` != 0 AND `network` IN ('', ?, ?, ?) AND `visible` AND NOT `deleted` AND NOT `moderated` AND NOT `private`";
+	$messages = dba::select('thread', array('iid'), array($condition, NETWORK_DFRN, NETWORK_DIASPORA, NETWORK_OSTATUS),
+				array('order' => 'created'));
 
 	logger("fetched messages: ".dba::num_rows($messages));
 	while ($message = dba::fetch($messages))

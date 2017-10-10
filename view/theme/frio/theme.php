@@ -8,6 +8,7 @@
  */
 
 use Friendica\App;
+use Friendica\Core\System;
 
 $frio = "view/theme/frio";
 
@@ -20,7 +21,7 @@ function frio_init(App $a) {
 
 	set_template_engine($a, 'smarty3');
 
-	$baseurl = App::get_baseurl();
+	$baseurl = System::baseUrl();
 
 	$style = get_pconfig(local_user(), 'frio', 'style');
 
@@ -48,6 +49,7 @@ function frio_install() {
 	register_hook('contact_photo_menu', 'view/theme/frio/theme.php', 'frio_contact_photo_menu');
 	register_hook('nav_info', 'view/theme/frio/theme.php', 'frio_remote_nav');
 	register_hook('acl_lookup_end', 'view/theme/frio/theme.php', 'frio_acl_lookup');
+	register_hook('display_item', 'view/theme/frio/theme.php', 'frio_display_item');
 
 	logger("installed theme frio");
 }
@@ -58,6 +60,7 @@ function frio_uninstall() {
 	unregister_hook('contact_photo_menu', 'view/theme/frio/theme.php', 'frio_contact_photo_menu');
 	unregister_hook('nav_info', 'view/theme/frio/theme.php', 'frio_remote_nav');
 	unregister_hook('acl_lookup_end', 'view/theme/frio/theme.php', 'frio_acl_lookup');
+	unregister_hook('display_item', 'view/theme/frio/theme.php', 'frio_display_item');
 
 	logger("uninstalled theme frio");
 }
@@ -214,7 +217,7 @@ function frio_remote_nav($a,&$nav) {
 
 	// since $userinfo isn't available for the hook we write it to the nav array
 	// this isn't optimal because the contact query will be done now twice
-	if(local_user()) {
+	if (local_user()) {
 		// empty the server url for local user because we won't need it
 		$server_url = '';
 		// user info
@@ -223,25 +226,27 @@ function frio_remote_nav($a,&$nav) {
 		$r[0]['photo'] = (dbm::is_result($r) ? $a->remove_baseurl($r[0]['micro']) : "images/person-48.jpg");
 		$r[0]['name'] = $a->user['username'];
 
-	} elseif(!local_user() && remote_user()) {
+	} elseif (!local_user() && remote_user()) {
 		$r = q("SELECT `name`, `nick`, `micro` AS `photo` FROM `contact` WHERE `id` = %d", intval(remote_user()));
 		$nav['remote'] = t("Guest");
 
-	} elseif(get_my_url ()) {
+	} elseif (get_my_url()) {
 		$r = q("SELECT `name`, `nick`, `photo` FROM `gcontact`
 				WHERE `addr` = '%s' AND `network` = 'dfrn'",
 			dbesc($webbie));
 		$nav['remote'] = t("Visitor");
+	} else {
+		$r = false;
 	}
 
-	if (dbm::is_result($r)){
+	if (dbm::is_result($r)) {
 			$nav['userinfo'] = array(
 				'icon' => (dbm::is_result($r) ? $r[0]['photo'] : "images/person-48.jpg"),
 				'name' => $r[0]['name'],
 			);
 		}
 
-	if(!local_user() && !empty($server_url)) {
+	if (!local_user() && !empty($server_url)) {
 		$nav['logout'] = Array($server_url . '/logout', t('Logout'), "", t('End this session'));
 
 		// user menu
@@ -320,4 +325,29 @@ function frio_acl_lookup(App $a, &$results) {
 		$results["items"] = $contacts;
 		$results["tot"] = $total;
 	}
+}
+
+/**
+ * @brief Manipulate the data of the item
+ *
+ * At the moment we use this function to add some own stuff to the item menu
+ *
+ * @param App $a App $a The app data
+ * @param array $arr Array with the item and the item actions<br>
+ *     'item' => Array with item data<br>
+ *     'output' => Array with item actions<br>
+ */
+function frio_display_item(App $a,&$arr) {
+
+	// Add subthread to the item menu
+	$subthread = array();
+	if ((local_user()) && local_user() == $arr['item']['uid'] && $arr['item']['parent'] == $arr['item']['id'] && (! $arr['item']['self'])) {
+		$subthread = array(
+			'menu'   => 'follow_thread',
+			'title'  => t('Follow Thread'),
+			'action' => 'dosubthread(' . $arr['item']['id'] . '); return false;',
+			'href'   => '#'
+		);
+	}
+	$arr['output']['subthread'] = $subthread;
 }

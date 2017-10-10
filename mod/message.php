@@ -1,6 +1,7 @@
 <?php
 
 use Friendica\App;
+use Friendica\Core\System;
 
 require_once('include/acl_selectors.php');
 require_once('include/message.php');
@@ -26,17 +27,17 @@ function message_init(App $a) {
 		'$tabs'=>$tabs,
 		'$new'=>$new,
 	));
-	$base = App::get_baseurl();
+	$base = System::baseUrl();
 
 	$head_tpl = get_markup_template('message-head.tpl');
 	$a->page['htmlhead'] .= replace_macros($head_tpl,array(
-		'$baseurl' => App::get_baseurl(true),
+		'$baseurl' => System::baseUrl(true),
 		'$base' => $base
 	));
 
 	$end_tpl = get_markup_template('message-end.tpl');
 	$a->page['end'] .= replace_macros($end_tpl,array(
-		'$baseurl' => App::get_baseurl(true),
+		'$baseurl' => System::baseUrl(true),
 		'$base' => $base
 	));
 
@@ -77,18 +78,17 @@ function message_post(App $a) {
 
 	// fake it to go back to the input form if no recipient listed
 
-	if($norecip) {
+	if ($norecip) {
 		$a->argc = 2;
 		$a->argv[1] = 'new';
-	}
-	else
+	} else
 		goaway($_SESSION['return_url']);
 
 }
 
 // Note: the code in 'item_extract_images' and 'item_redir_and_replace_images'
 // is identical to the code in include/conversation.php
-if(! function_exists('item_extract_images')) {
+if (! function_exists('item_extract_images')) {
 function item_extract_images($body) {
 
 	$saved_image = array();
@@ -104,20 +104,19 @@ function item_extract_images($body) {
 		$img_st_close++; // make it point to AFTER the closing bracket
 		$img_end += $img_start;
 
-		if(! strcmp(substr($orig_body, $img_start + $img_st_close, 5), 'data:')) {
+		if (! strcmp(substr($orig_body, $img_start + $img_st_close, 5), 'data:')) {
 			// This is an embedded image
 
 			$saved_image[$cnt] = substr($orig_body, $img_start + $img_st_close, $img_end - ($img_start + $img_st_close));
 			$new_body = $new_body . substr($orig_body, 0, $img_start) . '[!#saved_image' . $cnt . '#!]';
 
 			$cnt++;
-		}
-		else
+		} else
 			$new_body = $new_body . substr($orig_body, 0, $img_end + strlen('[/img]'));
 
 		$orig_body = substr($orig_body, $img_end + strlen('[/img]'));
 
-		if($orig_body === false) // in case the body ends on a closing image tag
+		if ($orig_body === false) // in case the body ends on a closing image tag
 			$orig_body = '';
 
 		$img_start = strpos($orig_body, '[img');
@@ -130,7 +129,7 @@ function item_extract_images($body) {
 	return array('body' => $new_body, 'images' => $saved_image);
 }}
 
-if(! function_exists('item_redir_and_replace_images')) {
+if (! function_exists('item_redir_and_replace_images')) {
 function item_redir_and_replace_images($body, $images, $cid) {
 
 	$origbody = $body;
@@ -138,7 +137,7 @@ function item_redir_and_replace_images($body, $images, $cid) {
 
 	for($i = 0; $i < count($images); $i++) {
 		$search = '/\[url\=(.*?)\]\[!#saved_image' . $i . '#!\]\[\/url\]' . '/is';
-		$replace = '[url=' . z_path() . '/redir/' . $cid
+		$replace = '[url=' . System::baseUrl() . '/redir/' . $cid
 		           . '?f=1&url=' . '$1' . '][!#saved_image' . $i . '#!][/url]' ;
 
 		$img_end = strpos($origbody, '[!#saved_image' . $i . '#!][/url]') + strlen('[!#saved_image' . $i . '#!][/url]');
@@ -174,7 +173,7 @@ function message_content(App $a) {
 		return;
 	}
 
-	$myprofile = App::get_baseurl().'/profile/' . $a->user['nickname'];
+	$myprofile = System::baseUrl().'/profile/' . $a->user['nickname'];
 
 	$tpl = get_markup_template('mail_head.tpl');
 	$header = replace_macros($tpl, array(
@@ -183,18 +182,18 @@ function message_content(App $a) {
 	));
 
 
-	if(($a->argc == 3) && ($a->argv[1] === 'drop' || $a->argv[1] === 'dropconv')) {
-		if(! intval($a->argv[2]))
+	if (($a->argc == 3) && ($a->argv[1] === 'drop' || $a->argv[1] === 'dropconv')) {
+		if (! intval($a->argv[2]))
 			return;
 
 		// Check if we should do HTML-based delete confirmation
-		if($_REQUEST['confirm']) {
+		if ($_REQUEST['confirm']) {
 			// <form> can't take arguments in its "action" parameter
 			// so add any arguments as hidden inputs
 			$query = explode_querystring($a->query_string);
 			$inputs = array();
 			foreach($query['args'] as $arg) {
-				if(strpos($arg, 'confirm=') === false) {
+				if (strpos($arg, 'confirm=') === false) {
 					$arg_parts = explode('=', $arg);
 					$inputs[] = array('name' => $arg_parts[0], 'value' => $arg_parts[1]);
 				}
@@ -212,12 +211,12 @@ function message_content(App $a) {
 			));
 		}
 		// Now check how the user responded to the confirmation query
-		if($_REQUEST['canceled']) {
+		if ($_REQUEST['canceled']) {
 			goaway($_SESSION['return_url']);
 		}
 
 		$cmd = $a->argv[1];
-		if($cmd === 'drop') {
+		if ($cmd === 'drop') {
 			$r = q("DELETE FROM `mail` WHERE `id` = %d AND `uid` = %d LIMIT 1",
 				intval($a->argv[2]),
 				intval(local_user())
@@ -225,10 +224,9 @@ function message_content(App $a) {
 			if ($r) {
 				info( t('Message deleted.') . EOL );
 			}
-			//goaway(App::get_baseurl(true) . '/message' );
+			//goaway(System::baseUrl(true) . '/message' );
 			goaway($_SESSION['return_url']);
-		}
-		else {
+		} else {
 			$r = q("SELECT `parent-uri`,`convid` FROM `mail` WHERE `id` = %d AND `uid` = %d LIMIT 1",
 				intval($a->argv[2]),
 				intval(local_user())
@@ -247,35 +245,35 @@ function message_content(App $a) {
 				// as we will never again have the info we need to re-create it.
 				// We'll just have to orphan it.
 
-				//if($convid) {
+				//if ($convid) {
 				//	q("delete from conv where id = %d limit 1",
 				//		intval($convid)
 				//	);
 				//}
 
-				if($r)
+				if ($r)
 					info( t('Conversation removed.') . EOL );
 			}
-			//goaway(App::get_baseurl(true) . '/message' );
+			//goaway(System::baseUrl(true) . '/message' );
 			goaway($_SESSION['return_url']);
 		}
 
 	}
 
-	if(($a->argc > 1) && ($a->argv[1] === 'new')) {
+	if (($a->argc > 1) && ($a->argv[1] === 'new')) {
 
 		$o .= $header;
 
 		$tpl = get_markup_template('msg-header.tpl');
 		$a->page['htmlhead'] .= replace_macros($tpl, array(
-			'$baseurl' => App::get_baseurl(true),
+			'$baseurl' => System::baseUrl(true),
 			'$nickname' => $a->user['nickname'],
 			'$linkurl' => t('Please enter a link URL:')
 		));
 
 		$tpl = get_markup_template('msg-end.tpl');
 		$a->page['end'] .= replace_macros($tpl, array(
-			'$baseurl' => App::get_baseurl(true),
+			'$baseurl' => System::baseUrl(true),
 			'$nickname' => $a->user['nickname'],
 			'$linkurl' => t('Please enter a link URL:')
 		));
@@ -285,7 +283,7 @@ function message_content(App $a) {
 
 		$prename = $preurl = $preid = '';
 
-		if($preselect) {
+		if ($preselect) {
 			$r = q("SELECT `name`, `url`, `id` FROM `contact` WHERE `uid` = %d AND `id` = %d LIMIT 1",
 				intval(local_user()),
 				intval($a->argv[2])
@@ -374,7 +372,7 @@ function message_content(App $a) {
 		return $o;
 	}
 
-	if(($a->argc > 1) && (intval($a->argv[1]))) {
+	if (($a->argc > 1) && (intval($a->argv[1]))) {
 
 		$o .= $header;
 
@@ -389,7 +387,7 @@ function message_content(App $a) {
 			$convid = $r[0]['convid'];
 
 			$sql_extra = sprintf(" and `mail`.`parent-uri` = '%s' ", dbesc($r[0]['parent-uri']));
-			if($convid)
+			if ($convid)
 				$sql_extra = sprintf(" and ( `mail`.`parent-uri` = '%s' OR `mail`.`convid` = '%d' ) ",
 					dbesc($r[0]['parent-uri']),
 					intval($convid)
@@ -401,7 +399,7 @@ function message_content(App $a) {
 				intval(local_user())
 			);
 		}
-		if(! count($messages)) {
+		if (! count($messages)) {
 			notice( t('Message not available.') . EOL );
 			return $o;
 		}
@@ -415,14 +413,14 @@ function message_content(App $a) {
 
 		$tpl = get_markup_template('msg-header.tpl');
 		$a->page['htmlhead'] .= replace_macros($tpl, array(
-			'$baseurl' => App::get_baseurl(true),
+			'$baseurl' => System::baseUrl(true),
 			'$nickname' => $a->user['nickname'],
 			'$linkurl' => t('Please enter a link URL:')
 		));
 
 		$tpl = get_markup_template('msg-end.tpl');
 		$a->page['end'] .= replace_macros($tpl, array(
-			'$baseurl' => App::get_baseurl(true),
+			'$baseurl' => System::baseUrl(true),
 			'$nickname' => $a->user['nickname'],
 			'$linkurl' => t('Please enter a link URL:')
 		));
@@ -432,9 +430,9 @@ function message_content(App $a) {
 		$unknown = false;
 
 		foreach($messages as $message) {
-			if($message['unknown'])
+			if ($message['unknown'])
 				$unknown = true;
-			if($message['from-url'] == $myprofile) {
+			if ($message['from-url'] == $myprofile) {
 				$from_url = $myprofile;
 				$sparkle = '';
 			} elseif ($message['contact-id'] != 0) {
@@ -447,10 +445,10 @@ function message_content(App $a) {
 
 
 			$extracted = item_extract_images($message['body']);
-			if($extracted['images'])
+			if ($extracted['images'])
 				$message['body'] = item_redir_and_replace_images($extracted['body'], $extracted['images'], $message['contact-id']);
 
-			if($a->theme['template_engine'] === 'internal') {
+			if ($a->theme['template_engine'] === 'internal') {
 				$from_name_e = template_escape($message['from-name']);
 				$subject_e = template_escape($message['title']);
 				$body_e = template_escape(Smilies::replace(bbcode($message['body'])));
@@ -472,6 +470,7 @@ function message_content(App $a) {
 				'id' => $message['id'],
 				'from_name' => $from_name_e,
 				'from_url' => $from_url,
+				'from_addr' => $contact['addr'],
 				'sparkle' => $sparkle,
 				'from_photo' => proxy_url($from_photo, false, PROXY_SIZE_THUMB),
 				'subject' => $subject_e,
@@ -491,10 +490,9 @@ function message_content(App $a) {
 
 		$tpl = get_markup_template('mail_display.tpl');
 
-		if($a->theme['template_engine'] === 'internal') {
+		if ($a->theme['template_engine'] === 'internal') {
 			$subjtxt_e = template_escape($message['title']);
-		}
-		else {
+		} else {
 			$subjtxt_e = $message['title'];
 		}
 
@@ -555,23 +553,22 @@ function render_messages(array $msg, $t) {
 	$tpl = get_markup_template($t);
 	$rslt = '';
 
-	$myprofile = App::get_baseurl().'/profile/' . $a->user['nickname'];
+	$myprofile = System::baseUrl().'/profile/' . $a->user['nickname'];
 
 	foreach($msg as $rr) {
 
-		if($rr['unknown'])
+		if ($rr['unknown'])
 			$participants = sprintf( t("Unknown sender - %s"),$rr['from-name']);
 		elseif (link_compare($rr['from-url'], $myprofile))
 			$participants = sprintf( t("You and %s"), $rr['name']);
 		else
 			$participants = sprintf(t("%s and You"), $rr['from-name']);
 
-		if($a->theme['template_engine'] === 'internal') {
+		if ($a->theme['template_engine'] === 'internal') {
 			$subject_e = template_escape((($rr['mailseen']) ? $rr['title'] : '<strong>' . $rr['title'] . '</strong>'));
 			$body_e = template_escape($rr['body']);
 			$to_name_e = template_escape($rr['name']);
-		}
-		else {
+		} else {
 			$subject_e = (($rr['mailseen']) ? $rr['title'] : '<strong>' . $rr['title'] . '</strong>');
 			$body_e = $rr['body'];
 			$to_name_e = $rr['name'];
@@ -587,6 +584,7 @@ function render_messages(array $msg, $t) {
 			'$id' => $rr['id'],
 			'$from_name' => $participants,
 			'$from_url' => (($rr['network'] === NETWORK_DFRN) ? 'redir/' . $rr['contact-id'] : $rr['url']),
+			'$from_addr' => $contact['addr'],
 			'$sparkle' => ' sparkle',
 			'$from_photo' => proxy_url($from_photo, false, PROXY_SIZE_THUMB),
 			'$subject' => $subject_e,

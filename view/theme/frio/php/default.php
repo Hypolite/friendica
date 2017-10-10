@@ -9,15 +9,17 @@
 	require_once('view/theme/frio/php/frio_boot.php');
 
 //	$minimal = is_modal();
-
+	if (!isset($minimal)) {
+		$minimal = false;
+	}
 ?>
 <html>
 <head>
 	<title><?php if(x($page,'title')) echo $page['title'] ?></title>
 	<meta request="<?php echo htmlspecialchars($_REQUEST['pagename']) ?>">
-	<script>var baseurl="<?php echo Friendica\App::get_baseurl() ?>";</script>
+	<script>var baseurl="<?php echo Friendica\Core\System::baseUrl() ?>";</script>
 	<script>var frio="<?php echo "view/theme/frio"; ?>";</script>
-	<?php $baseurl = Friendica\App::get_baseurl(); ?>
+	<?php $baseurl = Friendica\Core\System::baseUrl(); ?>
 	<?php $frio = "view/theme/frio"; ?>
 	<?php
 		// Because we use minimal for modals the header and the included js stuff should be only loaded
@@ -82,7 +84,7 @@ else
 		<div class="container">
 			<div class="row">
 <?php
-				if(($_REQUEST['pagename'] != "register") && ($_REQUEST['pagename'] != "lostpass") && ($_REQUEST['pagename'] != "login") && ($_SERVER['REQUEST_URI'] != "/"))
+				if(($_REQUEST['pagename'] != "lostpass") && ($_SERVER['REQUEST_URI'] != "/"))
 				{
 					echo"
 					<aside class=\"col-lg-3 col-md-3 offcanvas-sm offcanvas-xs\">

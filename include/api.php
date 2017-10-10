@@ -7,6 +7,7 @@
  */
 
 use Friendica\App;
+use Friendica\Core\System;
 use Friendica\Core\Config;
 
 require_once 'include/HTTPExceptions.php';
@@ -96,7 +97,7 @@ $called_api = null;
 	 *
 	 * Register a function to be the endpont for defined API path.
 	 *
-	 * @param string $path API URL path, relative to App::get_baseurl()
+	 * @param string $path API URL path, relative to System::baseUrl()
 	 * @param string $func Function name to call on path request
 	 * @param bool $auth API need logged user
 	 * @param string $method HTTP method reqiured to call this endpoint.
@@ -436,12 +437,12 @@ $called_api = null;
 		$arr['$user'] = $user_info;
 		$arr['$rss'] = array(
 			'alternate'    => $user_info['url'],
-			'self'         => App::get_baseurl() . "/" . $a->query_string,
-			'base'         => App::get_baseurl(),
+			'self'         => System::baseUrl() . "/" . $a->query_string,
+			'base'         => System::baseUrl(),
 			'updated'      => api_date(null),
 			'atom_updated' => datetime_convert('UTC', 'UTC', 'now', ATOM_TIME),
 			'language'     => $user_info['language'],
-			'logo'         => App::get_baseurl() . "/images/friendica-32.png",
+			'logo'         => System::baseUrl() . "/images/friendica-32.png",
 		);
 
 		return $arr;
@@ -754,7 +755,7 @@ $called_api = null;
 			'statusnet_blocking' => false,
 			'notifications' => false,
 			/// @TODO old way?
-			//'statusnet_profile_url' => App::get_baseurl()."/contacts/".$uinfo[0]['cid'],
+			//'statusnet_profile_url' => System::baseUrl()."/contacts/".$uinfo[0]['cid'],
 			'statusnet_profile_url' => $uinfo[0]['url'],
 			'uid' => intval($uinfo[0]['uid']),
 			'cid' => intval($uinfo[0]['cid']),
@@ -1164,8 +1165,8 @@ $called_api = null;
 			if (dbm::is_result($r)) {
 				$phototypes = Photo::supportedTypes();
 				$ext = $phototypes[$r[0]['type']];
-				$_REQUEST['body'] .= "\n\n" . '[url=' . App::get_baseurl() . '/photos/' . $r[0]['nickname'] . '/image/' . $r[0]['resource-id'] . ']';
-				$_REQUEST['body'] .= '[img]' . App::get_baseurl() . '/photo/' . $r[0]['resource-id'] . '-' . $r[0]['scale'] . '.' . $ext . '[/img][/url]';
+				$_REQUEST['body'] .= "\n\n" . '[url=' . System::baseUrl() . '/photos/' . $r[0]['nickname'] . '/image/' . $r[0]['resource-id'] . ']';
+				$_REQUEST['body'] .= '[img]' . System::baseUrl() . '/photo/' . $r[0]['resource-id'] . '-' . $r[0]['scale'] . '.' . $ext . '[/img][/url]';
 			}
 		}
 
@@ -1817,7 +1818,7 @@ $called_api = null;
 			INNER JOIN `contact` ON `contact`.`id` = `item`.`contact-id` AND `contact`.`uid` = `item`.`uid`
 				AND (NOT `contact`.`blocked` OR `contact`.`pending`)
 			WHERE `item`.`visible` AND NOT `item`.`moderated` AND NOT `item`.`deleted`
-			AND NOT `item`.`private` AND `item`.`allow_cid` = '' AND `item`.`allow`.`gid` = ''
+			AND NOT `item`.`private` AND `item`.`allow_cid` = '' AND `item`.`allow_gid` = ''
 			AND `item`.`deny_cid` = '' AND `item`.`deny_gid` = ''
 			$sql_extra
 			AND `item`.`id`=%d",
@@ -1929,7 +1930,7 @@ $called_api = null;
 		$start = $page * $count;
 
 		// Ugly code - should be changed
-		$myurl = App::get_baseurl() . '/profile/'. $a->user['nickname'];
+		$myurl = System::baseUrl() . '/profile/'. $a->user['nickname'];
 		$myurl = substr($myurl,strpos($myurl, '://') + 3);
 		//$myurl = str_replace(array('www.','.'),array('','\\.'),$myurl);
 		$myurl = str_replace('www.', '', $myurl);
@@ -2232,7 +2233,7 @@ $called_api = null;
 
 		//don't send title to regular StatusNET requests to avoid confusing these apps
 		if (x($_GET, 'getText')) {
-			$ret['title'] = $item['title'] ;
+			$ret['title'] = $item['title'];
 			if ($_GET['getText'] == 'html') {
 				$ret['text'] = bbcode($item['body'], false, false);
 			} elseif ($_GET['getText'] == 'plain') {
@@ -2275,18 +2276,32 @@ $called_api = null;
 
 		$statushtml = trim(bbcode($body, false, false));
 
+		// Workaround for clients with limited HTML parser functionality
 		$search = array("<br>", "<blockquote>", "</blockquote>",
 				"<h1>", "</h1>", "<h2>", "</h2>",
 				"<h3>", "</h3>", "<h4>", "</h4>",
 				"<h5>", "</h5>", "<h6>", "</h6>");
-		$replace = array("<br>\n", "\n<blockquote>", "</blockquote>\n",
-				"\n<h1>", "</h1>\n", "\n<h2>", "</h2>\n",
-				"\n<h3>", "</h3>\n", "\n<h4>", "</h4>\n",
-				"\n<h5>", "</h5>\n", "\n<h6>", "</h6>\n");
+		$replace = array("<br>", "<br><blockquote>", "</blockquote><br>",
+				"<br><h1>", "</h1><br>", "<br><h2>", "</h2><br>",
+				"<br><h3>", "</h3><br>", "<br><h4>", "</h4><br>",
+				"<br><h5>", "</h5><br>", "<br><h6>", "</h6><br>");
 		$statushtml = str_replace($search, $replace, $statushtml);
 
 		if ($item['title'] != "") {
-			$statushtml = "<h4>" . bbcode($item['title']) . "</h4>\n" . $statushtml;
+			$statushtml = "<br><h4>" . bbcode($item['title']) . "</h4><br>" . $statushtml;
+		}
+
+		do {
+			$oldtext = $statushtml;
+			$statushtml = str_replace("<br><br>", "<br>", $statushtml);
+		} while ($oldtext != $statushtml);
+
+		if (substr($statushtml, 0, 4) == '<br>') {
+			$statushtml = substr($statushtml, 4);
+		}
+
+		if (substr($statushtml, 0, -4) == '<br>') {
+			$statushtml = substr($statushtml, -4);
 		}
 
 		// feeds without body should contain the link
@@ -2494,7 +2509,7 @@ $called_api = null;
 		$text = preg_replace_callback(
 				"|data:image/([^;]+)[^=]+=*|m",
 				function($match) use ($item) {
-					return App::get_baseurl()."/display/".$item['guid'];
+					return System::baseUrl()."/display/".$item['guid'];
 				},
 				$text);
 		return $text;
@@ -2911,7 +2926,7 @@ $called_api = null;
 
 		$name = $a->config['sitename'];
 		$server = $a->get_hostname();
-		$logo = App::get_baseurl() . '/images/friendica-64.png';
+		$logo = System::baseUrl() . '/images/friendica-64.png';
 		$email = $a->config['admin_email'];
 		$closed = (($a->config['register_policy'] == REGISTER_CLOSED) ? 'true' : 'false');
 		$private = ((Config::get('system', 'block_public')) ? 'true' : 'false');
@@ -2920,7 +2935,7 @@ $called_api = null;
 			$texlimit = string($a->config['api_import_size']);
 		}
 		$ssl = ((Config::get('system', 'have_ssl')) ? 'true' : 'false');
-		$sslserver = (($ssl === 'true') ? str_replace('http:','https:',App::get_baseurl()) : '');
+		$sslserver = (($ssl === 'true') ? str_replace('http:','https:',System::baseUrl()) : '');
 
 		$config = array(
 			'site' => array('name' => $name,'server' => $server, 'theme' => 'default', 'path' => '',
@@ -3422,7 +3437,7 @@ $called_api = null;
 				$photo['album'] = $rr['album'];
 				$photo['filename'] = $rr['filename'];
 				$photo['type'] = $rr['type'];
-				$thumb = App::get_baseurl() . "/photo/" . $rr['resource-id'] . "-" . $rr['scale'] . "." . $typetoext[$rr['type']];
+				$thumb = System::baseUrl() . "/photo/" . $rr['resource-id'] . "-" . $rr['scale'] . "." . $typetoext[$rr['type']];
 				$photo['created'] = $rr['created'];
 				$photo['edited'] = $rr['edited'];
 				$photo['desc'] = $rr['desc'];
@@ -3722,15 +3737,15 @@ $called_api = null;
 			);
 
 			$r = q("UPDATE `contact` SET `photo` = '%s', `thumb` = '%s', `micro` = '%s'  WHERE `self` AND `uid` = %d",
-				dbesc(App::get_baseurl() . '/photo/' . $data['photo']['id'] . '-4.' . $fileext),
-				dbesc(App::get_baseurl() . '/photo/' . $data['photo']['id'] . '-5.' . $fileext),
-				dbesc(App::get_baseurl() . '/photo/' . $data['photo']['id'] . '-6.' . $fileext),
+				dbesc(System::baseUrl() . '/photo/' . $data['photo']['id'] . '-4.' . $fileext),
+				dbesc(System::baseUrl() . '/photo/' . $data['photo']['id'] . '-5.' . $fileext),
+				dbesc(System::baseUrl() . '/photo/' . $data['photo']['id'] . '-6.' . $fileext),
 				intval(local_user())
 			);
 		} else {
 			$r = q("UPDATE `profile` SET `photo` = '%s', `thumb` = '%s' WHERE `id` = %d AND `uid` = %d",
-				dbesc(App::get_baseurl() . '/photo/' . $data['photo']['id'] . '-4.' . $filetype),
-				dbesc(App::get_baseurl() . '/photo/' . $data['photo']['id'] . '-5.' . $filetype),
+				dbesc(System::baseUrl() . '/photo/' . $data['photo']['id'] . '-4.' . $filetype),
+				dbesc(System::baseUrl() . '/photo/' . $data['photo']['id'] . '-5.' . $filetype),
 				intval($_REQUEST['profile']),
 				intval(local_user())
 					);
@@ -3746,7 +3761,7 @@ $called_api = null;
 
 		// Update global directory in background
 		//$user = api_get_user(get_app());
-		$url = App::get_baseurl() . '/profile/' . get_app()->user['nickname'];
+		$url = System::baseUrl() . '/profile/' . get_app()->user['nickname'];
 		if ($url && strlen(get_config('system', 'directory'))) {
 			proc_run(PRIORITY_LOW, "include/directory.php", $url);
 		}
@@ -3975,8 +3990,8 @@ $called_api = null;
 				);
 
 		// adds link to the thumbnail scale photo
-		$arr['body'] = '[url=' . App::get_baseurl() . '/photos/' . $owner_record[0]['name'] . '/image/' . $hash . ']'
-					. '[img]' . App::get_baseurl() . '/photo/' . $hash . '-' . "2" . '.'. $typetoext[$filetype] . '[/img]'
+		$arr['body'] = '[url=' . System::baseUrl() . '/photos/' . $owner_record[0]['nick'] . '/image/' . $hash . ']'
+					. '[img]' . System::baseUrl() . '/photo/' . $hash . '-' . "2" . '.'. $typetoext[$filetype] . '[/img]'
 					. '[/url]';
 
 		// do the magic for storing the item in the database and trigger the federation to other contacts
@@ -4019,14 +4034,14 @@ $called_api = null;
 				for ($k = intval($data['photo']['minscale']); $k <= intval($data['photo']['maxscale']); $k++) {
 					$data['photo']['links'][$k . ":link"]["@attributes"] = array("type" => $data['photo']['type'],
 											"scale" => $k,
-											"href" => App::get_baseurl() . "/photo/" . $data['photo']['resource-id'] . "-" . $k . "." . $typetoext[$data['photo']['type']]);
+											"href" => System::baseUrl() . "/photo/" . $data['photo']['resource-id'] . "-" . $k . "." . $typetoext[$data['photo']['type']]);
 				}
 			} else {
 				$data['photo']['link'] = array();
 				// when we have profile images we could have only scales from 4 to 6, but index of array always needs to start with 0
 				$i = 0;
 				for ($k = intval($data['photo']['minscale']); $k <= intval($data['photo']['maxscale']); $k++) {
-					$data['photo']['link'][$i] = App::get_baseurl() . "/photo/" . $data['photo']['resource-id'] . "-" . $k . "." . $typetoext[$data['photo']['type']];
+					$data['photo']['link'][$i] = System::baseUrl() . "/photo/" . $data['photo']['resource-id'] . "-" . $k . "." . $typetoext[$data['photo']['type']];
 					$i++;
 				}
 			}
