@@ -64,6 +64,7 @@ function po2php_run(&$argv, &$argc) {
 				$inv = false;
 				$out .= '"' . $v . '"';
 			}
+		}
 
 		if ($k != "" && substr($l, 0, 7) == "msgstr ") {
 			if ($ink) {
@@ -80,6 +81,7 @@ function po2php_run(&$argv, &$argc) {
 			$inv = true;
 			//$out .= $v;
 		}
+
 		if ($k != "" && substr($l, 0, 7) == "msgstr[") {
 			if ($ink) {
 				$ink = false;
@@ -139,21 +141,19 @@ function po2php_run(&$argv, &$argc) {
 			$v = preg_replace_callback($escape_s_exp, 'escape_s', $v);
 			//$out .= '$a->strings['.$k.'] = ';
 		}
-
-
 	}
 
 	if ($inv) {
 		$inv = false;
 		$out .= '"' . $v . '"';
 	}
+
 	if ($k != "") {
 		$out .= ($arr ? ");\n" : ";\n");
 	}
 
 	$out = str_replace(DQ_ESCAPE, '\"', $out);
 	file_put_contents($outfile, $out);
-
 }
 
 if (array_search(__FILE__, get_included_files()) === 0) {

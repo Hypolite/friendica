@@ -25,7 +25,7 @@ if (!isset($mode)) {
 	die("Please use either 'start', 'stop' or 'status'.\n");
 }
 
-@include(".htconfig.php");
+include ".htconfig.php";
 
 if (!isset($pidfile)) {
 	die('Please specify a pid file in the variable $pidfile in the .htconfig.php. For example:'."\n".

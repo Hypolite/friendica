@@ -50,13 +50,13 @@ function admin_post(App $a) {
 				admin_page_users_post($a);
 				break;
 			case 'plugins':
-				if ($a->argc > 2 &&
-					is_file("addon/".$a->argv[2]."/".$a->argv[2].".php")) {
-						@include_once("addon/".$a->argv[2]."/".$a->argv[2].".php");
-						if (function_exists($a->argv[2].'_plugin_admin_post')) {
-							$func = $a->argv[2].'_plugin_admin_post';
-							$func($a);
-						}
+				if ($a->argc > 2 && is_file("addon/".$a->argv[2]."/".$a->argv[2].".php")) {
+					include_once "addon/" . $a->argv[2] . "/".$a->argv[2] . ".php";
+
+					if (function_exists($a->argv[2].'_plugin_admin_post')) {
+						$func = $a->argv[2].'_plugin_admin_post';
+						$func($a);
+					}
 				}
 				goaway('admin/plugins/'.$a->argv[2]);
 				return; // NOTREACHED
@@ -1718,7 +1718,7 @@ function admin_page_plugins(App $a) {
 
 		$admin_form="";
 		if (is_array($a->plugins_admin) && in_array($plugin, $a->plugins_admin)) {
-			@require_once("addon/$plugin/$plugin.php");
+			require_once "addon/" . $plugin . "/" . $plugin . ".php";
 			$func = $plugin.'_plugin_admin';
 			$func($a, $admin_form);
 		}

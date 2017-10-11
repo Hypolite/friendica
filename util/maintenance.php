@@ -3,10 +3,10 @@
 use Friendica\App;
 use Friendica\Core\Config;
 
-require_once("boot.php");
+require_once "boot.php";
 
 $a = new App(dirname(__DIR__));
-@include(".htconfig.php");
+include ".htconfig.php";
 
 $lang = get_browser_language();
 load_translation_table($lang);

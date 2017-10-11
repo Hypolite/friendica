@@ -16,7 +16,7 @@ if (!file_exists("boot.php") && (sizeof($_SERVER["argv"]) != 0)) {
 	chdir($directory);
 }
 
-require_once("boot.php");
+require_once "boot.php";
 
 function poller_run($argv, $argc){
 	global $a, $db, $poller_up_start, $poller_db_duration;
@@ -25,8 +25,8 @@ function poller_run($argv, $argc){
 
 	$a = new App(dirname(__DIR__));
 
-	@include(".htconfig.php");
-	require_once("include/dba.php");
+	include ".htconfig.php";
+	require_once "include/dba.php";
 	$db = new dba($db_host, $db_user, $db_pass, $db_data);
 	unset($db_host, $db_user, $db_pass, $db_data);
 

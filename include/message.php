@@ -5,12 +5,13 @@
 use Friendica\App;
 use Friendica\Core\System;
 
-function send_message($recipient=0, $body='', $subject='', $replyto=''){
+function send_message($recipient = 0, $body = '', $subject = '', $replyto = '') {
 
 	$a = get_app();
 
 	if (! $recipient) {
 		return -1;
+	}
 
 	if (! strlen($subject)) {
 		$subject = t('[no subject]');
@@ -43,8 +44,10 @@ function send_message($recipient=0, $body='', $subject='', $replyto=''){
 			dbesc($replyto),
 			dbesc($replyto)
 		);
-		if (dbm::is_result($r))
+
+		if (dbm::is_result($r)) {
 			$convid = $r[0]['convid'];
+		}
 	}
 
 	if (! $convid) {
@@ -107,8 +110,10 @@ function send_message($recipient=0, $body='', $subject='', $replyto=''){
 		dbesc($uri),
 		intval(local_user())
 	);
-	if (dbm::is_result($r))
+
+	if (dbm::is_result($r)) {
 		$post_id = $r[0]['id'];
+	}
 
 	/**
 	 *
@@ -194,6 +199,7 @@ function send_wallmessage($recipient='', $body='', $subject='', $replyto=''){
 	$r = dba::insert('conv', $fields);
 
 	$r = dba::select('conv', array('id'), array('guid' => $conv_guid, 'uid' => $recipient['uid']), array('limit' => 1));
+
 	if (!dbm::is_result($r)) {
 		logger('send message: conversation not found.');
 		return -4;

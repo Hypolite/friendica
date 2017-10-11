@@ -1,8 +1,8 @@
 <?php
 use \Friendica\Core\System;
 
-require_once("dbm.php");
-require_once('include/datetime.php');
+require_once 'dbm.php';
+require_once 'include/datetime.php';
 
 /**
  * @class MySQL database class

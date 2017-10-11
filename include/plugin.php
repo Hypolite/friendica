@@ -21,7 +21,7 @@ function uninstall_plugin($plugin){
 		dbesc($plugin)
 	);
 
-	@include_once('addon/' . $plugin . '/' . $plugin . '.php');
+	include_once 'addon/' . $plugin . '/' . $plugin . '.php';
 	if (function_exists($plugin . '_uninstall')) {
 		$func = $plugin . '_uninstall';
 		$func();
@@ -42,7 +42,7 @@ function install_plugin($plugin) {
 		return false;
 	logger("Addons: installing " . $plugin);
 	$t = @filemtime('addon/' . $plugin . '/' . $plugin . '.php');
-	@include_once('addon/' . $plugin . '/' . $plugin . '.php');
+	include_once 'addon/' . $plugin . '/' . $plugin . '.php';
 	if (function_exists($plugin . '_install')) {
 		$func = $plugin . '_install';
 		$func();
@@ -95,7 +95,7 @@ function reload_plugins() {
 					foreach ($installed as $i) {
 						if (($i['name'] == $pl) && ($i['timestamp'] != $t)) {
 							logger('Reloading plugin: ' . $i['name']);
-							@include_once($fname);
+							include_once $fname;
 
 							if (function_exists($pl . '_uninstall')) {
 								$func = $pl . '_uninstall';

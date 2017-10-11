@@ -3,8 +3,8 @@
 use Friendica\App;
 use Friendica\Core\Config;
 
-require_once("boot.php");
-require_once("include/threads.php");
+require_once "boot.php";
+require_once "include/threads.php";
 
 function shadowupdate_run(&$argv, &$argc){
 	global $a, $db;
@@ -14,8 +14,8 @@ function shadowupdate_run(&$argv, &$argc){
 	}
 
 	if (is_null($db)) {
-		@include(".htconfig.php");
-		require_once("include/dba.php");
+		include ".htconfig.php";
+		require_once "include/dba.php";
 		$db = new dba($db_host, $db_user, $db_pass, $db_data);
 		unset($db_host, $db_user, $db_pass, $db_data);
 	}
