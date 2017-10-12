@@ -606,14 +606,11 @@ function admin_page_queue(App $a) {
  * @return string
  */
 function admin_page_summary(App $a) {
-	global $db;
-
+	// Are there MyISAM tables in the DB? If so, trigger a warning message
+	$r = q("SELECT `engine` FROM `information_schema`.`tables` WHERE `engine` = 'myisam' AND `table_schema` = '%s' LIMIT 1",
+		dbesc(dba::database_name()));
 	$showwarning = false;
 	$warningtext = array();
-
-	// are there MyISAM tables in the DB? If so, trigger a warning message
-	$r = q("SELECT `engine` FROM `information_schema`.`tables` WHERE `engine` = 'myisam' AND `table_schema` = '%s' LIMIT 1",
-		dbesc($db->database_name()));
 
 	if (dbm::is_result($r)) {
 		$showwarning = true;
@@ -735,7 +732,7 @@ function admin_page_site_post(App $a) {
 		$old_host = str_replace("http://", "@", normalise_link($old_url));
 
 		function update_table($table_name, $fields, $old_url, $new_url) {
-			global $db, $a;
+			global $a;
 
 			$dbold = dbesc($old_url);
 			$dbnew = dbesc($new_url);
@@ -751,8 +748,8 @@ function admin_page_site_post(App $a) {
 
 			$q = sprintf("UPDATE %s SET %s;", $table_name, $upds);
 			$r = q($q);
-			if (!dbm::is_result(r)) {
-				notice("Failed updating '$table_name': ".$db->error);
+			if (!dbm::is_result($r)) {
+				notice("Failed updating '$table_name': ".dba::errorMessage());
 				goaway('admin/site');
 			}
 		}

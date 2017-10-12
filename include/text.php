@@ -703,20 +703,18 @@ $LOGGER_LEVELS = array();
  * LOGGER_ALL
  *
  * @global App $a
- * @global dba $db
  * @global array $LOGGER_LEVELS
  * @param string $msg
  * @param int $level
  */
 function logger($msg, $level = 0) {
 	$a = get_app();
-	global $db;
 	global $LOGGER_LEVELS;
 
 	// turn off logger in install mode
 	if (
 		$a->module == 'install'
-		|| ! ($db && $db->connected)
+		|| !dba::$connected
 	) {
 		return;
 	}
@@ -777,7 +775,6 @@ function logger($msg, $level = 0) {
  * LOGGER_ALL
  *
  * @global App $a
- * @global dba $db
  * @global array $LOGGER_LEVELS
  * @param string $msg
  * @param int $level
@@ -785,12 +782,11 @@ function logger($msg, $level = 0) {
 
 function dlogger($msg, $level = 0) {
 	$a = get_app();
-	global $db;
 
 	// turn off logger in install mode
 	if (
 		$a->module == 'install'
-		|| ! ($db && $db->connected)
+		|| !dba::$connected
 	) {
 		return;
 	}
