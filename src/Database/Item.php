@@ -294,6 +294,16 @@ class Item {
 			logger("Both author-link and owner-link are empty. Called by: " . System::callstack(), LOGGER_DEBUG);
 		}
 
+		if (blockedContact($item["author-id"])) {
+			logger('Contact '.$item["author-id"].' is blocked, item '.$item["uri"].' will not be stored');
+			return 0;
+		}
+
+		if (blockedContact($item["owner-id"])) {
+			logger('Contact '.$item["owner-id"].' is blocked, item '.$item["uri"].' will not be stored');
+			return 0;
+		}
+
 		if ($item["gcontact-id"] == 0) {
 			/*
 			 * The gcontact should mostly behave like the contact. But is is supposed to be global for the system.
@@ -638,14 +648,13 @@ class Item {
 
 	public static function delete($condition) {
 		dba::update('item', array('deleted' => true, 'title' => '', 'body' => '',
-                                                'edited' => datetime_convert(), 'changed' => datetime_convert()),
-                                        array('id' => $item["id"]));
+						'edited' => datetime_convert(), 'changed' => datetime_convert()),
+					array('id' => $item["id"]));
 
-                        // Delete the thread - if it is a starting post and not a comment
-                        if ($target_type != 'Comment') {
-                                delete_thread($item["id"], $item["parent-uri"]);
-                        }
-
+		// Delete the thread - if it is a starting post and not a comment
+		if ($target_type != 'Comment') {
+			delete_thread($item["id"], $item["parent-uri"]);
+		}
 	}
 
 	private static function deliver($item) {
