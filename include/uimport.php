@@ -2,6 +2,7 @@
 
 use Friendica\App;
 use Friendica\Core\System;
+use Friendica\Core\PConfig;
 
 require_once("include/Photo.php");
 define("IMPORT_DEBUG", False);
@@ -12,11 +13,6 @@ function last_insert_id() {
 	}
 
 	return dba::lastInsertId();
-}
-
-function last_error() {
-	global $db;
-	return $db->error;
 }
 
 /**
@@ -103,7 +99,7 @@ function import_account(App $a, $file) {
 	// check for username
 	$r = q("SELECT uid FROM user WHERE nickname='%s'", $account['user']['nickname']);
 	if ($r === false) {
-		logger("uimport:check nickname : ERROR : " . last_error(), LOGGER_NORMAL);
+		logger("uimport:check nickname : ERROR : " . dba::errorMessage(), LOGGER_NORMAL);
 		notice(t('Error! Cannot check nickname'));
 		return;
 	}
@@ -114,7 +110,7 @@ function import_account(App $a, $file) {
 	// check if username matches deleted account
 	$r = q("SELECT id FROM userd WHERE username='%s'", $account['user']['nickname']);
 	if ($r === false) {
-		logger("uimport:check nickname : ERROR : " . last_error(), LOGGER_NORMAL);
+		logger("uimport:check nickname : ERROR : " . dba::errorMessage(), LOGGER_NORMAL);
 		notice(t('Error! Cannot check nickname'));
 		return;
 	}
@@ -125,6 +121,16 @@ function import_account(App $a, $file) {
 
 	$oldbaseurl = $account['baseurl'];
 	$newbaseurl = System::baseUrl();
+
+	$oldaddr = str_replace('http://', '@', normalise_link($oldbaseurl));
+	$newaddr = str_replace('http://', '@', normalise_link($newbaseurl));
+
+	if (!empty($account['profile']['addr'])) {
+		$old_handle = $account['profile']['addr'];
+	} else {
+		$old_handle = $account['user']['nickname'].$oldaddr;
+	}
+
 	$olduid = $account['user']['uid'];
 
 	unset($account['user']['uid']);
@@ -133,19 +139,21 @@ function import_account(App $a, $file) {
 	unset($account['user']['expire_notification_sent']);
 
 	foreach ($account['user'] as $k => &$v) {
-		$v = str_replace($oldbaseurl, $newbaseurl, $v);
+		$v = str_replace(array($oldbaseurl, $oldaddr), array($newbaseurl, $newaddr), $v);
 	}
 
 	// import user
 	$r = db_import_assoc('user', $account['user']);
 	if ($r === false) {
 		//echo "<pre>"; var_dump($r, $query, mysql_error()); killme();
-		logger("uimport:insert user : ERROR : " . last_error(), LOGGER_NORMAL);
+		logger("uimport:insert user : ERROR : " . dba::errorMessage(), LOGGER_NORMAL);
 		notice(t("User creation error"));
 		return;
 	}
 	$newuid = last_insert_id();
 	//~ $newuid = 1;
+
+	PConfig::set($newuid, 'system', 'previous_addr', $old_handle);
 
 	// Generate a new guid for the account. Otherwise there will be problems with diaspora
 	q("UPDATE `user` SET `guid` = '%s' WHERE `uid` = %d",
@@ -153,7 +161,7 @@ function import_account(App $a, $file) {
 
 	foreach ($account['profile'] as &$profile) {
 		foreach ($profile as $k => &$v) {
-			$v = str_replace($oldbaseurl, $newbaseurl, $v);
+			$v = str_replace(array($oldbaseurl, $oldaddr), array($newbaseurl, $newaddr), $v);
 			foreach (array("profile", "avatar") as $k) {
 				$v = str_replace($oldbaseurl . "/photo/" . $k . "/" . $olduid . ".jpg", $newbaseurl . "/photo/" . $k . "/" . $newuid . ".jpg", $v);
 			}
@@ -161,7 +169,7 @@ function import_account(App $a, $file) {
 		$profile['uid'] = $newuid;
 		$r = db_import_assoc('profile', $profile);
 		if ($r === false) {
-			logger("uimport:insert profile " . $profile['profile-name'] . " : ERROR : " . last_error(), LOGGER_NORMAL);
+			logger("uimport:insert profile " . $profile['profile-name'] . " : ERROR : " . dba::errorMessage(), LOGGER_NORMAL);
 			info(t("User profile creation error"));
 			dba::delete('user', array('uid' => $newuid));
 			return;
@@ -172,7 +180,7 @@ function import_account(App $a, $file) {
 	foreach ($account['contact'] as &$contact) {
 		if ($contact['uid'] == $olduid && $contact['self'] == '1') {
 			foreach ($contact as $k => &$v) {
-				$v = str_replace($oldbaseurl, $newbaseurl, $v);
+				$v = str_replace(array($oldbaseurl, $oldaddr), array($newbaseurl, $newaddr), $v);
 				foreach (array("profile", "avatar", "micro") as $k) {
 					$v = str_replace($oldbaseurl . "/photo/" . $k . "/" . $olduid . ".jpg", $newbaseurl . "/photo/" . $k . "/" . $newuid . ".jpg", $v);
 				}
@@ -184,6 +192,7 @@ function import_account(App $a, $file) {
 
 			switch ($contact['network']) {
 				case NETWORK_DFRN:
+				case NETWORK_DIASPORA:
 					//  send relocate message (below)
 					break;
 				case NETWORK_ZOT:
@@ -204,7 +213,7 @@ function import_account(App $a, $file) {
 		$contact['uid'] = $newuid;
 		$r = db_import_assoc('contact', $contact);
 		if ($r === false) {
-			logger("uimport:insert contact " . $contact['nick'] . "," . $contact['network'] . " : ERROR : " . last_error(), LOGGER_NORMAL);
+			logger("uimport:insert contact " . $contact['nick'] . "," . $contact['network'] . " : ERROR : " . dba::errorMessage(), LOGGER_NORMAL);
 			$errorcount++;
 		} else {
 			$contact['newid'] = last_insert_id();
@@ -218,7 +227,7 @@ function import_account(App $a, $file) {
 		$group['uid'] = $newuid;
 		$r = db_import_assoc('group', $group);
 		if ($r === false) {
-			logger("uimport:insert group " . $group['name'] . " : ERROR : " . last_error(), LOGGER_NORMAL);
+			logger("uimport:insert group " . $group['name'] . " : ERROR : " . dba::errorMessage(), LOGGER_NORMAL);
 		} else {
 			$group['newid'] = last_insert_id();
 		}
@@ -245,7 +254,7 @@ function import_account(App $a, $file) {
 		if ($import == 2) {
 			$r = db_import_assoc('group_member', $group_member);
 			if ($r === false) {
-				logger("uimport:insert group member " . $group_member['id'] . " : ERROR : " . last_error(), LOGGER_NORMAL);
+				logger("uimport:insert group member " . $group_member['id'] . " : ERROR : " . dba::errorMessage(), LOGGER_NORMAL);
 			}
 		}
 	}
@@ -262,7 +271,7 @@ function import_account(App $a, $file) {
 		);
 
 		if ($r === false) {
-			logger("uimport:insert photo " . $photo['resource-id'] . "," . $photo['scale'] . " : ERROR : " . last_error(), LOGGER_NORMAL);
+			logger("uimport:insert photo " . $photo['resource-id'] . "," . $photo['scale'] . " : ERROR : " . dba::errorMessage(), LOGGER_NORMAL);
 		}
 	}
 
@@ -270,7 +279,7 @@ function import_account(App $a, $file) {
 		$pconfig['uid'] = $newuid;
 		$r = db_import_assoc('pconfig', $pconfig);
 		if ($r === false) {
-			logger("uimport:insert pconfig " . $pconfig['id'] . " : ERROR : " . last_error(), LOGGER_NORMAL);
+			logger("uimport:insert pconfig " . $pconfig['id'] . " : ERROR : " . dba::errorMessage(), LOGGER_NORMAL);
 		}
 	}
 

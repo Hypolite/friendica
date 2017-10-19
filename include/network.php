@@ -65,7 +65,7 @@ function fetch_url($url,$binary = false, &$redirects = 0, $timeout = 0, $accept_
  *    string 'body' => fetched content
  */
 function z_fetch_url($url, $binary = false, &$redirects = 0, $opts = array()) {
-	$ret = array('return_code' => 0, 'success' => false, 'header' => '', 'body' => '');
+	$ret = array('return_code' => 0, 'success' => false, 'header' => '', 'info' => '', 'body' => '');
 
 	$stamp1 = microtime(true);
 
@@ -164,6 +164,15 @@ function z_fetch_url($url, $binary = false, &$redirects = 0, $opts = array()) {
 	// if it throws any errors.
 
 	$s = @curl_exec($ch);
+	$curl_info = @curl_getinfo($ch);
+
+	// Special treatment for HTTP Code 416
+	// See https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/416
+	if (($curl_info['http_code'] == 416) && ($range > 0)) {
+		@curl_setopt($ch, CURLOPT_RANGE, '');
+		$s = @curl_exec($ch);
+		$curl_info = @curl_getinfo($ch);
+	}
 
 	if (curl_errno($ch) !== CURLE_OK) {
 		logger('fetch_url error fetching ' . $url . ': ' . curl_error($ch), LOGGER_NORMAL);
@@ -172,9 +181,10 @@ function z_fetch_url($url, $binary = false, &$redirects = 0, $opts = array()) {
 	$ret['errno'] = curl_errno($ch);
 
 	$base = $s;
-	$curl_info = @curl_getinfo($ch);
+	$ret['info'] = $curl_info;
 
 	$http_code = $curl_info['http_code'];
+
 	logger('fetch_url ' . $url . ': ' . $http_code . " " . $s, LOGGER_DATA);
 	$header = '';
 
@@ -740,7 +750,10 @@ function fix_contact_ssl_policy(&$contact,$new_policy) {
 	}
 
 	if ($ssl_changed) {
-		dba::update('contact', $contact, array('id' => $contact['id']));
+		$fields = array('url' => $contact['url'], 'request' => $contact['request'],
+				'notify' => $contact['notify'], 'poll' => $contact['poll'],
+				'confirm' => $contact['confirm'], 'poco' => $contact['poco']);
+		dba::update('contact', $fields, array('id' => $contact['id']));
 	}
 }
 
@@ -989,4 +1002,35 @@ function matching_url($url1, $url2) {
 	$match .= $path;
 
 	return normalise_link($match);
+}
+
+/**
+ * @brief Glue url parts together
+ *
+ * @param array $parsed URL parts
+ *
+ * @return string The glued URL
+ */
+function unParseUrl($parsed) {
+	$get = function ($key) use ($parsed) {
+		return isset($parsed[$key]) ? $parsed[$key] : null;
+	};
+
+	$pass      = $get('pass');
+	$user      = $get('user');
+	$userinfo  = $pass !== null ? "$user:$pass" : $user;
+	$port      = $get('port');
+	$scheme    = $get('scheme');
+	$query     = $get('query');
+	$fragment  = $get('fragment');
+	$authority =
+		($userinfo !== null ? $userinfo."@" : '') .
+		$get('host') .
+		($port ? ":$port" : '');
+
+	return	(strlen($scheme) ? $scheme.":" : '') .
+		(strlen($authority) ? "//".$authority : '') .
+		$get('path') .
+		(strlen($query) ? "?".$query : '') .
+		(strlen($fragment) ? "#".$fragment : '');
 }

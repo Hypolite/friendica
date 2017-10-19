@@ -11,21 +11,22 @@ require_once('include/datetime.php');
  */
 
 class dba {
+	public static $connected = true;
 
-	private $debug = 0;
-	private $db;
-	private $result;
-	private $driver;
-	public  $connected = false;
-	public  $error = false;
-	public  $errorno = 0;
-	public  $affected_rows = 0;
-	private $_server_info = '';
+	private static $_server_info = '';
+	private static $db;
+	private static $driver;
+	private static $error = false;
+	private static $errorno = 0;
+	private static $affected_rows = 0;
 	private static $in_transaction = false;
-	private static $dbo;
 	private static $relation = array();
 
-	function __construct($serveraddr, $user, $pass, $db, $install = false) {
+	public static function connect($serveraddr, $user, $pass, $db, $install = false) {
+		if (!is_null(self::$db)) {
+			return true;
+		}
+
 		$a = get_app();
 
 		$stamp1 = microtime(true);
@@ -45,24 +46,24 @@ class dba {
 		$db = trim($db);
 
 		if (!(strlen($server) && strlen($user))) {
-			$this->connected = false;
-			$this->db = null;
-			return;
+			self::$connected = false;
+			self::$db = null;
+			return false;
 		}
 
 		if ($install) {
 			if (strlen($server) && ($server !== 'localhost') && ($server !== '127.0.0.1')) {
 				if (! dns_get_record($server, DNS_A + DNS_CNAME + DNS_PTR)) {
-					$this->error = sprintf(t('Cannot locate DNS info for database server \'%s\''), $server);
-					$this->connected = false;
-					$this->db = null;
-					return;
+					self::$error = sprintf(t('Cannot locate DNS info for database server \'%s\''), $server);
+					self::$connected = false;
+					self::$db = null;
+					return false;
 				}
 			}
 		}
 
 		if (class_exists('\PDO') && in_array('mysql', PDO::getAvailableDrivers())) {
-			$this->driver = 'pdo';
+			self::$driver = 'pdo';
 			$connect = "mysql:host=".$server.";dbname=".$db;
 
 			if (isset($port)) {
@@ -73,47 +74,47 @@ class dba {
 				$connect .= ";charset=".$a->config["system"]["db_charset"];
 			}
 			try {
-				$this->db = @new PDO($connect, $user, $pass);
-				$this->connected = true;
+				self::$db = @new PDO($connect, $user, $pass);
+				self::$connected = true;
 			} catch (PDOException $e) {
-				$this->connected = false;
+				self::$connected = false;
 			}
 		}
 
-		if (!$this->connected && class_exists('mysqli')) {
-			$this->driver = 'mysqli';
-			$this->db = @new mysqli($server, $user, $pass, $db, $port);
+		if (!self::$connected && class_exists('mysqli')) {
+			self::$driver = 'mysqli';
+			self::$db = @new mysqli($server, $user, $pass, $db, $port);
 			if (!mysqli_connect_errno()) {
-				$this->connected = true;
+				self::$connected = true;
 
 				if (isset($a->config["system"]["db_charset"])) {
-					$this->db->set_charset($a->config["system"]["db_charset"]);
+					self::$db->set_charset($a->config["system"]["db_charset"]);
 				}
 			}
 		}
 
-		if (!$this->connected && function_exists('mysql_connect')) {
-			$this->driver = 'mysql';
-			$this->db = mysql_connect($serveraddr, $user, $pass);
-			if ($this->db && mysql_select_db($db, $this->db)) {
-				$this->connected = true;
+		if (!self::$connected && function_exists('mysql_connect')) {
+			self::$driver = 'mysql';
+			self::$db = mysql_connect($serveraddr, $user, $pass);
+			if (self::$db && mysql_select_db($db, self::$db)) {
+				self::$connected = true;
 
 				if (isset($a->config["system"]["db_charset"])) {
-					mysql_set_charset($a->config["system"]["db_charset"], $this->db);
+					mysql_set_charset($a->config["system"]["db_charset"], self::$db);
 				}
 			}
 		}
 
 		// No suitable SQL driver was found.
-		if (!$this->connected) {
-			$this->db = null;
+		if (!self::$connected) {
+			self::$db = null;
 			if (!$install) {
 				system_unavailable();
 			}
 		}
 		$a->save_timestamp($stamp1, "network");
 
-		self::$dbo = $this;
+		return true;
 	}
 
 	/**
@@ -124,21 +125,21 @@ class dba {
 	 *
 	 * @return string
 	 */
-	public function server_info() {
-		if ($this->_server_info == '') {
-			switch ($this->driver) {
+	public static function server_info() {
+		if (self::$_server_info == '') {
+			switch (self::$driver) {
 				case 'pdo':
-					$this->_server_info = $this->db->getAttribute(PDO::ATTR_SERVER_VERSION);
+					self::$_server_info = self::$db->getAttribute(PDO::ATTR_SERVER_VERSION);
 					break;
 				case 'mysqli':
-					$this->_server_info = $this->db->server_info;
+					self::$_server_info = self::$db->server_info;
 					break;
 				case 'mysql':
-					$this->_server_info = mysql_get_server_info($this->db);
+					self::$_server_info = mysql_get_server_info(self::$db);
 					break;
 			}
 		}
-		return $this->_server_info;
+		return self::$_server_info;
 	}
 
 	/**
@@ -146,10 +147,10 @@ class dba {
 	 *
 	 * @return string
 	 */
-	public function database_name() {
-		$r = $this->q("SELECT DATABASE() AS `db`");
-
-		return $r[0]['db'];
+	public static function database_name() {
+		$ret = self::p("SELECT DATABASE() AS `db`");
+                $data = self::inArray($ret);
+		return $data[0]['db'];
 	}
 
 	/**
@@ -157,7 +158,7 @@ class dba {
 	 *
 	 * @param string $query The database query that will be analyzed
 	 */
-	public function log_index($query) {
+	private static function log_index($query) {
 		$a = get_app();
 
 		if (empty($a->config["system"]["db_log_index"])) {
@@ -174,7 +175,7 @@ class dba {
 			return;
 		}
 
-		$r = $this->q("EXPLAIN ".$query);
+		$r = self::p("EXPLAIN ".$query);
 		if (!dbm::is_result($r)) {
 			return;
 		}
@@ -182,7 +183,7 @@ class dba {
 		$watchlist = explode(',', $a->config["system"]["db_log_index_watch"]);
 		$blacklist = explode(',', $a->config["system"]["db_log_index_blacklist"]);
 
-		foreach ($r AS $row) {
+		while ($row = dba::fetch($r)) {
 			if ((intval($a->config["system"]["db_loglimit_index"]) > 0)) {
 				$log = (in_array($row['key'], $watchlist) &&
 					($row['rows'] >= intval($a->config["system"]["db_loglimit_index"])));
@@ -209,77 +210,31 @@ class dba {
 		}
 	}
 
-	/**
-	 * @brief execute SQL query - deprecated
-	 *
-	 * Please use the dba:: functions instead:
-	 * dba::select, dba::exists, dba::insert
-	 * dba::delete, dba::update, dba::p, dba::e
-	 *
-	 * @param string $sql SQL query
-	 * @return array Query array
-	 */
-	public function q($sql) {
-		$ret = self::p($sql);
-
-		if (is_bool($ret)) {
-			return $ret;
-		}
-
-		$columns = self::columnCount($ret);
-
-		$data = self::inArray($ret);
-
-		if ((count($data) == 0) && ($columns == 0)) {
-			return true;
-		}
-
-		return $data;
-	}
-
-	public function escape($str) {
-		if ($this->db && $this->connected) {
-			switch ($this->driver) {
-				case 'pdo':
-					return substr(@$this->db->quote($str, PDO::PARAM_STR), 1, -1);
-				case 'mysqli':
-					return @$this->db->real_escape_string($str);
-				case 'mysql':
-					return @mysql_real_escape_string($str,$this->db);
-			}
+	public static function escape($str) {
+		switch (self::$driver) {
+			case 'pdo':
+				return substr(@self::$db->quote($str, PDO::PARAM_STR), 1, -1);
+			case 'mysqli':
+				return @self::$db->real_escape_string($str);
+			case 'mysql':
+				return @mysql_real_escape_string($str,self::$db);
 		}
 	}
 
-	function connected() {
-		switch ($this->driver) {
+	public static function connected() {
+		switch (self::$driver) {
 			case 'pdo':
 				// Not sure if this really is working like expected
-				$connected = ($this->db->getAttribute(PDO::ATTR_CONNECTION_STATUS) != "");
+				$connected = (self::$db->getAttribute(PDO::ATTR_CONNECTION_STATUS) != "");
 				break;
 			case 'mysqli':
-				$connected = $this->db->ping();
+				$connected = self::$db->ping();
 				break;
 			case 'mysql':
-				$connected = mysql_ping($this->db);
+				$connected = mysql_ping(self::$db);
 				break;
 		}
 		return $connected;
-	}
-
-	function __destruct() {
-		if ($this->db) {
-			switch ($this->driver) {
-				case 'pdo':
-					$this->db = null;
-					break;
-				case 'mysqli':
-					$this->db->close();
-					break;
-				case 'mysql':
-					mysql_close($this->db);
-					break;
-			}
-		}
 	}
 
 	/**
@@ -293,8 +248,8 @@ class dba {
 	 * @param string $sql An SQL string without the values
 	 * @return string The input SQL string modified if necessary.
 	 */
-	public function any_value_fallback($sql) {
-		$server_info = $this->server_info();
+	public static function any_value_fallback($sql) {
+		$server_info = self::server_info();
 		if (version_compare($server_info, '5.7.5', '<') ||
 			(stripos($server_info, 'MariaDB') !== false)) {
 			$sql = str_ireplace('ANY_VALUE(', 'MIN(', $sql);
@@ -311,7 +266,7 @@ class dba {
 	 * @param string $sql An SQL string without the values
 	 * @return string The input SQL string modified if necessary.
 	 */
-	public function clean_query($sql) {
+	public static function clean_query($sql) {
 		$search = array("\t", "\n", "\r", "  ");
 		$replace = array(' ', ' ', ' ', ' ');
 		do {
@@ -336,7 +291,7 @@ class dba {
 			if (is_int($args[$param]) || is_float($args[$param])) {
 				$replace = intval($args[$param]);
 			} else {
-				$replace = "'".self::$dbo->escape($args[$param])."'";
+				$replace = "'".self::escape($args[$param])."'";
 			}
 
 			$pos = strpos($sql, '?', $offset);
@@ -392,7 +347,7 @@ class dba {
 			$args[++$i] = $param;
 		}
 
-		if (!self::$dbo || !self::$dbo->connected) {
+		if (!self::$connected) {
 			return false;
 		}
 
@@ -401,8 +356,8 @@ class dba {
 			logger('Parameter mismatch. Query "'.$sql.'" - Parameters '.print_r($args, true), LOGGER_DEBUG);
 		}
 
-		$sql = self::$dbo->clean_query($sql);
-		$sql = self::$dbo->any_value_fallback($sql);
+		$sql = self::clean_query($sql);
+		$sql = self::any_value_fallback($sql);
 
 		$orig_sql = $sql;
 
@@ -410,9 +365,9 @@ class dba {
 			$sql = "/*".System::callstack()." */ ".$sql;
 		}
 
-		self::$dbo->error = '';
-		self::$dbo->errorno = 0;
-		self::$dbo->affected_rows = 0;
+		self::$error = '';
+		self::$errorno = 0;
+		self::$affected_rows = 0;
 
 		// We have to make some things different if this function is called from "e"
 		$trace = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 2);
@@ -426,25 +381,25 @@ class dba {
 		// We are having an own error logging in the function "e"
 		$called_from_e = ($called_from['function'] == 'e');
 
-		switch (self::$dbo->driver) {
+		switch (self::$driver) {
 			case 'pdo':
 				// If there are no arguments we use "query"
 				if (count($args) == 0) {
-					if (!$retval = self::$dbo->db->query($sql)) {
-						$errorInfo = self::$dbo->db->errorInfo();
-						self::$dbo->error = $errorInfo[2];
-						self::$dbo->errorno = $errorInfo[1];
+					if (!$retval = self::$db->query($sql)) {
+						$errorInfo = self::$db->errorInfo();
+						self::$error = $errorInfo[2];
+						self::$errorno = $errorInfo[1];
 						$retval = false;
 						break;
 					}
-					self::$dbo->affected_rows = $retval->rowCount();
+					self::$affected_rows = $retval->rowCount();
 					break;
 				}
 
-				if (!$stmt = self::$dbo->db->prepare($sql)) {
-					$errorInfo = self::$dbo->db->errorInfo();
-					self::$dbo->error = $errorInfo[2];
-					self::$dbo->errorno = $errorInfo[1];
+				if (!$stmt = self::$db->prepare($sql)) {
+					$errorInfo = self::$db->errorInfo();
+					self::$error = $errorInfo[2];
+					self::$errorno = $errorInfo[1];
 					$retval = false;
 					break;
 				}
@@ -455,12 +410,12 @@ class dba {
 
 				if (!$stmt->execute()) {
 					$errorInfo = $stmt->errorInfo();
-					self::$dbo->error = $errorInfo[2];
-					self::$dbo->errorno = $errorInfo[1];
+					self::$error = $errorInfo[2];
+					self::$errorno = $errorInfo[1];
 					$retval = false;
 				} else {
 					$retval = $stmt;
-					self::$dbo->affected_rows = $retval->rowCount();
+					self::$affected_rows = $retval->rowCount();
 				}
 				break;
 			case 'mysqli':
@@ -471,26 +426,26 @@ class dba {
 
 				// The fallback routine is called as well when there are no arguments
 				if (!$can_be_prepared || (count($args) == 0)) {
-					$retval = self::$dbo->db->query(self::replace_parameters($sql, $args));
-					if (self::$dbo->db->errno) {
-						self::$dbo->error = self::$dbo->db->error;
-						self::$dbo->errorno = self::$dbo->db->errno;
+					$retval = self::$db->query(self::replace_parameters($sql, $args));
+					if (self::$db->errno) {
+						self::$error = self::$db->error;
+						self::$errorno = self::$db->errno;
 						$retval = false;
 					} else {
 						if (isset($retval->num_rows)) {
-							self::$dbo->affected_rows = $retval->num_rows;
+							self::$affected_rows = $retval->num_rows;
 						} else {
-							self::$dbo->affected_rows = self::$dbo->db->affected_rows;
+							self::$affected_rows = self::$db->affected_rows;
 						}
 					}
 					break;
 				}
 
-				$stmt = self::$dbo->db->stmt_init();
+				$stmt = self::$db->stmt_init();
 
 				if (!$stmt->prepare($sql)) {
-					self::$dbo->error = $stmt->error;
-					self::$dbo->errorno = $stmt->errno;
+					self::$error = $stmt->error;
+					self::$errorno = $stmt->errno;
 					$retval = false;
 					break;
 				}
@@ -516,44 +471,44 @@ class dba {
 				}
 
 				if (!$stmt->execute()) {
-					self::$dbo->error = self::$dbo->db->error;
-					self::$dbo->errorno = self::$dbo->db->errno;
+					self::$error = self::$db->error;
+					self::$errorno = self::$db->errno;
 					$retval = false;
 				} else {
 					$stmt->store_result();
 					$retval = $stmt;
-					self::$dbo->affected_rows = $retval->affected_rows;
+					self::$affected_rows = $retval->affected_rows;
 				}
 				break;
 			case 'mysql':
 				// For the old "mysql" functions we cannot use prepared statements
-				$retval = mysql_query(self::replace_parameters($sql, $args), self::$dbo->db);
-				if (mysql_errno(self::$dbo->db)) {
-					self::$dbo->error = mysql_error(self::$dbo->db);
-					self::$dbo->errorno = mysql_errno(self::$dbo->db);
+				$retval = mysql_query(self::replace_parameters($sql, $args), self::$db);
+				if (mysql_errno(self::$db)) {
+					self::$error = mysql_error(self::$db);
+					self::$errorno = mysql_errno(self::$db);
 				} else {
-					self::$dbo->affected_rows = mysql_affected_rows($retval);
+					self::$affected_rows = mysql_affected_rows($retval);
 
 					// Due to missing mysql_* support this here wasn't tested at all
 					// See here: http://php.net/manual/en/function.mysql-num-rows.php
-					if (self::$dbo->affected_rows <= 0) {
-						self::$dbo->affected_rows = mysql_num_rows($retval);
+					if (self::$affected_rows <= 0) {
+						self::$affected_rows = mysql_num_rows($retval);
 					}
 				}
 				break;
 		}
 
 		// We are having an own error logging in the function "e"
-		if ((self::$dbo->errorno != 0) && !$called_from_e) {
+		if ((self::$errorno != 0) && !$called_from_e) {
 			// We have to preserve the error code, somewhere in the logging it get lost
-			$error = self::$dbo->error;
-			$errorno = self::$dbo->errorno;
+			$error = self::$error;
+			$errorno = self::$errorno;
 
-			logger('DB Error '.self::$dbo->errorno.': '.self::$dbo->error."\n".
+			logger('DB Error '.self::$errorno.': '.self::$error."\n".
 				System::callstack(8)."\n".self::replace_parameters($sql, $params));
 
-			self::$dbo->error = $error;
-			self::$dbo->errorno = $errorno;
+			self::$error = $error;
+			self::$errorno = $errorno;
 		}
 
 		$a->save_timestamp($stamp1, 'database');
@@ -607,18 +562,18 @@ class dba {
 
 			self::close($stmt);
 
-		} while ((self::$dbo->errorno == 1213) && (--$timeout > 0));
+		} while ((self::$errorno == 1213) && (--$timeout > 0));
 
-		if (self::$dbo->errorno != 0) {
+		if (self::$errorno != 0) {
 			// We have to preserve the error code, somewhere in the logging it get lost
-			$error = self::$dbo->error;
-			$errorno = self::$dbo->errorno;
+			$error = self::$error;
+			$errorno = self::$errorno;
 
-			logger('DB Error '.self::$dbo->errorno.': '.self::$dbo->error."\n".
+			logger('DB Error '.self::$errorno.': '.self::$error."\n".
 				System::callstack(8)."\n".self::replace_parameters($sql, $params));
 
-			self::$dbo->error = $error;
-			self::$dbo->errorno = $errorno;
+			self::$error = $error;
+			self::$errorno = $errorno;
 		}
 
 		$a->save_timestamp($stamp, "database_write");
@@ -690,7 +645,7 @@ class dba {
 	 * @return int Number of rows
 	 */
 	public static function affected_rows() {
-		return self::$dbo->affected_rows;
+		return self::$affected_rows;
 	}
 
 	/**
@@ -703,7 +658,7 @@ class dba {
 		if (!is_object($stmt)) {
 			return 0;
 		}
-		switch (self::$dbo->driver) {
+		switch (self::$driver) {
 			case 'pdo':
 				return $stmt->columnCount();
 			case 'mysqli':
@@ -723,7 +678,7 @@ class dba {
 		if (!is_object($stmt)) {
 			return 0;
 		}
-		switch (self::$dbo->driver) {
+		switch (self::$driver) {
 			case 'pdo':
 				return $stmt->rowCount();
 			case 'mysqli':
@@ -745,7 +700,7 @@ class dba {
 			return false;
 		}
 
-		switch (self::$dbo->driver) {
+		switch (self::$driver) {
 			case 'pdo':
 				return $stmt->fetch(PDO::FETCH_ASSOC);
 			case 'mysqli':
@@ -781,7 +736,7 @@ class dba {
 				}
 				return $columns;
 			case 'mysql':
-				return mysql_fetch_array(self::$dbo->result, MYSQL_ASSOC);
+				return mysql_fetch_array($stmt, MYSQL_ASSOC);
 		}
 	}
 
@@ -795,7 +750,7 @@ class dba {
 	 * @return boolean was the insert successfull?
 	 */
 	public static function insert($table, $param, $on_duplicate_update = false) {
-		$sql = "INSERT INTO `".self::$dbo->escape($table)."` (`".implode("`, `", array_keys($param))."`) VALUES (".
+		$sql = "INSERT INTO `".self::escape($table)."` (`".implode("`, `", array_keys($param))."`) VALUES (".
 			substr(str_repeat("?, ", count($param)), 0, -2).")";
 
 		if ($on_duplicate_update) {
@@ -814,15 +769,15 @@ class dba {
 	 * @return integer Last inserted id
 	 */
 	public static function lastInsertId() {
-		switch (self::$dbo->driver) {
+		switch (self::$driver) {
 			case 'pdo':
-				$id = self::$dbo->db->lastInsertId();
+				$id = self::$db->lastInsertId();
 				break;
 			case 'mysqli':
-				$id = self::$dbo->db->insert_id;
+				$id = self::$db->insert_id;
 				break;
 			case 'mysql':
-				$id = mysql_insert_id(self::$dbo);
+				$id = mysql_insert_id(self::$db);
 				break;
 		}
 		return $id;
@@ -840,7 +795,7 @@ class dba {
 	public static function lock($table) {
 		// See here: https://dev.mysql.com/doc/refman/5.7/en/lock-tables-and-transactions.html
 		self::e("SET autocommit=0");
-		$success = self::e("LOCK TABLES `".self::$dbo->escape($table)."` WRITE");
+		$success = self::e("LOCK TABLES `".self::escape($table)."` WRITE");
 		if (!$success) {
 			self::e("SET autocommit=1");
 		} else {
@@ -937,7 +892,6 @@ class dba {
 	 * @return boolean|array was the delete successfull? When $in_process is set: deletion data
 	 */
 	public static function delete($table, $param, $in_process = false, &$callstack = array()) {
-
 		$commands = array();
 
 		// Create a key for the loop prevention
@@ -950,7 +904,7 @@ class dba {
 
 		$callstack[$key] = true;
 
-		$table = self::$dbo->escape($table);
+		$table = self::escape($table);
 
 		$commands[$key] = array('table' => $table, 'param' => $param);
 
@@ -1100,8 +1054,7 @@ class dba {
 	 * @return boolean was the update successfull?
 	 */
 	public static function update($table, $fields, $condition, $old_fields = array()) {
-
-		$table = self::$dbo->escape($table);
+		$table = self::escape($table);
 
 		if (count($condition) > 0) {
 			$array_element = each($condition);
@@ -1265,7 +1218,7 @@ class dba {
 	 * @return string Error number (0 if no error)
 	 */
 	public static function errorNo() {
-		return self::$dbo->errorno;
+		return self::$errorno;
 	}
 
 	/**
@@ -1274,7 +1227,7 @@ class dba {
 	 * @return string Error message ('' if no error)
 	 */
 	public static function errorMessage() {
-		return self::$dbo->error;
+		return self::$error;
 	}
 
 	/**
@@ -1288,7 +1241,7 @@ class dba {
 			return false;
 		}
 
-		switch (self::$dbo->driver) {
+		switch (self::$driver) {
 			case 'pdo':
 				return $stmt->closeCursor();
 			case 'mysqli':
@@ -1301,10 +1254,8 @@ class dba {
 }
 
 function dbesc($str) {
-	global $db;
-
-	if ($db && $db->connected) {
-		return($db->escape($str));
+	if (dba::$connected) {
+		return(dba::escape($str));
 	} else {
 		return(str_replace("'","\\'",$str));
 	}
@@ -1321,17 +1272,15 @@ function dbesc($str) {
  * @return array Query array
  */
 function q($sql) {
-	global $db;
-
 	$args = func_get_args();
 	unset($args[0]);
 
-	if (!$db || !$db->connected) {
+	if (!dba::$connected) {
 		return false;
 	}
 
-	$sql = $db->clean_query($sql);
-	$sql = $db->any_value_fallback($sql);
+	$sql = dba::clean_query($sql);
+	$sql = dba::any_value_fallback($sql);
 
 	$stmt = @vsprintf($sql, $args);
 

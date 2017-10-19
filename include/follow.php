@@ -2,6 +2,7 @@
 
 use Friendica\App;
 use Friendica\Core\System;
+use Friendica\Network\Probe;
 
 require_once 'include/probe.php';
 require_once 'include/socgraph.php';
@@ -71,7 +72,7 @@ function update_contact($id) {
 
 
 
-function new_contact($uid,$url,$interactive = false) {
+function new_contact($uid, $url, $interactive = false, $network = '') {
 
 	$result = array('cid' => -1, 'success' => false,'message' => '');
 
@@ -102,9 +103,13 @@ function new_contact($uid,$url,$interactive = false) {
 
 	if (x($arr['contact'],'name')) {
 		$ret = $arr['contact'];
+	} else {
+		$ret = Probe::uri($url, $network, $uid, false);
 	}
-	else {
-		$ret = probe_url($url);
+
+	if (($network != '') && ($ret['network'] != $network)) {
+		logger('Expected network '.$network.' does not match actual network '.$ret['network']);
+		return result;
 	}
 
 	if ($ret['network'] === NETWORK_DFRN) {
@@ -192,32 +197,6 @@ function new_contact($uid,$url,$interactive = false) {
 		$fields = array('rel' => $new_relation, 'subhub' => $subhub, 'readonly' => false);
 		dba::update('contact', $fields, array('id' => $r[0]['id']));
 	} else {
-		// check service class limits
-
-		$r = q("SELECT COUNT(*) AS `total` FROM `contact` WHERE `uid` = %d AND `pending` = 0 AND `self` = 0",
-			intval($uid)
-		);
-		if (dbm::is_result($r))
-			$total_contacts = $r[0]['total'];
-
-		if (! service_class_allows($uid,'total_contacts',$total_contacts)) {
-			$result['message'] .= upgrade_message();
-			return $result;
-		}
-
-		$r = q("SELECT COUNT(`network`) AS `total` FROM `contact` WHERE `uid` = %d AND `network` = '%s' AND `pending` = 0 AND `self` = 0",
-			intval($uid),
-			dbesc($network)
-		);
-		if (dbm::is_result($r)) {
-			$total_network = $r[0]['total'];
-		}
-
-		if (! service_class_allows($uid,'total_contacts_' . $network,$total_network)) {
-			$result['message'] .= upgrade_message();
-			return $result;
-		}
-
 		$new_relation = ((in_array($ret['network'], array(NETWORK_MAIL))) ? CONTACT_IS_FRIEND : CONTACT_IS_SHARING);
 
 		// create contact record

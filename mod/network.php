@@ -37,6 +37,8 @@ function network_init(App $a) {
 	$is_a_date_query = false;
 	if (x($_GET, 'cid') && intval($_GET['cid']) != 0) {
 		$cid = $_GET['cid'];
+		$_GET['nets'] = 'all';
+
 	}
 
 	if ($a->argc > 1) {
@@ -856,11 +858,12 @@ function networkThreadedView(App $a, $update = 0) {
 
 	if (!$group && !$cid && !$star) {
 		$condition = array('unseen' => true, 'uid' => local_user());
+		networkSetSeen($condition);
 	} elseif ($parents_str) {
 		$condition = array("`uid` = ? AND `unseen` AND `parent` IN (" . dbesc($parents_str) . ")", local_user());
+		networkSetSeen($condition);
 	}
 
-	networkSetSeen($condition);
 
 	$mode = 'network';
 	$o .= networkConversation($a, $items, $mode, $update);

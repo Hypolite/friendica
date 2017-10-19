@@ -289,10 +289,17 @@ class dfrn {
 	 * @brief Generate an atom entry for a given item id
 	 *
 	 * @param int $item_id The item id
+	 * @param boolean $conversation Show the conversation. If false show the single post.
 	 *
 	 * @return string DFRN feed entry
 	 */
-	public static function itemFeed($item_id) {
+	public static function itemFeed($item_id, $conversation = false) {
+		if ($conversation) {
+			$condition = '`item`.`parent`';
+		} else {
+			$condition = '`item`.`id`';
+		}
+
 		$r = q("SELECT `item`.*, `item`.`id` AS `item_id`,
 			`contact`.`name`, `contact`.`network`, `contact`.`photo`, `contact`.`url`,
 			`contact`.`name-date`, `contact`.`uri-date`, `contact`.`avatar-date`,
@@ -302,8 +309,9 @@ class dfrn {
 			STRAIGHT_JOIN `contact` ON `contact`.`id` = `item`.`contact-id`
 				AND (NOT `contact`.`blocked` OR `contact`.`pending`)
 			LEFT JOIN `sign` ON `sign`.`iid` = `item`.`id`
-			WHERE `item`.`id` = %d AND `item`.`visible` AND NOT `item`.`moderated` AND `item`.`parent` != 0
+			WHERE %s = %d AND `item`.`visible` AND NOT `item`.`moderated` AND `item`.`parent` != 0
 			AND NOT `item`.`private`",
+			$condition,
 			intval($item_id)
 		);
 
@@ -311,6 +319,7 @@ class dfrn {
 			killme();
 		}
 
+		$items = $r;
 		$item = $r[0];
 
 		$r = q("SELECT `contact`.*, `user`.`nickname`, `user`.`timezone`, `user`.`page-flags`, `user`.`account-type`
@@ -327,12 +336,31 @@ class dfrn {
 
 		$doc = new DOMDocument('1.0', 'utf-8');
 		$doc->formatOutput = true;
-
-		$alternatelink = $owner['url'];
-
 		$type = 'html';
 
-		$root = self::entry($doc, $type, $item, $owner, true, 0, true);
+		if ($conversation) {
+			$root = $doc->createElementNS(NAMESPACE_ATOM1, 'feed');
+			$doc->appendChild($root);
+
+			$root->setAttribute("xmlns:thr", NAMESPACE_THREAD);
+			$root->setAttribute("xmlns:at", NAMESPACE_TOMB);
+			$root->setAttribute("xmlns:media", NAMESPACE_MEDIA);
+			$root->setAttribute("xmlns:dfrn", NAMESPACE_DFRN);
+			$root->setAttribute("xmlns:activity", NAMESPACE_ACTIVITY);
+			$root->setAttribute("xmlns:georss", NAMESPACE_GEORSS);
+			$root->setAttribute("xmlns:poco", NAMESPACE_POCO);
+			$root->setAttribute("xmlns:ostatus", NAMESPACE_OSTATUS);
+			$root->setAttribute("xmlns:statusnet", NAMESPACE_STATUSNET);
+
+			//$root = self::add_header($doc, $owner, "dfrn:owner", "", false);
+
+			foreach ($items as $item) {
+				$entry = self::entry($doc, $type, $item, $owner, true, 0);
+				$root->appendChild($entry);
+			}
+		} else {
+			$root = self::entry($doc, $type, $item, $owner, true, 0, true);
+		}
 
 		$atom = trim($doc->saveXML());
 		return $atom;
@@ -2829,13 +2857,6 @@ class dfrn {
 			return 400;
 		}
 
-		if ($importer["readonly"]) {
-			// We aren't receiving stuff from this person. But we will quietly ignore them
-			// rather than a blatant "go away" message.
-			logger('ignoring contact '.$importer["id"]);
-			return 403;
-		}
-
 		$doc = new DOMDocument();
 		@$doc->loadXML($xml);
 
@@ -2878,11 +2899,7 @@ class dfrn {
 			$accounttype = intval($xpath->evaluate("/atom:feed/dfrn:account_type/text()", $context)->item(0)->nodeValue);
 
 			if ($accounttype != $importer["contact-type"]) {
-				/// @TODO this way is the norm or putting ); at the end of the line?
-				q("UPDATE `contact` SET `contact-type` = %d WHERE `id` = %d",
-					intval($accounttype),
-					intval($importer["id"])
-				);
+				dba::update('contact', array('contact-type' => $accounttype), array('id' => $importer["id"]));
 			}
 		}
 
@@ -2891,10 +2908,21 @@ class dfrn {
 		$forum = intval($xpath->evaluate("/atom:feed/dfrn:community/text()", $context)->item(0)->nodeValue);
 
 		if ($forum != $importer["forum"]) {
-			q("UPDATE `contact` SET `forum` = %d WHERE `forum` != %d AND `id` = %d",
-				intval($forum), intval($forum),
-				intval($importer["id"])
-			);
+			$condition = array('`forum` != ? AND `id` = ?', $forum, $importer["id"]);
+			dba::update('contact', array('forum' => $forum), $condition);
+		}
+
+		// We are processing relocations even if we are ignoring a contact
+		$relocations = $xpath->query("/atom:feed/dfrn:relocate");
+		foreach ($relocations AS $relocation) {
+			self::process_relocation($xpath, $relocation, $importer);
+		}
+
+		if ($importer["readonly"]) {
+			// We aren't receiving stuff from this person. But we will quietly ignore them
+			// rather than a blatant "go away" message.
+			logger('ignoring contact '.$importer["id"]);
+			return 403;
 		}
 
 		$mails = $xpath->query("/atom:feed/dfrn:mail");
@@ -2905,11 +2933,6 @@ class dfrn {
 		$suggestions = $xpath->query("/atom:feed/dfrn:suggest");
 		foreach ($suggestions AS $suggestion) {
 			self::process_suggestion($xpath, $suggestion, $importer);
-		}
-
-		$relocations = $xpath->query("/atom:feed/dfrn:relocate");
-		foreach ($relocations AS $relocation) {
-			self::process_relocation($xpath, $relocation, $importer);
 		}
 
 		$deletions = $xpath->query("/atom:feed/at:deleted-entry");

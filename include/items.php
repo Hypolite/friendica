@@ -572,7 +572,7 @@ function item_store($arr, $force_parent = false, $notify = false, $dontcache = f
 	$expire_interval = Config::get('system', 'dbclean-expire-days', 0);
 
 	$r = dba::select('user', array('expire'), array('uid' => $uid), array("limit" => 1));
-	if (dbm::is_result($r) && ($r['expire'] > 0) && ($r['expire'] < $expire_interval)) {
+	if (dbm::is_result($r) && ($r['expire'] > 0) && (($r['expire'] < $expire_interval) || ($expire_interval == 0))) {
 		$expire_interval = $r['expire'];
 	}
 
@@ -761,8 +761,18 @@ function item_store($arr, $force_parent = false, $notify = false, $dontcache = f
 		$arr["author-id"] = get_contact($arr["author-link"], 0);
 	}
 
+	if (blockedContact($arr["author-id"])) {
+		logger('Contact '.$arr["author-id"].' is blocked, item '.$arr["uri"].' will not be stored');
+		return 0;
+	}
+
 	if ($arr["owner-id"] == 0) {
 		$arr["owner-id"] = get_contact($arr["owner-link"], 0);
+	}
+
+	if (blockedContact($arr["owner-id"])) {
+		logger('Contact '.$arr["owner-id"].' is blocked, item '.$arr["uri"].' will not be stored');
+		return 0;
 	}
 
 	if ($arr['guid'] != "") {
@@ -1693,7 +1703,7 @@ function new_follower($importer, $contact, $datarray, $item, $sharing = false) {
 			intval($importer['uid'])
 		);
 
-		if (dbm::is_result($r) && !in_array($r[0]['page-flags'], array(PAGE_SOAPBOX, PAGE_FREELOVE))) {
+		if (dbm::is_result($r) && !in_array($r[0]['page-flags'], array(PAGE_SOAPBOX, PAGE_FREELOVE, PAGE_COMMUNITY))) {
 
 			// create notification
 			$hash = random_string();
@@ -1729,7 +1739,7 @@ function new_follower($importer, $contact, $datarray, $item, $sharing = false) {
 				));
 
 			}
-		} elseif (dbm::is_result($r) && in_array($r[0]['page-flags'], array(PAGE_SOAPBOX, PAGE_FREELOVE))) {
+		} elseif (dbm::is_result($r) && in_array($r[0]['page-flags'], array(PAGE_SOAPBOX, PAGE_FREELOVE, PAGE_COMMUNITY))) {
 			$r = q("UPDATE `contact` SET `pending` = 0 WHERE `uid` = %d AND `url` = '%s' AND `pending` LIMIT 1",
 					intval($importer['uid']),
 					dbesc($url)

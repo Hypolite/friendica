@@ -155,7 +155,7 @@ function mark_for_death($contact) {
 
 function unmark_for_death($contact) {
 
-	$r = q("SELECT `term-date` FROM `contact` WHERE `id` = %d AND `term-date` > '%s'",
+	$r = q("SELECT `term-date` FROM `contact` WHERE `id` = %d AND (`term-date` > '%s' OR `archive`)",
 		intval($contact['id']),
 		dbesc('1000-00-00 00:00:00')
 	);
@@ -166,16 +166,11 @@ function unmark_for_death($contact) {
 	}
 
 	// It's a miracle. Our dead contact has inexplicably come back to life.
-	q("UPDATE `contact` SET `term-date` = '%s' WHERE `id` = %d",
-		dbesc(NULL_DATE),
-		intval($contact['id'])
-	);
+	$fields = array('term-date' => NULL_DATE, 'archive' => false);
+	dba::update('contact', $fields, array('id' => $contact['id']));
 
 	if ($contact['url'] != '') {
-		q("UPDATE `contact` SET `term-date` = '%s' WHERE `nurl` = '%s'",
-			dbesc(NULL_DATE),
-			dbesc(normalise_link($contact['url']))
-		);
+		dba::update('contact', $fields, array('nurl' => normalise_link($contact['url'])));
 	}
 }
 
@@ -607,6 +602,10 @@ function get_contact($url, $uid = 0, $no_update = false) {
 		$data = array_merge($data, $gcontacts);
 	}
 
+	if (!$contact_id && ($data["alias"] != '') && ($data["alias"] != $url)) {
+		$contact_id = get_contact($data["alias"], $uid, true);
+	}
+
 	$url = $data["url"];
 	if (!$contact_id) {
 		dba::insert('contact', array('uid' => $uid, 'created' => datetime_convert(), 'url' => $data["url"],
@@ -658,7 +657,7 @@ function get_contact($url, $uid = 0, $no_update = false) {
 
 	update_contact_avatar($data["photo"], $uid, $contact_id);
 
-	$contact = dba::select('contact', array('addr', 'alias', 'name', 'nick', 'keywords', 'location', 'about', 'avatar-date'),
+	$contact = dba::select('contact', array('url', 'nurl', 'addr', 'alias', 'name', 'nick', 'keywords', 'location', 'about', 'avatar-date'),
 				array('id' => $contact_id), array('limit' => 1));
 
 	// This condition should always be true
@@ -668,6 +667,8 @@ function get_contact($url, $uid = 0, $no_update = false) {
 
 	$updated = array('addr' => $data['addr'],
 			'alias' => $data['alias'],
+			'url' => $data['url'],
+			'nurl' => normalise_link($data['url']),
 			'name' => $data['name'],
 			'nick' => $data['nick']);
 
@@ -693,6 +694,44 @@ function get_contact($url, $uid = 0, $no_update = false) {
 	dba::update('contact', $updated, array('id' => $contact_id), $contact);
 
 	return $contact_id;
+}
+
+/**
+ * @brief Checks if the contact is blocked
+ *
+ * @param int $cid contact id
+ *
+ * @return boolean Is the contact blocked?
+ */
+function blockedContact($cid) {
+	if ($cid == 0) {
+		return false;
+	}
+
+	$blocked = dba::select('contact', array('blocked'), array('id' => $cid), array('limit' => 1));
+	if (!dbm::is_result($blocked)) {
+		return false;
+	}
+	return (bool)$blocked['blocked'];
+}
+
+/**
+ * @brief Checks if the contact is hidden
+ *
+ * @param int $cid contact id
+ *
+ * @return boolean Is the contact hidden?
+ */
+function hiddenContact($cid) {
+	if ($cid == 0) {
+		return false;
+	}
+
+	$hidden = dba::select('contact', array('hidden'), array('id' => $cid), array('limit' => 1));
+	if (!dbm::is_result($hidden)) {
+		return false;
+	}
+	return (bool)$hidden['hidden'];
 }
 
 /**
@@ -748,22 +787,25 @@ function posts_from_contact_url(App $a, $contact_url) {
 
 	// There are no posts with "uid = 0" with connector networks
 	// This speeds up the query a lot
-	$r = q("SELECT `network`, `id` AS `author-id` FROM `contact`
+	$r = q("SELECT `network`, `id` AS `author-id`, `contact-type` FROM `contact`
 		WHERE `contact`.`nurl` = '%s' AND `contact`.`uid` = 0",
 		dbesc(normalise_link($contact_url)));
+
+	if (!dbm::is_result($r)) {
+		return '';
+	}
+
 	if (in_array($r[0]["network"], array(NETWORK_DFRN, NETWORK_DIASPORA, NETWORK_OSTATUS, ""))) {
 		$sql = "(`item`.`uid` = 0 OR (`item`.`uid` = %d AND NOT `item`.`global`))";
 	} else {
 		$sql = "`item`.`uid` = %d";
 	}
 
-	if (!dbm::is_result($r)) {
-		return '';
-	}
-
 	$author_id = intval($r[0]["author-id"]);
 
-	$r = q(item_query()." AND `item`.`author-id` = %d AND ".$sql.
+	$contact = ($r[0]["contact-type"] = ACCOUNT_TYPE_COMMUNITY ? 'owner-id' : 'author-id');
+
+	$r = q(item_query()." AND `item`.`".$contact."` = %d AND ".$sql.
 		" ORDER BY `item`.`created` DESC LIMIT %d, %d",
 		intval($author_id),
 		intval(local_user()),

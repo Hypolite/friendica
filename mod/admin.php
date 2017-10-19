@@ -363,7 +363,7 @@ function admin_page_blocklist_post(App $a) {
  * This subpage of the admin panel offers the nodes admin to delete an item from
  * the node, given the GUID or the display URL such as http://example.com/display/123456.
  * The item will then be marked as deleted in the database and processed accordingly.
- * 
+ *
  * @param App $a
  * @return string
  */
@@ -606,10 +606,9 @@ function admin_page_queue(App $a) {
  * @return string
  */
 function admin_page_summary(App $a) {
-	global $db;
 	// are there MyISAM tables in the DB? If so, trigger a warning message
 	$r = q("SELECT `engine` FROM `information_schema`.`tables` WHERE `engine` = 'myisam' AND `table_schema` = '%s' LIMIT 1",
-		dbesc($db->database_name()));
+		dbesc(dba::database_name()));
 	$showwarning = false;
 	$warningtext = array();
 	if (dbm::is_result($r)) {
@@ -692,11 +691,16 @@ function admin_page_summary(App $a) {
  * @param App $a
  */
 function admin_page_site_post(App $a) {
-	if (!x($_POST,"page_site")) {
+	check_form_security_token_redirectOnErr('/admin/site', 'admin_site');
+
+	if (!empty($_POST['republish_directory'])) {
+		proc_run(PRIORITY_LOW, 'include/directory.php');
 		return;
 	}
 
-	check_form_security_token_redirectOnErr('/admin/site', 'admin_site');
+	if (!x($_POST,"page_site")) {
+		return;
+	}
 
 	// relocate
 	if (x($_POST,'relocate') && x($_POST,'relocate_url') && $_POST['relocate_url'] != "") {
@@ -721,7 +725,7 @@ function admin_page_site_post(App $a) {
 		$old_host = str_replace("http://", "@", normalise_link($old_url));
 
 		function update_table($table_name, $fields, $old_url, $new_url) {
-			global $db, $a;
+			global $a;
 
 			$dbold = dbesc($old_url);
 			$dbnew = dbesc($new_url);
@@ -738,7 +742,7 @@ function admin_page_site_post(App $a) {
 			$q = sprintf("UPDATE %s SET %s;", $table_name, $upds);
 			$r = q($q);
 			if (!$r) {
-				notice("Failed updating '$table_name': ".$db->error);
+				notice("Failed updating '$table_name': ".dba::errorMessage());
 				goaway('admin/site');
 			}
 		}
@@ -1107,7 +1111,7 @@ function admin_page_site(App $a) {
 	/* Banner */
 	$banner = get_config('system','banner');
 	if ($banner == false) {
-		$banner = '<a href="http://friendica.com"><img id="logo-img" src="images/friendica-32.png" alt="logo" /></a><span id="logo-text"><a href="http://friendica.com">Friendica</a></span>';
+		$banner = '<a href="https://friendi.ca"><img id="logo-img" src="images/friendica-32.png" alt="logo" /></a><span id="logo-text"><a href="https://friendi.ca">Friendica</a></span>';
 	}
 	$banner = htmlspecialchars($banner);
 	$info = get_config('config','info');
@@ -1152,6 +1156,7 @@ function admin_page_site(App $a) {
 		'$title' => t('Administration'),
 		'$page' => t('Site'),
 		'$submit' => t('Save Settings'),
+		'$republish' => t('Republish users to directory'),
 		'$registration' => t('Registration'),
 		'$upload' => t('File upload'),
 		'$corporate' => t('Policies'),
@@ -1234,7 +1239,7 @@ function admin_page_site(App $a) {
 		'$proxy_disabled'	=> array('proxy_disabled', t("Disable picture proxy"), get_config('system','proxy_disabled'), t("The picture proxy increases performance and privacy. It shouldn't be used on systems with very low bandwith.")),
 		'$only_tag_search'	=> array('only_tag_search', t("Only search in tags"), get_config('system','only_tag_search'), t("On large systems the text search can slow down the system extremely.")),
 
-		'$relocate_url'		=> array('relocate_url', t("New base url"), System::baseUrl(), t("Change base url for this server. Sends relocate message to all DFRN contacts of all users.")),
+		'$relocate_url'		=> array('relocate_url', t("New base url"), System::baseUrl(), t("Change base url for this server. Sends relocate message to all Friendica and Diaspora* contacts of all users.")),
 
 		'$rino' 		=> array('rino', t("RINO Encryption"), intval(get_config('system','rino_encrypt')), t("Encryption layer between nodes."), array("Disabled", "RINO1 (deprecated)", "RINO2")),
 
