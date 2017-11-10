@@ -86,7 +86,9 @@ class exAuth {
 				return;
 			}
 
+			$this->writeLog(LOG_NOTICE, "waiting for input");
 			$iHeader = fgets(STDIN, 3);
+			$this->writeLog(LOG_NOTICE, "got data");
 			$aLength = unpack("n", $iHeader);
 			$iLength = $aLength["1"];
 
@@ -228,6 +230,7 @@ class exAuth {
 			$sQuery = "SELECT `uid`, `password` FROM `user` WHERE `nickname`='".dbesc($sUser)."'";
 			$this->writeLog(LOG_DEBUG, "using query ". $sQuery);
 			if ($oResult = q($sQuery)) {
+				$this->writeLog(LOG_NOTICE, "Done with query");
 				$uid = $oResult[0]["uid"];
 				$Error = ($oResult[0]["password"] != hash('whirlpool',$aCommand[3]));
 			} else {
@@ -252,9 +255,11 @@ class exAuth {
 		if ($Error) {
 			$this->writeLog(LOG_WARNING, "authentification failed for user ".$sUser."@". $aCommand[2]);
 			fwrite(STDOUT, pack("nn", 2, 0));
+			$this->writeLog(LOG_NOTICE, "wrote to STDOUT");
 		} else {
 			$this->writeLog(LOG_NOTICE, "authentificated user ".$sUser."@".$aCommand[2]);
 			fwrite(STDOUT, pack("nn", 2, 1));
+			$this->writeLog(LOG_NOTICE, "wrote to STDOUT");
 		}
 	}
 
@@ -269,7 +274,7 @@ class exAuth {
 	 * @return boolean Are the credentials okay?
 	 */
 	private function check_credentials($host, $user, $password, $ssl) {
-		$url = ($ssl ? "https":"http")."://".$host."/api/account/verify_credentials.json";
+		$url = ($ssl ? "https":"http")."://".$host."/api/account/verify_credentials.json?skip_status=true";
 
 		$ch = curl_init();
 		curl_setopt($ch, CURLOPT_URL, $url);
