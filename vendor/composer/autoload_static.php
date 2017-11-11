@@ -8,6 +8,7 @@ class ComposerStaticInitFriendica
 {
     public static $files = array (
         '2cffec82183ee1cea088009cef9a6fc3' => __DIR__ . '/..' . '/ezyang/htmlpurifier/library/HTMLPurifier.composer.php',
+        '8170285c807a9f24f165f37b15bc9a36' => __DIR__ . '/..' . '/defuse/php-encryption/Crypto.php',
     );
 
     public static $prefixLengthsPsr4 = array (
@@ -62,10 +63,15 @@ class ComposerStaticInitFriendica
         'Detection\\MobileDetect' => __DIR__ . '/..' . '/mobiledetect/mobiledetectlib/namespaced/Detection/MobileDetect.php',
         'Friendica\\App' => __DIR__ . '/../..' . '/src/App.php',
         'Friendica\\Core\\Config' => __DIR__ . '/../..' . '/src/Core/Config.php',
+        'Friendica\\Core\\NotificationsManager' => __DIR__ . '/../..' . '/src/Core/NotificationsManager.php',
         'Friendica\\Core\\PConfig' => __DIR__ . '/../..' . '/src/Core/PConfig.php',
         'Friendica\\Core\\System' => __DIR__ . '/../..' . '/src/Core/System.php',
+        'Friendica\\Core\\Worker' => __DIR__ . '/../..' . '/src/Core/Worker.php',
+        'Friendica\\Database\\DBM' => __DIR__ . '/../..' . '/src/Database/DBM.php',
         'Friendica\\Network\\Probe' => __DIR__ . '/../..' . '/src/Network/Probe.php',
         'Friendica\\ParseUrl' => __DIR__ . '/../..' . '/src/ParseUrl.php',
+        'Friendica\\Protocol\\DFRN' => __DIR__ . '/../..' . '/src/Protocol/DFRN.php',
+        'Friendica\\Protocol\\Diaspora' => __DIR__ . '/../..' . '/src/Protocol/Diaspora.php',
         'Friendica\\Util\\Lock' => __DIR__ . '/../..' . '/src/Util/Lock.php',
         'HTMLPurifier' => __DIR__ . '/..' . '/ezyang/htmlpurifier/library/HTMLPurifier.php',
         'HTMLPurifier_Arborize' => __DIR__ . '/..' . '/ezyang/htmlpurifier/library/HTMLPurifier/Arborize.php',

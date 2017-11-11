@@ -1,38 +1,34 @@
 <?php
-
 /**
  * @file include/ParseUrl.php
  * @brief Get informations about a given URL
  */
-
 namespace Friendica;
 
 use Friendica\Core\Config;
+use Friendica\Util\XML;
 
-use xml;
 use dba;
-
 use DomXPath;
 use DOMDocument;
 
-require_once("include/network.php");
-require_once("include/Photo.php");
-require_once("include/oembed.php");
-require_once("include/xml.php");
+require_once "include/network.php";
+require_once "include/Photo.php";
+require_once "include/oembed.php";
 
 /**
  * @brief Class with methods for extracting certain content from an url
  */
-class ParseUrl {
-
+class ParseUrl
+{
 	/**
 	 * @brief Search for chached embeddable data of an url otherwise fetch it
 	 *
-	 * @param type $url The url of the page which should be scraped
+	 * @param type $url         The url of the page which should be scraped
 	 * @param type $no_guessing If true the parse doens't search for
-	 *    preview pictures
-	 * @param type $do_oembed The false option is used by the function fetch_oembed()
-	 *    to avoid endless loops
+	 *                          preview pictures
+	 * @param type $do_oembed   The false option is used by the function fetch_oembed()
+	 *                          to avoid endless loops
 	 *
 	 * @return array which contains needed data for embedding
 	 *    string 'url' => The url of the parsed page
@@ -47,14 +43,18 @@ class ParseUrl {
 	 * @see ParseUrl::getSiteinfo() for more information about scraping
 	 * embeddable content
 	 */
-	public static function getSiteinfoCached($url, $no_guessing = false, $do_oembed = true) {
-
+	public static function getSiteinfoCached($url, $no_guessing = false, $do_oembed = true)
+	{
 		if ($url == "") {
 			return false;
 		}
 
-		$r = q("SELECT * FROM `parsed_url` WHERE `url` = '%s' AND `guessing` = %d AND `oembed` = %d",
-			dbesc(normalise_link($url)), intval(!$no_guessing), intval($do_oembed));
+		$r = q(
+			"SELECT * FROM `parsed_url` WHERE `url` = '%s' AND `guessing` = %d AND `oembed` = %d",
+			dbesc(normalise_link($url)),
+			intval(!$no_guessing),
+			intval($do_oembed)
+		);
 
 		if ($r) {
 			$data = $r[0]["content"];
@@ -67,9 +67,14 @@ class ParseUrl {
 
 		$data = self::getSiteinfo($url, $no_guessing, $do_oembed);
 
-		dba::insert('parsed_url', array('url' => normalise_link($url), 'guessing' => !$no_guessing,
+		dba::insert(
+			'parsed_url',
+			array(
+				'url' => normalise_link($url), 'guessing' => !$no_guessing,
 				'oembed' => $do_oembed, 'content' => serialize($data),
-				'created' => datetime_convert()), true);
+				'created' => datetime_convert()),
+			true
+		);
 
 		return $data;
 	}
@@ -83,12 +88,12 @@ class ParseUrl {
 	 * like \<title\>Awesome Title\</title\> or
 	 * \<meta name="description" content="An awesome description"\>
 	 *
-	 * @param type $url The url of the page which should be scraped
+	 * @param type $url         The url of the page which should be scraped
 	 * @param type $no_guessing If true the parse doens't search for
-	 *    preview pictures
-	 * @param type $do_oembed The false option is used by the function fetch_oembed()
-	 *    to avoid endless loops
-	 * @param type $count Internal counter to avoid endless loops
+	 *                          preview pictures
+	 * @param type $do_oembed   The false option is used by the function fetch_oembed()
+	 *                          to avoid endless loops
+	 * @param type $count       Internal counter to avoid endless loops
 	 *
 	 * @return array which contains needed data for embedding
 	 *    string 'url' => The url of the parsed page
@@ -113,8 +118,8 @@ class ParseUrl {
 	 * </body>
 	 * @endverbatim
 	 */
-	public static function getSiteinfo($url, $no_guessing = false, $do_oembed = true, $count = 1) {
-
+	public static function getSiteinfo($url, $no_guessing = false, $do_oembed = true, $count = 1)
+	{
 		$a = get_app();
 
 		$siteinfo = array();
@@ -158,7 +163,6 @@ class ParseUrl {
 		$body = $data["body"];
 
 		if ($do_oembed) {
-
 			$oembed_data = oembed_fetch_url($url);
 
 			if (!in_array($oembed_data->type, array("error", "rich", ""))) {
@@ -199,17 +203,17 @@ class ParseUrl {
 		$doc = new DOMDocument();
 		@$doc->loadHTML($body);
 
-		xml::deleteNode($doc, "style");
-		xml::deleteNode($doc, "script");
-		xml::deleteNode($doc, "option");
-		xml::deleteNode($doc, "h1");
-		xml::deleteNode($doc, "h2");
-		xml::deleteNode($doc, "h3");
-		xml::deleteNode($doc, "h4");
-		xml::deleteNode($doc, "h5");
-		xml::deleteNode($doc, "h6");
-		xml::deleteNode($doc, "ol");
-		xml::deleteNode($doc, "ul");
+		XML::deleteNode($doc, "style");
+		XML::deleteNode($doc, "script");
+		XML::deleteNode($doc, "option");
+		XML::deleteNode($doc, "h1");
+		XML::deleteNode($doc, "h2");
+		XML::deleteNode($doc, "h3");
+		XML::deleteNode($doc, "h4");
+		XML::deleteNode($doc, "h5");
+		XML::deleteNode($doc, "h6");
+		XML::deleteNode($doc, "ol");
+		XML::deleteNode($doc, "ul");
 
 		$xpath = new DomXPath($doc);
 
@@ -364,8 +368,7 @@ class ParseUrl {
 									"width" => $photodata[0],
 									"height" => $photodata[1]);
 				}
-
-				}
+			}
 		} elseif ($siteinfo["image"] != "") {
 			$src = self::completeUrl($siteinfo["image"], $url);
 
@@ -433,7 +436,8 @@ class ParseUrl {
 	 * @param string $string Tags
 	 * @return array with formatted Hashtags
 	 */
-	public static function convertTagsToArray($string) {
+	public static function convertTagsToArray($string)
+	{
 		$arr_tags = str_getcsv($string);
 		if (count($arr_tags)) {
 			// add the # sign to every tag
@@ -449,9 +453,10 @@ class ParseUrl {
 	 *  This method is used as callback function
 	 *
 	 * @param string $tag The pure tag name
-	 * @param int $k Counter for internal use
+	 * @param int    $k   Counter for internal use
 	 */
-	private static function arrAddHashes(&$tag, $k) {
+	private static function arrAddHashes(&$tag, $k)
+	{
 		$tag = "#" . $tag;
 	}
 
@@ -462,14 +467,15 @@ class ParseUrl {
 	 * can miss the scheme so we need to add the correct
 	 * scheme
 	 *
-	 * @param string $url The url which possibly does have
-	 *    a missing scheme (a link to an image)
+	 * @param string $url    The url which possibly does have
+	 *                       a missing scheme (a link to an image)
 	 * @param string $scheme The url with a correct scheme
-	 *    (e.g. the url from the webpage which does contain the image)
+	 *                       (e.g. the url from the webpage which does contain the image)
 	 *
 	 * @return string The url with a scheme
 	 */
-	private static function completeUrl($url, $scheme) {
+	private static function completeUrl($url, $scheme)
+	{
 		$urlarr = parse_url($url);
 
 		// If the url does allready have an scheme
@@ -486,7 +492,7 @@ class ParseUrl {
 			$complete .= ":".$schemearr["port"];
 		}
 
-		if (strpos($urlarr["path"],"/") !== 0) {
+		if (strpos($urlarr["path"], "/") !== 0) {
 			$complete .= "/";
 		}
 

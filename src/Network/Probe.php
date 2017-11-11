@@ -10,13 +10,12 @@ namespace Friendica\Network;
 
 use Friendica\App;
 use Friendica\Core\System;
+use Friendica\Core\Cache;
 use Friendica\Core\Config;
+use Friendica\Database\DBM;
+use Friendica\Util\XML;
 
 use dba;
-use dbm;
-use Cache;
-use xml;
-
 use DomXPath;
 use DOMDocument;
 
@@ -124,7 +123,7 @@ class Probe {
 			return array();
 		}
 
-		$links = xml::element_to_array($xrd);
+		$links = XML::element_to_array($xrd);
 		if (!isset($links["xrd"]["link"])) {
 			logger("No xrd data found for ".$host, LOGGER_DEBUG);
 			return array();
@@ -397,7 +396,7 @@ class Probe {
 					}
 				}
 
-				$fields['updated'] = dbm::date();
+				$fields['updated'] = DBM::date();
 
 				$condition = array('nurl' => normalise_link($data["url"]));
 
@@ -420,7 +419,7 @@ class Probe {
 						'confirm' => $data['confirm'],
 						'poco' => $data['poco'],
 						'network' => $data['network'],
-						'success_update' => dbm::date());
+						'success_update' => DBM::date());
 
 				$fieldnames = array();
 
@@ -706,7 +705,7 @@ class Probe {
 			return false;
 		}
 
-		$xrd_arr = xml::element_to_array($xrd);
+		$xrd_arr = XML::element_to_array($xrd);
 		if (!isset($xrd_arr["xrd"]["link"])) {
 			logger("No XML webfinger links for ".$url, LOGGER_DEBUG);
 			return false;
@@ -1501,7 +1500,7 @@ class Probe {
 
 			$r = q("SELECT * FROM `mailacct` WHERE `uid` = %d AND `server` != '' LIMIT 1", intval($uid));
 
-			if (dbm::is_result($x) && dbm::is_result($r)) {
+			if (DBM::is_result($x) && DBM::is_result($r)) {
 				$mailbox = construct_mailbox_name($r[0]);
 				$password = '';
 				openssl_private_decrypt(hex2bin($r[0]['pass']), $password, $x[0]['prvkey']);

@@ -5,9 +5,11 @@
  */
 
 use Friendica\App;
+use Friendica\Core\Cache;
 use Friendica\Core\System;
 use Friendica\ParseUrl;
 use Friendica\Core\Config;
+use Friendica\Database\DBM;
 
 function oembed_replacecb($matches){
 	$embedurl=$matches[1];
@@ -35,7 +37,7 @@ function oembed_fetch_url($embedurl, $no_rich_type = false){
 	$r = q("SELECT * FROM `oembed` WHERE `url` = '%s'",
 		dbesc(normalise_link($embedurl)));
 
-	if (dbm::is_result($r)) {
+	if (DBM::is_result($r)) {
 		$txt = $r[0]["content"];
 	} else {
 		$txt = Cache::get($a->videowidth . $embedurl);

@@ -13,6 +13,7 @@ use Friendica\App;
 use Friendica\Core\Config;
 use Friendica\Core\PConfig;
 use Friendica\Core\System;
+use Friendica\Database\DBM;
 
 require_once "include/plugin.php";
 require_once "include/socgraph.php";
@@ -22,7 +23,7 @@ function vier_init(App $a) {
 
 	$a->theme_events_in_profile = false;
 
-	set_template_engine($a, 'smarty3');
+	$a->set_template_engine('smarty3');
 
 	if ($a->argv[0].$a->argv[1] === "profile".$a->user['nickname'] || $a->argv[0] === "network" && local_user()) {
 		vier_community_info();
@@ -141,7 +142,7 @@ function vier_community_info() {
 		$r = suggestion_query(local_user(), 0, 9);
 
 		$tpl = get_markup_template('ch_directory_item.tpl');
-		if (dbm::is_result($r)) {
+		if (DBM::is_result($r)) {
 
 			$aside['$comunity_profiles_title'] = t('Community Profiles');
 			$aside['$comunity_profiles_items'] = array();
@@ -171,7 +172,7 @@ function vier_community_info() {
 				WHERE `is-default` = 1 $publish AND `user`.`blocked` = 0 $order LIMIT %d , %d ",
 				0, 9);
 
-		if (dbm::is_result($r)) {
+		if (DBM::is_result($r)) {
 
 			$aside['$lastusers_title'] = t('Last users');
 			$aside['$lastusers_items'] = array();
@@ -381,7 +382,7 @@ function vier_community_info() {
 
 		$tpl = get_markup_template('ch_connectors.tpl');
 
-		if (dbm::is_result($r)) {
+		if (DBM::is_result($r)) {
 
 			$con_services = array();
 			$con_services['title'] = array("", t('Connect Services'), "", "");

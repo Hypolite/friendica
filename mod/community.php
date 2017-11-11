@@ -2,6 +2,7 @@
 
 use Friendica\App;
 use Friendica\Core\Config;
+use Friendica\Database\DBM;
 
 function community_init(App $a) {
 	if (! local_user()) {
@@ -27,8 +28,6 @@ function community_content(App $a, $update = 0) {
 	require_once('include/security.php');
 	require_once('include/conversation.php');
 
-
-	$o .= '<h3>' . t('Community') . '</h3>';
 	if (! $update) {
 		nav_set_selected('community');
 	}
@@ -45,7 +44,7 @@ function community_content(App $a, $update = 0) {
 
 	$r = community_getitems($a->pager['start'], $a->pager['itemspage']);
 
-	if (! dbm::is_result($r)) {
+	if (! DBM::is_result($r)) {
 		info( t('No results.') . EOL);
 		return $o;
 	}
@@ -82,9 +81,15 @@ function community_content(App $a, $update = 0) {
 
 	$o .= conversation($a, $s, 'community', $update);
 
-        $o .= alt_pager($a, count($r));
+	$o .= alt_pager($a, count($r));
 
-	return $o;
+	$t = get_markup_template("community.tpl");
+	return replace_macros($t, array(
+		'$content' => $o,
+		'$header' => t("Community"),
+		'$show_global_community_hint' => (Config::get('system', 'community_page_style') == CP_GLOBAL_COMMUNITY && Config::get('system', 'show_global_community_hint')),
+		'$global_community_hint' => t("This community stream shows all public posts received by this node. They may not reflect the opinions of this node’s users.")
+	));
 }
 
 function community_getitems($start, $itemspage) {

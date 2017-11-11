@@ -8,12 +8,11 @@
 
 use Friendica\App;
 use Friendica\Core\Config;
+use Friendica\Database\DBM;
+use Friendica\Protocol\DFRN;
 
-require_once('include/items.php');
-require_once('include/dfrn.php');
-require_once('include/event.php');
-
-require_once('library/defuse/php-encryption-1.2.1/Crypto.php');
+require_once 'include/items.php';
+require_once 'include/event.php';
 
 function dfrn_notify_post(App $a) {
 	logger(__function__, LOGGER_TRACE);
@@ -46,7 +45,7 @@ function dfrn_notify_post(App $a) {
 		dbesc($dfrn_id),
 		dbesc($challenge)
 	);
-	if (! dbm::is_result($r)) {
+	if (! DBM::is_result($r)) {
 		logger('dfrn_notify: could not match challenge to dfrn_id ' . $dfrn_id . ' challenge=' . $challenge);
 		xml_status(3, 'Could not match challenge');
 	}
@@ -94,7 +93,7 @@ function dfrn_notify_post(App $a) {
 		dbesc($a->argv[1])
 	);
 
-	if (! dbm::is_result($r)) {
+	if (! DBM::is_result($r)) {
 		logger('dfrn_notify: contact not found for dfrn_id ' . $dfrn_id);
 		xml_status(3, 'Contact not found');
 		//NOTREACHED
@@ -180,12 +179,12 @@ function dfrn_notify_post(App $a) {
 				 *we got a key. old code send only the key, without RINO version.
 				 * we assume RINO 1 if key and no RINO version
 				 */
-				$data = dfrn::aes_decrypt(hex2bin($data), $final_key);
+				$data = DFRN::aes_decrypt(hex2bin($data), $final_key);
 				break;
 			case 2:
 				try {
-					$data = Crypto::decrypt(hex2bin($data), $final_key);
-				} catch (InvalidCiphertext $ex) { // VERY IMPORTANT
+					$data = \Crypto::decrypt(hex2bin($data), $final_key);
+				} catch (\InvalidCiphertextException $ex) { // VERY IMPORTANT
 					/*
 					 * Either:
 					 *   1. The ciphertext was modified by the attacker,
@@ -195,10 +194,10 @@ function dfrn_notify_post(App $a) {
 					 */
 					logger('The ciphertext has been tampered with!');
 					xml_status(0, 'The ciphertext has been tampered with!');
-				} catch (Ex\CryptoTestFailed $ex) {
+				} catch (\CryptoTestFailedException $ex) {
 					logger('Cannot safely perform dencryption');
 					xml_status(0, 'CryptoTestFailed');
-				} catch (Ex\CannotPerformOperation $ex) {
+				} catch (\CannotPerformOperationException $ex) {
 					logger('Cannot safely perform decryption');
 					xml_status(0, 'Cannot safely perform decryption');
 				}
@@ -212,7 +211,7 @@ function dfrn_notify_post(App $a) {
 		logger('rino: decrypted data: ' . $data, LOGGER_DATA);
 	}
 
-	$ret = dfrn::import($data, $importer);
+	$ret = DFRN::import($data, $importer);
 	xml_status($ret, 'Processed');
 
 	// NOTREACHED
@@ -284,7 +283,7 @@ function dfrn_notify_content(App $a) {
 				dbesc($a->argv[1])
 		);
 
-		if (! dbm::is_result($r)) {
+		if (! DBM::is_result($r)) {
 			$status = 1;
 		}
 
