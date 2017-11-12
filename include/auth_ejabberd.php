@@ -81,6 +81,7 @@ class exAuth {
 
 		// We are connected to the SQL server.
 		while (!feof(STDIN)) {
+			$this->writeLog(LOG_NOTICE, "a");
 			// Quit if the database connection went down
 			if (!dba::connected()) {
 				$this->writeLog(LOG_ERR, "the database connection went down");
@@ -100,7 +101,9 @@ class exAuth {
 			}
 
 			// Fetching the data
+			$this->writeLog(LOG_NOTICE, "e");
 			$sData = fgets(STDIN, $iLength + 1);
+			$this->writeLog(LOG_NOTICE, "f");
 			$this->writeLog(LOG_DEBUG, "received data: ". $sData);
 			$aCommand = explode(":", $sData);
 			if (is_array($aCommand)) {
@@ -124,11 +127,14 @@ class exAuth {
 						fwrite(STDOUT, pack("nn", 2, 0));
 						break;
 				}
+				$this->writeLog(LOG_NOTICE, "b");
 			} else {
 				$this->writeLog(LOG_NOTICE, "invalid command string ".$sData);
 				fwrite(STDOUT, pack("nn", 2, 0));
 			}
+			$this->writeLog(LOG_NOTICE, "c");
 		}
+		$this->writeLog(LOG_NOTICE, "d");
 	}
 
 	/**
