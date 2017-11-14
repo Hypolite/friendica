@@ -106,22 +106,27 @@ class exAuth {
 			$this->writeLog(LOG_NOTICE, "f");
 			$this->writeLog(LOG_DEBUG, "received data: ". $sData);
 			$aCommand = explode(":", $sData);
+			$this->writeLog(LOG_NOTICE, "g");
 			if (is_array($aCommand)) {
 				switch ($aCommand[0]) {
 					case "isuser":
+						$this->writeLog(LOG_NOTICE, "h");
 						// Check the existance of a given username
 						$this->isuser($aCommand);
 						break;
 					case "auth":
+						$this->writeLog(LOG_NOTICE, "i");
 						// Check if the givven password is correct
 						$this->auth($aCommand);
 						break;
 					case "setpass":
+						$this->writeLog(LOG_NOTICE, "j");
 						// We don't accept the setting of passwords here
 						$this->writeLog(LOG_NOTICE, "setpass command disabled");
 						fwrite(STDOUT, pack("nn", 2, 0));
 						break;
 					default:
+						$this->writeLog(LOG_NOTICE, "k");
 						// We don't know the given command
 						$this->writeLog(LOG_NOTICE, "unknown command ". $aCommand[0]);
 						fwrite(STDOUT, pack("nn", 2, 0));
