@@ -223,6 +223,7 @@ class exAuth {
 	 * @param array $aCommand The command array
 	 */
 	private function auth($aCommand) {
+		$this->writeLog(LOG_INFO, "a1");
 		$a = get_app();
 
 		// check user authentication
@@ -231,6 +232,7 @@ class exAuth {
 			fwrite(STDOUT, pack("nn", 2, 0));
 			return;
 		}
+		$this->writeLog(LOG_INFO, "a2");
 
 		// We now check if the password match
 		$sUser = str_replace(array("%20", "(a)"), array(" ", "@"), $aCommand[1]);
@@ -258,9 +260,11 @@ class exAuth {
 		} else {
 			$Error = true;
 		}
+		$this->writeLog(LOG_INFO, "a3");
 
 		// If the hostnames doesn't match or there is some failure, we try to check remotely
 		if ($Error) {
+		$this->writeLog(LOG_INFO, "a4");
 			$Error = !$this->check_credentials($aCommand[2], $aCommand[1], $aCommand[3], true);
 		}
 
@@ -273,6 +277,7 @@ class exAuth {
 			fwrite(STDOUT, pack("nn", 2, 1));
 			$this->writeLog(LOG_NOTICE, "wrote to STDOUT");
 		}
+		$this->writeLog(LOG_INFO, "a5");
 	}
 
 	/**
