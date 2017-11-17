@@ -148,7 +148,9 @@ class exAuth {
 	 * @param array $aCommand The command array
 	 */
 	private function isuser($aCommand) {
+		$this->writeLog(LOG_NOTICE, "i1");
 		$a = get_app();
+		$this->writeLog(LOG_NOTICE, "i2");
 
 		// Check if there is a username
 		if (!isset($aCommand[1])) {
@@ -156,9 +158,11 @@ class exAuth {
 			fwrite(STDOUT, pack("nn", 2, 0));
 			return;
 		}
+		$this->writeLog(LOG_NOTICE, "i3");
 
 		// Now we check if the given user is valid
 		$sUser = str_replace(array("%20", "(a)"), array(" ", "@"), $aCommand[1]);
+		$this->writeLog(LOG_NOTICE, "i4");
 
 		// Does the hostname match? So we try directly
 		if ($a->get_hostname() == $aCommand[2]) {
@@ -170,9 +174,11 @@ class exAuth {
 		} else {
 			$found = false;
 		}
+		$this->writeLog(LOG_NOTICE, "i5");
 
 		// If the hostnames doesn't match or there is some failure, we try to check remotely
 		if (!$found) {
+			$this->writeLog(LOG_NOTICE, "i6");
 			$found = $this->check_user($aCommand[2], $aCommand[1], true);
 		}
 
