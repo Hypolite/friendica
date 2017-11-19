@@ -3,7 +3,7 @@
  * @file include/friendica_smarty.php
  */
 
-use Friendica\Render\TemplateEngine;
+use Friendica\Render\ITemplateEngine;
 
 require_once "library/Smarty/libs/Smarty.class.php";
 require_once "include/plugin.php";
