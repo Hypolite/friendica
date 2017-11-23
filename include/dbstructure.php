@@ -1736,6 +1736,19 @@ function db_definition() {
 					"username" => array("username(32)"),
 					)
 			);
+	$database["verify"] = array(
+			"fields" => array(
+					"id" => array("type" => "int(10)", "not null" => "1", "extra" => "auto_increment", "primary" => "1"),
+					"uid" => array("type" => "int(10) unsigned", "not null" => "1", "default" => "0", "relation" => array("user" => "uid")),
+					"type" => array("type" => "varchar(32)", "not_null", "default" => ""),
+					"token" => array("type" => "varchar(255)", "not_null" => "1", "default" => ""),
+					"meta" => array("type" => "varchar(255)", "not_null" => "1", "default" => ""),
+					"created" => array("type" => "datetime", "not null" => "1", "default" => NULL_DATE),
+					),
+			"indexes" => array(
+					"PRIMARY" => array("id"),
+					)
+			);
 	$database["workerqueue"] = array(
 			"fields" => array(
 					"id" => array("type" => "int(11)", "not null" => "1", "extra" => "auto_increment", "primary" => "1"),

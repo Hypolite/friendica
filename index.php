@@ -122,21 +122,34 @@ if ((x($_SESSION,'language')) && ($_SESSION['language'] !== $lang)) {
 }
 
 if ((x($_GET,'zrl')) && (!$install && !$maintenance)) {
-	// Only continue when the given profile link seems valid
-	// Valid profile links contain a path with "/profile/" and no query parameters
-	if ((parse_url($_GET['zrl'], PHP_URL_QUERY) == "") &&
-		strstr(parse_url($_GET['zrl'], PHP_URL_PATH), "/profile/")) {
-		$_SESSION['my_url'] = $_GET['zrl'];
-		$a->query_string = preg_replace('/[\?&]zrl=(.*?)([\?&]|$)/is','',$a->query_string);
-		zrl_init($a);
-	} else {
-		// Someone came with an invalid parameter, maybe as a DDoS attempt
-		// We simply stop processing here
-		logger("Invalid ZRL parameter ".$_GET['zrl'], LOGGER_DEBUG);
-		header('HTTP/1.1 403 Forbidden');
-		echo "<h1>403 Forbidden</h1>";
-		killme();
+	$a->query_string = strip_zrls($_GET["zrl"]);
+
+	if (!local_user()) {
+		// Only continue when the given profile link seems valid
+		// Valid profile links contain a path with "/profile/" and no query parameters
+		if ((parse_url($_GET['zrl'], PHP_URL_QUERY) == "") &&
+			strstr(parse_url($_GET['zrl'], PHP_URL_PATH), "/profile/")) {
+			if ($_SESSION["visitor_home"] != $_GET["zrl"]) {
+				$_SESSION['my_url'] = $_GET['zrl'];
+				$_SESSION['authenticated'] = 0;
+				//$a->query_string = preg_replace('/[\?&]zrl=(.*?)([\?&]|$)/is','',$a->query_string);
+			}
+			zrl_init($a);
+		} else {
+			// Someone came with an invalid parameter, maybe as a DDoS attempt
+			// We simply stop processing here
+			logger("Invalid ZRL parameter ".$_GET['zrl'], LOGGER_DEBUG);
+			header('HTTP/1.1 403 Forbidden');
+			echo "<h1>403 Forbidden</h1>";
+			killme();
+		}
 	}
+}
+
+if ((x($_GET,'owt')) && (!$install && !$maintenance)) {
+	$token = $_GET['owt'];
+	$a->query_string = strip_query_param($a->query_string, 'owt');
+	owt_init($token);
 }
 
 /**

@@ -39,6 +39,7 @@ class App {
 	public $cid;
 	public $contact;
 	public $contacts;
+	public $observer = null; // Contact record of the page observer.
 	public $page_contact;
 	public $content;
 	public $data = array();
@@ -447,6 +448,13 @@ class App {
 
 	function get_path() {
 		return $this->path;
+	}
+	function setObserver($contact) {
+		$this->observer = $contact;
+	}
+
+	function getObserver() {
+		return $this->observer;
 	}
 
 	function set_pager_total($n) {

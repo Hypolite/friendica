@@ -73,7 +73,8 @@ function xrd_json($a, $uri, $alias, $profile_url, $r) {
 					array('rel' => 'http://salmon-protocol.org/ns/salmon-replies', 'href' => System::baseUrl().'/salmon/'.$r['nickname']),
 					array('rel' => 'http://salmon-protocol.org/ns/salmon-mention', 'href' => System::baseUrl().'/salmon/'.$r['nickname'].'/mention'),
 					array('rel' => 'http://ostatus.org/schema/1.0/subscribe', 'template' => System::baseUrl().'/follow?url={uri}'),
-					array('rel' => 'magic-public-key', 'href' => 'data:application/magic-public-key,'.$salmon_key)
+					array('rel' => 'magic-public-key', 'href' => 'data:application/magic-public-key,'.$salmon_key),
+					array('rel' => 'http://purl.org/openwebauth/v1', 'type' => 'application/x-dfrn+json', 'href' => System::baseUrl().'/owa')
 	));
 	echo json_encode($json);
 	killme();
@@ -97,11 +98,12 @@ function xrd_xml($a, $uri, $alias, $profile_url, $r) {
 		'$zot_post'    => System::baseUrl() . '/post/'          . $r['nickname'],
 		'$poco_url'    => System::baseUrl() . '/poco/'          . $r['nickname'],
 		'$photo'       => System::baseUrl() . '/photo/profile/' . $r['uid']      . '.jpg',
-		'$baseurl' => System::baseUrl(),
+		'$baseurl'     => System::baseUrl(),
 		'$salmon'      => System::baseUrl() . '/salmon/'        . $r['nickname'],
 		'$salmen'      => System::baseUrl() . '/salmon/'        . $r['nickname'] . '/mention',
 		'$subscribe'   => System::baseUrl() . '/follow?url={uri}',
-		'$modexp'      => 'data:application/magic-public-key,'  . $salmon_key,
+		'$openwebauth' => System::baseUrl() .'/owa',
+		'$modexp'      => 'data:application/magic-public-key,'  . $salmon_key
 	));
 
 	$arr = array('user' => $r, 'xml' => $o);

@@ -1102,8 +1102,20 @@ CREATE TABLE IF NOT EXISTS `userd` (
 	`username` varchar(255) NOT NULL,
 	 PRIMARY KEY(`id`),
 	 INDEX `username` (`username`(32))
+) 
+DEFAULT COLLATE utf8mb4_general_ci;
+--
+-- Table verify
+--
+CREATE TABLE IF NOT EXISTS `verify` (
+	`id` int(10) NOT NULL auto_increment,
+	`uid` int(10) NOT NULL DEFAULT 0,
+	`type` varchar(32) NOT NULL DEFAULT '',
+	`token` varchar(255) NOT NULL DEFAUL '',
+	`meta` varchar(255) NOT NULL DEFAUL '',
+	`created` datetime NOT NULL DEFAULT '0001-01-01 00:00:00',
+	 PRIMARY KEY(`id`)
 ) DEFAULT COLLATE utf8mb4_general_ci;
-
 --
 -- TABLE workerqueue
 --

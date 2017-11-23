@@ -929,19 +929,51 @@ function zrl_init(App $a)
 {
 	$tmp_str = get_my_url();
 	if (validate_url($tmp_str)) {
-		// Is it a DDoS attempt?
-		// The check fetches the cached value from gprobe to reduce the load for this system
-		$urlparts = parse_url($tmp_str);
+		if (!local_user()) {
+			// Is it a DDoS attempt?
+			// The check fetches the cached value from gprobe to reduce the load for this system
+			$urlparts = parse_url($tmp_str);
 
-		$result = Cache::get("gprobe:" . $urlparts["host"]);
-		if ((!is_null($result)) && (in_array($result["network"], array(NETWORK_FEED, NETWORK_PHANTOM)))) {
-			logger("DDoS attempt detected for " . $urlparts["host"] . " by " . $_SERVER["REMOTE_ADDR"] . ". server data: " . print_r($_SERVER, true), LOGGER_DEBUG);
-			return;
+			$result = Cache::get("gprobe:" . $urlparts["host"]);
+			if ((!is_null($result)) && (in_array($result["network"], array(NETWORK_FEED, NETWORK_PHANTOM)))) {
+				logger("DDoS attempt detected for " . $urlparts["host"] . " by " . $_SERVER["REMOTE_ADDR"] . ". server data: " . print_r($_SERVER, true), LOGGER_DEBUG);
+				return;
+			}
+
+			Worker::add(PRIORITY_LOW, 'gprobe', $tmp_str);
+			$arr = array('zrl' => $tmp_str, 'url' => $a->cmd);
+			call_hooks('zrl_init', $arr);
+
+			///@todo There needs to be a check if the contanct is already authenticated.
+
+			// Note: we need to change this part. We need a function which does check
+			// if a contact is in the db and add it it if it's not.
+			if(!get_contact($tmp_str)) {
+				logger("Try to import contact ".$tmp_str);
+				if(!get_contact($tmp_str, 0, true)) {
+					logger("Failed to import contact ".$tmp_str);
+					return;
+				}
+			}
+//			$observer = dba::select("contact", array(), array("url" => $tmp_str), array("limit" => 1));
+			//logger("Entry from Contact Table: ".print_r($observer, true));
+
+			logger("Probe for ".$tmp_str.": ".print_r(Friendica\Network\Probe::uri($tmp_str, "dfrn", -1, false), true));
+			// Return here if we don't have an contact entry. (Note: some people don't have GContact
+			// activated. We need a solution for this situation.
+//			if (!DBM::is_result($observer)) {
+//				return;
+//			}
+			logger('Not authenticated. Invoking reverse magic-auth for ' . $tmp_str);
+			// Try to avoid recursion - but send them home to do a proper magic auth.
+			$query = $a->query_string;
+			$query = str_replace(array('?zrl=','&zid='),array('?rzrl=','&rzrl='),$query);
+			$dest = urlencode($query);
+
+			$basepath = explode("/profile/", $tmp_str);
+			logger("Basepath of the contact: ".print_r($basepath[0], true));
+			logger("Destination: dest=".$dest);
 		}
-
-		Worker::add(PRIORITY_LOW, 'gprobe', $tmp_str);
-		$arr = array('zrl' => $tmp_str, 'url' => $a->cmd);
-		call_hooks('zrl_init', $arr);
 	}
 }
 
@@ -962,6 +994,108 @@ function zrl($s, $force = false)
 		return $s . $achar . 'zrl=' . urlencode($mine);
 	}
 	return $s;
+}
+
+/**
+ * @brief Stip zrl param from a string.
+ * 
+ * @param type string $s 
+ * @return string The zrl
+ */
+function strip_zrls($s)
+{
+	return preg_replace('/[\?&]zrl=(.*?)(&|$)/ism','$2',$s);
+}
+
+function strip_query_param($s,$param)
+{
+	return preg_replace('/[\?&]' . $param . '=(.*?)(&|$)/ism','$2',$s);
+}
+
+/**
+ * @brief OpenWebAuth authentication.
+ *
+ * @param string $token
+ */
+function owt_init($token)
+{
+	$a = get_app();
+
+	\Zotlabs\Zot\Verify::purge('owt', '3 MINUTE');
+	$ob_hash = \Zotlabs\Zot\Verify::get_meta('owt', 0, $token);
+	if($ob_hash === false) {
+		return;
+	}
+//	$r = q("select * from hubloc left join xchan on xchan_hash = hubloc_hash
+//		where hubloc_addr = '%s' order by hubloc_id desc",
+//		dbesc($ob_hash)
+//	);
+
+	$observer = dba::select("contact", array(), array("addr" => $ob_hash), array("limit" => 1));
+
+	if(!DBM::is_result($observer)) {
+		// Finger them if they can't be found.
+//		$j = \Zotlabs\Zot\Finger::run($ob_hash, null);
+//		if ($j['success']) {
+//			import_xchan($j);
+//			$r = q("select * from hubloc left join xchan on xchan_hash = hubloc_hash
+//				where hubloc_addr = '%s' order by hubloc_id desc",
+//				dbesc($ob_hash)
+//			);
+//		}
+	}
+	if(!DBM::is_result($observer)) {
+		logger('owt: unable to finger ' . $ob_hash);
+		return;
+	}
+
+	$_SESSION['authenticated'] = 1;
+	$delegate_success = false;
+//	if($_GET['delegate']) {
+//		$r = q("select * from channel left join xchan on channel_hash = xchan_hash where xchan_addr = '%s' limit 1",
+//			dbesc($_REQUEST['delegate'])
+//		);
+//		if ($r && intval($r[0]['channel_id'])) {
+//			$allowed = perm_is_allowed($r[0]['channel_id'], $hubloc['xchan_hash'], 'delegate');
+//			if ($allowed) {
+//				$_SESSION['delegate_channel'] = $r[0]['channel_id'];
+//				$_SESSION['delegate'] = $hubloc['xchan_hash'];
+//				$_SESSION['account_id'] = intval($r[0]['channel_account_id']);
+//				require_once('include/security.php');
+//				// this will set the local_channel authentication in the session
+//				change_channel($r[0]['channel_id']);
+//				$delegate_success = true;
+//			}
+//		}
+//	}
+	if (! $delegate_success) {
+		// Normal visitor (remote_User) login session credentials.
+		$_SESSION['visitor_id'] = $observer['id'];
+		$_SESSION['my_url'] = $hubloc['xchan_url'];
+		$_SESSION['visitor_handle'] = $observer['addr'];
+		$_SESSION['visitor_home'] = $observer['url'];
+
+	}
+	$arr = [
+		'visitor' => $visitor,
+		'url' => $a->query_string,
+		'session' => $_SESSION
+	];
+	/**
+	 * @hooks magic_auth_success
+	 *   Called when a magic-auth was successful.
+	 *   * \e array \b xchan
+	 *   * \e string \b url
+	 *   * \e array \b session
+	 */
+	call_hooks('magic_auth_success', $arr);
+	$a->set_observer($visitor);
+	require_once('include/security.php');
+//	\App::set_groups(init_groups_visitor($_SESSION['visitor_id']));
+	if (!Config::get('system', 'hide_owa_greeting')) {
+		info(sprintf(t('OpenWebAuth: %1$s welcomes %2$s'),$a->get_hostname(), $visitor['name']));
+	}
+	logger('OpenWebAuth: auth success from ' . $visitor['addr']);
 }
 
 /**

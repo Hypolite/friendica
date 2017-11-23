@@ -61,6 +61,7 @@ if (isset($_SESSION) && x($_SESSION,'authenticated') && (!x($_POST,'auth-params'
 		);
 		if (DBM::is_result($r)) {
 			$a->contact = $r[0];
+			$a->setObserver = $r[0];
 		}
 	}
 
